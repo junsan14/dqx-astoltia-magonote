@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class MonsterMapSpawn extends Model
+{
+    protected $fillable = [
+        'monster_id',
+        'map_id',
+        'area',
+        'spawn_count',
+        'marker_x',
+        'marker_y',
+        
+    ];
+    public function monster()
+{
+    return $this->belongsTo(Monster::class);
+}
+
+public function map()
+{
+    return $this->belongsTo(Map::class);
+}
+
+}
