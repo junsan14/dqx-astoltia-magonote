@@ -26,5 +26,9 @@ class Monster extends Model
     {
         return $this->hasMany(MonsterWhiteBox::class);
     }
+        public function drops()
+    {
+        return $this->hasMany(MonsterDrop::class);
+    }
 
 }

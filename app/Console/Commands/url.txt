@@ -1,0 +1,31 @@
+https://draquex.com/monster/field/1-wena.php
+https://draquex.com/monster/field/1-augu.php
+https://draquex.com/monster/field/1-puku.php
+https://draquex.com/monster/field/1-eltona.php
+https://draquex.com/monster/field/1-dowa.php
+https://draquex.com/monster/field/1-sonota.php
+https://draquex.com/monster/field/1-itsuwari.php
+https://draquex.com/monster/field/1-shin.php
+https://draquex.com/monster/field/1-nadora.php
+https://draquex.com/monster/field/1-kyuru.php
+https://draquex.com/monster/field/1-makai.php
+https://draquex.com/monster/field/1-tensei.php
+https://draquex.com/monster/field/1-hate.php
+
+
+
+取得したいエリアのURLが全部のっている大陸の一覧URLがこれ。
+このURL全部でそれぞれのURLを取得したい。画像が二枚あるやつはそれぞれ保存します。
+
+
+あとモンスターの生息地で北西とか東とか南とか書いてあったら、8かける8マスで適当な箇所をjsonで作成してそれを保存してほしい。
+D3とかなくてもnoteには全部いれてほしい。s
+
+
+あと画像パスはnextjs側のpublic/images/area/　に保存したい。
+オーグリード大陸なら augu/...
+エルトナなら eltona/...
+
+
+
+php artisan dq10:import-draquex-field-v6 "https://draquex.com/monster/field/1-wena.php"  --download-map-image   
