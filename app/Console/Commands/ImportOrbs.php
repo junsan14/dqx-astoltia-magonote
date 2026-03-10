@@ -9,61 +9,110 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class ImportOrbs extends Command
 {
-    protected $signature = 'dq10:import-orbs {url}';
-    protected $description = 'Import orb data from wiki page';
+    protected $signature = 'dq10:import-orbs 
+                            {--color=all}
+                            {--fresh : delete all orb data before import}';
+
+    protected $description = 'Import orb data from wiki';
+
+    private $urls = [
+        '炎' => 'https://wikiwiki.jp/dq10dic2nd/%E5%AE%9D%E7%8F%A0/%E7%82%8E',
+        '水' => 'https://wikiwiki.jp/dq10dic2nd/%E5%AE%9D%E7%8F%A0/%E6%B0%B4',
+        '風' => 'https://wikiwiki.jp/dq10dic2nd/%E5%AE%9D%E7%8F%A0/%E9%A2%A8',
+        '光' => 'https://wikiwiki.jp/dq10dic2nd/%E5%AE%9D%E7%8F%A0/%E5%85%89',
+        '闇' => 'https://wikiwiki.jp/dq10dic2nd/%E5%AE%9D%E7%8F%A0/%E9%97%87',
+    ];
 
     public function handle()
     {
-        $url = $this->argument('url');
+        // fresh option
+        if ($this->option('fresh')) {
+            $this->warn("fresh option detected: deleting all orbs...");
+            DB::table('orbs')->truncate();
+        }
 
-        $this->info("fetching: $url");
+        $colorOption = $this->option('color');
 
-        $html = Http::get($url)->body();
+        if ($colorOption === 'all') {
+            $targets = $this->urls;
+        } else {
+            if (!isset($this->urls[$colorOption])) {
+                $this->error("invalid color: {$colorOption}");
+                return Command::FAILURE;
+            }
 
-        $crawler = new Crawler($html);
+            $targets = [
+                $colorOption => $this->urls[$colorOption]
+            ];
+        }
 
-        // 色判定
-        $color = null;
+        foreach ($targets as $color => $url) {
 
-        if (str_contains($url, '炎')) $color = '炎';
-        if (str_contains($url, '水')) $color = '水';
-        if (str_contains($url, '風')) $color = '風';
-        if (str_contains($url, '光')) $color = '光';
-        if (str_contains($url, '闇')) $color = '闇';
+            $this->info("fetching {$color}: {$url}");
 
-        $rows = $crawler->filter('table tr');
+            $response = Http::withOptions([
+                'verify' => true
+            ])->get($url);
 
-foreach ($rows as $row) {
+            if (!$response->successful()) {
+                $this->error("failed: {$url}");
+                continue;
+            }
 
-    $cols = (new Crawler($row))->filter('td');
+            $html = $response->body();
 
-    // tdがない＝ヘッダーなのでスキップ
-    if ($cols->count() === 0) {
-        continue;
-    }
+            $crawler = new Crawler($html);
 
-    $name = trim($cols->eq(0)->text());
-    $effect = trim($cols->eq(1)->text());
+            $rows = $crawler->filter('table tr');
 
-    // 念のためゴミデータ防止
-    if ($name === '名称' || $name === 'Lv1毎') {
-        continue;
-    }
+            foreach ($rows as $row) {
 
-    DB::table('orbs')->updateOrInsert(
-        ['name' => $name],
-        [
-            'color' => $color,
-            'effect' => $effect,
-            //'source_url' => $url,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]
-    );
+                $cols = (new Crawler($row))->filter('td');
 
-    $this->info("imported: $name");
-}
+                if ($cols->count() < 2) {
+                    continue;
+                }
+
+                $name = trim($cols->eq(0)->text(''));
+                $effect = trim($cols->eq(1)->text(''));
+                // 全角スペース整理
+                $name = str_replace('　', ' ', $name);
+
+                // 先頭の☆を削除
+                $name = preg_replace('/^☆+/u', '', $name);
+
+                // （旧：～）削除
+                $name = preg_replace('/\s*[\(（]旧：.*?[\)）]/u', '', $name);
+
+                $name = trim($name);
+                $name = str_replace('　', ' ', $name);
+                $name = preg_replace('/\s*[\(（]旧：.*?[\)）]/u', '', $name);
+                $name = trim($name);
+
+                if (
+                    $name === '' ||
+                    $name === '名称' ||
+                    $name === 'Lv1毎'
+                ) {
+                    continue;
+                }
+
+                DB::table('orbs')->updateOrInsert(
+                    ['name' => $name],
+                    [
+                        'color' => $color,
+                        'effect' => $effect,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+
+                $this->info("imported: {$name} ({$color})");
+            }
+        }
 
         $this->info("done");
+
+        return Command::SUCCESS;
     }
 }

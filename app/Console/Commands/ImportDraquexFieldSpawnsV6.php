@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 class ImportDraquexFieldSpawnsV6 extends Command
 {
     protected $signature = 'dq10:import-draquex-field-v6
-                            {list_url : 例 https://draquex.com/monster/field/1-augu.php}
+                            {list_url : 例 https://draquex.com/map/1-augu.php}
                             {--dry-run : DBに保存しない}
                             {--map= : 特定マップ名だけに絞る}
                             {--download-map-image : マップ画像も保存する}';
@@ -18,12 +18,14 @@ class ImportDraquexFieldSpawnsV6 extends Command
 
     public function handle(): int
     {
-        $this->warn('ImportDraquexFieldSpawnsV5 running');
+        $this->warn('ImportDraquexFieldSpawnsV7 running');
 
         $listUrl = $this->argument('list_url');
         $dryRun = (bool) $this->option('dry-run');
         $onlyMap = $this->option('map');
         $downloadMapImage = (bool) $this->option('download-map-image');
+
+        $continentKey = $this->detectContinentKeyFromListUrl($listUrl);
 
         $listHtml = $this->fetch($listUrl);
 
@@ -39,7 +41,7 @@ class ImportDraquexFieldSpawnsV6 extends Command
         }
 
         $this->info('対象マップ数: ' . count($mapLinks));
-        foreach (array_slice($mapLinks, 0, 10) as $link) {
+        foreach (array_slice($mapLinks, 0, 20) as $link) {
             $this->line(" - {$link['map']} => {$link['url']}");
         }
 
@@ -61,34 +63,8 @@ class ImportDraquexFieldSpawnsV6 extends Command
 
             $mapHtml = $this->fetch($mapUrl);
             if (! $mapHtml) {
-                $this->warn("  個別ページ取得失敗");
+                $this->warn('  個別ページ取得失敗');
                 continue;
-            }
-
-            $imageInfo = null;
-
-            if ($downloadMapImage) {
-                $imageUrl = $this->extractMapImageUrlFromMapPage($mapHtml, $mapUrl);
-
-                if ($imageUrl) {
-                    if ($dryRun) {
-                        $ext = strtolower(pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
-                        $fileName = $this->mapNameToEnglishFileName($mapName, $ext);
-
-                        $this->line("  [dry-run] map image: {$imageUrl}");
-                        $this->line("  [dry-run] image_path: /images/maps/{$fileName}");
-                    } else {
-                        $imageInfo = $this->downloadMapImage($imageUrl, $mapName);
-
-                        if ($imageInfo) {
-                            $this->line("  map image saved: {$imageInfo['full_path']}");
-                        } else {
-                            $this->warn("  map image save failed: {$imageUrl}");
-                        }
-                    }
-                } else {
-                    $this->warn('  map image not found');
-                }
             }
 
             $spawnRows = $this->extractSpawnRowsFromMapPage($mapHtml);
@@ -104,7 +80,7 @@ class ImportDraquexFieldSpawnsV6 extends Command
             if (! $map && ! $dryRun) {
                 DB::table('maps')->insert([
                     'name' => $mapName,
-                    'image_path' => $imageInfo['db_path'] ?? null,
+                    'image_path' => null,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -116,7 +92,7 @@ class ImportDraquexFieldSpawnsV6 extends Command
             if (! $map && $dryRun) {
                 $this->line("  [dry-run] maps に追加予定: {$mapName}");
                 $map = (object) [
-                    'id' => 0,
+                    'id' => 1,
                     'name' => $mapName,
                 ];
             }
@@ -127,13 +103,35 @@ class ImportDraquexFieldSpawnsV6 extends Command
                 continue;
             }
 
-            if (! $dryRun && $map && $imageInfo && ! empty($imageInfo['db_path'])) {
-                DB::table('maps')
-                    ->where('id', $map->id)
-                    ->update([
-                        'image_path' => $imageInfo['db_path'],
-                        'updated_at' => now(),
-                    ]);
+            if ($downloadMapImage) {
+                $imageUrl = $this->extractMapImageUrlFromMapPage($mapHtml, $mapUrl);
+
+                if ($imageUrl) {
+                    if ($dryRun) {
+                        $ext = strtolower(pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
+                        $fileName = $this->buildMapImageFileName($continentKey, (int) $map->id, $ext);
+
+                        $this->line("  [dry-run] map image: {$imageUrl}");
+                        $this->line("  [dry-run] image_path: /images/maps/{$continentKey}/{$fileName}");
+                    } else {
+                        $imageInfo = $this->downloadMapImage($imageUrl, $continentKey, (int) $map->id);
+
+                        if ($imageInfo) {
+                            DB::table('maps')
+                                ->where('id', $map->id)
+                                ->update([
+                                    'image_path' => $imageInfo['db_path'],
+                                    'updated_at' => now(),
+                                ]);
+
+                            $this->line("  map image saved: {$imageInfo['full_path']}");
+                        } else {
+                            $this->warn("  map image save failed: {$imageUrl}");
+                        }
+                    }
+                } else {
+                    $this->warn('  map image not found');
+                }
             }
 
             $grouped = [];
@@ -155,15 +153,12 @@ class ImportDraquexFieldSpawnsV6 extends Command
 
                 $spawnTime = $this->detectSpawnTime($description);
                 $coords = $this->extractCoords($description);
-                $notes = [];
 
                 if (empty($coords)) {
                     $coords = $this->inferCoordsFromText($description);
                 }
 
-                if (empty($coords)) {
-                    $notes[] = $description;
-                }
+                $notes = [$description];
 
                 $key = $monster->id . '|' . $map->id . '|' . $spawnTime;
 
@@ -243,8 +238,9 @@ class ImportDraquexFieldSpawnsV6 extends Command
     {
         try {
             $response = Http::timeout(30)
+                ->withoutVerifying()
                 ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
                     'Accept-Language' => 'ja,en-US;q=0.9,en;q=0.8',
                     'Referer' => 'https://draquex.com/',
                 ])
@@ -267,18 +263,18 @@ class ImportDraquexFieldSpawnsV6 extends Command
         $xpath = $this->makeXPath($html);
         $links = [];
 
-        foreach ($xpath->query('//main[contains(@class,"page")]//section[contains(@class,"item")]//a[@href]') as $a) {
+        foreach ($xpath->query('//a[@href]') as $a) {
             $href = trim($a->getAttribute('href'));
 
             if ($href === '') {
                 continue;
             }
 
-            if (! preg_match('#(?:^|/)[a-z]-\d+\.php$#i', $href)) {
+            if (preg_match('#(?:^|/)1-[a-z0-9_-]+\.php$#i', $href)) {
                 continue;
             }
 
-            if (preg_match('#(?:^|/)1-[a-z0-9_-]+\.php$#i', $href)) {
+            if (! preg_match('#(?:^|/)[a-z][a-z0-9_-]*-\d+\.php$#i', $href)) {
                 continue;
             }
 
@@ -324,6 +320,14 @@ class ImportDraquexFieldSpawnsV6 extends Command
     {
         $xpath = $this->makeXPath($html);
 
+        foreach ($xpath->query('//meta[@property="og:image"][@content]') as $meta) {
+            $content = trim($meta->getAttribute('content'));
+
+            if ($content !== '' && preg_match('#/assets/img-map/.*\.(jpg|jpeg|png|gif|webp)$#i', $content)) {
+                return $this->absoluteUrl($baseUrl, $content);
+            }
+        }
+
         foreach ($xpath->query('//a[@href]') as $a) {
             $href = trim($a->getAttribute('href'));
 
@@ -343,12 +347,13 @@ class ImportDraquexFieldSpawnsV6 extends Command
         return null;
     }
 
-    private function downloadMapImage(string $imageUrl, string $mapName): ?array
+    private function downloadMapImage(string $imageUrl, string $continentKey, int $mapId): ?array
     {
         try {
             $response = Http::timeout(60)
+                ->withoutVerifying()
                 ->withHeaders([
-                    'User-Agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
                     'Referer' => 'https://draquex.com/',
                 ])
                 ->get($imageUrl);
@@ -358,9 +363,9 @@ class ImportDraquexFieldSpawnsV6 extends Command
             }
 
             $ext = strtolower(pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
-            $fileName = $this->mapNameToEnglishFileName($mapName, $ext);
+            $fileName = $this->buildMapImageFileName($continentKey, $mapId, $ext);
 
-            $relativePath = 'images/maps/' . $fileName;
+            $relativePath = 'images/maps/' . $continentKey . '/' . $fileName;
             $publicPath = public_path($relativePath);
 
             if (! is_dir(dirname($publicPath))) {
@@ -387,6 +392,7 @@ class ImportDraquexFieldSpawnsV6 extends Command
 
         foreach ($xpath->query('//table//tr') as $tr) {
             $tds = $tr->getElementsByTagName('td');
+
             if ($tds->length < 2) {
                 continue;
             }
@@ -444,6 +450,7 @@ class ImportDraquexFieldSpawnsV6 extends Command
         $name = trim($name);
         $name = preg_replace('/\s+/u', '', $name);
         $name = preg_replace('/（昼）|（夜）|\(昼\)|\(夜\)/u', '', $name);
+
         return trim($name);
     }
 
@@ -451,6 +458,7 @@ class ImportDraquexFieldSpawnsV6 extends Command
     {
         $name = trim(preg_replace('/\s+/u', ' ', $name));
         $name = preg_replace('/にいるモンスター$/u', '', $name);
+
         return trim($name);
     }
 
@@ -488,56 +496,155 @@ class ImportDraquexFieldSpawnsV6 extends Command
 
         $coords = array_values(array_unique($coords));
 
-        if (count($coords) > 8) {
-            $coords = array_slice($coords, 0, 8);
+        if (count($coords) > 0) {
+            sort($coords);
+            return $coords;
         }
 
-        return $coords;
+        return [];
     }
 
     private function inferCoordsFromText(string $text): array
     {
-        $patterns = [
-            'マップ中央' => ['D4', 'E4', 'D5', 'E5'],
-            '中央' => ['D4', 'E4', 'D5', 'E5'],
-            '北部' => ['D2', 'E2', 'D3'],
-            '南部' => ['D7', 'E7', 'F7'],
-            '東部' => ['F4', 'G4', 'G5'],
-            '西部' => ['B4', 'C4', 'B5'],
-            '北西' => ['B2', 'C2'],
-            '北東' => ['F2', 'G2'],
-            '南西' => ['B7', 'C7'],
-            '南東' => ['F7', 'G7'],
-            '上のほう' => ['D2', 'E2'],
-            '下のほう' => ['D7', 'E7'],
-            '左のほう' => ['B4', 'C4'],
-            '右のほう' => ['F4', 'G4'],
-            'たくさん' => ['D4', 'E4', 'D5', 'E5'],
-        ];
+        $text = trim($text);
 
-        foreach ($patterns as $keyword => $coords) {
-            if (mb_strpos($text, $keyword) !== false) {
-                return $coords;
+        $matched = [];
+
+        $directionPatterns = [
+    [
+        'keywords' => ['北東', '北東側', '北東部', '北東方面', '北東エリア', '右上', '右上側', '右上部'],
+        'cols' => ['E', 'F', 'G', 'H'],
+        'rows' => [1, 2, 3],
+    ],
+    [
+        'keywords' => ['北西', '北西側', '北西部', '北西方面', '北西エリア', '左上', '左上側', '左上部'],
+        'cols' => ['A', 'B', 'C', 'D'],
+        'rows' => [1, 2, 3],
+    ],
+    [
+        'keywords' => ['南東', '南東側', '南東部', '南東方面', '南東エリア', '右下', '右下側', '右下部'],
+        'cols' => ['E', 'F', 'G', 'H'],
+        'rows' => [6, 7, 8],
+    ],
+    [
+        'keywords' => ['南西', '南西側', '南西部', '南西方面', '南西エリア', '左下', '左下側', '左下部'],
+        'cols' => ['A', 'B', 'C', 'D'],
+        'rows' => [6, 7, 8],
+    ],
+
+    [
+        'keywords' => [
+            '北側', '北部', '北のほう', '北の方', '上のほう', '上の方', '上側',
+            '上部', '上エリア', '北方面', '北エリア', '北寄り', '上寄り',
+            '北一帯', '上半分', '北周辺', '北付近', '北あたり', '北近辺'
+        ],
+        'cols' => ['B', 'C', 'D', 'E', 'F', 'G'],
+        'rows' => [1, 2, 3],
+    ],
+    [
+        'keywords' => [
+            '南側', '南部', '南のほう', '南の方', '下のほう', '下の方', '下側',
+            '下部', '下エリア', '南方面', '南エリア', '南寄り', '下寄り',
+            '南一帯', '下半分', '南周辺', '南付近', '南あたり', '南近辺'
+        ],
+        'cols' => ['B', 'C', 'D', 'E', 'F', 'G'],
+        'rows' => [6, 7, 8],
+    ],
+    [
+        'keywords' => [
+            '東側', '東部', '右のほう', '右の方', '右側', '東', '右寄り',
+            '東方面', '東エリア', '東一帯', '右半分', '東周辺', '東付近',
+            '東あたり', '東近辺'
+        ],
+        'cols' => ['F', 'G', 'H'],
+        'rows' => [2, 3, 4, 5, 6, 7],
+    ],
+    [
+        'keywords' => [
+            '西側', '西部', '左のほう', '左の方', '左側', '西', '左寄り',
+            '西方面', '西エリア', '西一帯', '左半分', '西周辺', '西付近',
+            '西あたり', '西近辺'
+        ],
+        'cols' => ['A', 'B', 'C'],
+        'rows' => [2, 3, 4, 5, 6, 7],
+    ],
+
+    [
+        'keywords' => [
+            '中央', '中央付近', 'マップ中央', '中心', '中央部', '中央あたり',
+            '中央近辺', '中央周辺', '中央一帯', 'ど真ん中', '真ん中', '中ほど',
+            '中程', '中間', '中央エリア'
+        ],
+        'cols' => ['C', 'D', 'E', 'F'],
+        'rows' => [3, 4, 5, 6],
+    ],
+    [
+        'keywords' => ['中腹', '山の中腹', '途中', '中段'],
+        'cols' => ['C', 'D', 'E', 'F'],
+        'rows' => [3, 4, 5],
+    ],
+    [
+        'keywords' => [
+            '全域', '広範囲', '全体', '全体的', '一帯', '各地', '各所',
+            '広い範囲', '広く分布', '広く生息', 'マップ全域', 'ほぼ全域'
+        ],
+        'cols' => ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+        'rows' => [1, 2, 3, 4, 5, 6, 7, 8],
+    ],
+];
+
+        foreach ($directionPatterns as $pattern) {
+            foreach ($pattern['keywords'] as $keyword) {
+                if (mb_strpos($text, $keyword) !== false) {
+                    $matched = array_merge($matched, $this->buildCoords($pattern['cols'], $pattern['rows']));
+                    break;
+                }
             }
         }
 
         $namedHints = [
-            'ランガーオ村' => ['E2', 'F2'],
-            'ロンダの氷穴' => ['B3', 'C3'],
-            'ナグアの洞くつ' => ['C5', 'D5'],
-            '獅子門' => ['B7', 'C7'],
-            '橋の近く' => ['D4', 'E4'],
-            '洞くつの近く' => ['C5', 'D5'],
-            '村の近く' => ['E2', 'F2'],
+            '橋の近く' => ['D4', 'E4', 'D5', 'E5'],
+            '洞くつの近く' => ['C5', 'D5', 'C6', 'D6'],
+            '村の近く' => ['E2', 'F2', 'E3', 'F3'],
+            '入口付近' => ['D7', 'E7', 'D8', 'E8'],
+            '出口付近' => ['D1', 'E1', 'D2', 'E2'],
+            '通路沿い' => ['D3', 'D4', 'D5', 'E3', 'E4', 'E5'],
+            '外周' => [
+                'A1', 'B1', 'C1', 'D1', 'E1', 'F1', 'G1', 'H1',
+                'A8', 'B8', 'C8', 'D8', 'E8', 'F8', 'G8', 'H8',
+                'A2', 'A3', 'A4', 'A5', 'A6', 'A7',
+                'H2', 'H3', 'H4', 'H5', 'H6', 'H7',
+            ],
+            'たくさん' => ['C3', 'C4', 'C5', 'D3', 'D4', 'D5', 'E3', 'E4', 'E5', 'F3', 'F4', 'F5'],
         ];
 
         foreach ($namedHints as $keyword => $coords) {
             if (mb_strpos($text, $keyword) !== false) {
-                return $coords;
+                $matched = array_merge($matched, $coords);
             }
         }
 
+        $matched = array_values(array_unique($matched));
+        sort($matched);
+
+        if (count($matched) > 0) {
+            return $matched;
+        }
+
         return [];
+    }
+
+    private function buildCoords(array $cols, array $rows): array
+    {
+        $coords = [];
+
+        foreach ($cols as $col) {
+            foreach ($rows as $row) {
+                $coords[] = $col . $row;
+            }
+        }
+
+        return $coords;
     }
 
     private function expandRange(string $col1, int $row1, string $col2, int $row2): array
@@ -561,51 +668,71 @@ class ImportDraquexFieldSpawnsV6 extends Command
         return $coords;
     }
 
-    private function mapNameToEnglishFileName(string $mapName, string $ext = 'jpg'): string
+    private function detectContinentKeyFromListUrl(string $listUrl): string
     {
-        $map = [
-            'コルット地方' => 'korutto-region',
-            'レーナム緑野' => 'reenamu-green-field',
-            'シエラ巡礼地' => 'shiera-pilgrimage-site',
-            '地底湖の洞くつ' => 'underground-lake-cave',
-            '祈りの宿' => 'inn-of-prayer',
-            'ジュレー島上層' => 'jure-island-upper',
-            'ジュレー島下層' => 'jure-island-lower',
-            'ミューズ海岸' => 'muse-coast',
-            '猫島' => 'cat-island',
-            'ヴェリナード領西' => 'verinard-west',
-            'ヴェリナード領南' => 'verinard-south',
-            'ヴェリナード領北' => 'verinard-north',
-            'キュララナ海岸' => 'kyurarana-coast',
-            'キュララナビーチ' => 'kyurarana-beach',
-            '海のとける洞くつ' => 'melting-sea-cave',
-            '永遠の地下迷宮' => 'eternal-underground-maze',
+        $url = strtolower($listUrl);
 
-            'ランガーオ山地' => 'langao-mountain',
-            'ラギ雪原' => 'ragi-snowfield',
-            'ロンダの氷穴' => 'ronda-ice-cave',
-            'グレン領東' => 'gren-east',
-            'グレン領西' => 'gren-west',
-            'ベコン渓谷' => 'vekon-valley',
-            'ゲルト海峡' => 'geruto-strait',
-            'ランドン山脈' => 'landon-mountains',
-            'ザマ峠' => 'zama-pass',
-            'ギルザッド地方' => 'gilzad-region',
-        ];
-
-        if (isset($map[$mapName])) {
-            return $map[$mapName] . '.' . $ext;
+        if (str_contains($url, '1-augu.php')) {
+            return 'orgreed';
         }
 
-        $fallback = mb_strtolower($mapName, 'UTF-8');
-        $fallback = preg_replace('/[^a-z0-9]+/i', '-', $fallback);
-        $fallback = trim($fallback, '-');
-
-        if ($fallback === '') {
-            $fallback = 'map-' . md5($mapName);
+        if (str_contains($url, '1-puku.php')) {
+            return 'pukuland';
         }
 
-        return $fallback . '.' . $ext;
+        if (str_contains($url, '1-eltona.php')) {
+            return 'eltona';
+        }
+
+        if (str_contains($url, '1-wena.php')) {
+            return 'wena';
+        }
+
+        if (str_contains($url, '1-dowa.php')) {
+            return 'dwachakka';
+        }
+
+        if (str_contains($url, '1-sonota.php')) {
+            return 'sonota';
+        }
+
+        if (str_contains($url, '1-itsuwari.php')) {
+            return 'itsuwari';
+        }
+
+        if (str_contains($url, '1-shin.php')) {
+            return 'shin';
+        }
+
+        if (str_contains($url, '1-nadora.php')) {
+            return 'nadora';
+        }
+
+        if (str_contains($url, '1-kyuru.php')) {
+            return 'kyururu';
+        }
+
+        if (str_contains($url, '1-makai.php')) {
+            return 'makai';
+        }
+
+        if (str_contains($url, '1-tensei.php')) {
+            return 'tensei';
+        }
+
+        if (str_contains($url, '1-hate.php')) {
+            return 'hate';
+        }
+
+        return 'other';
+    }
+
+    private function buildMapImageFileName(string $continentKey, int $mapId, string $ext = 'jpg'): string
+    {
+        $continentKey = preg_replace('/[^a-z0-9_-]/', '', strtolower($continentKey)) ?: 'other';
+        $ext = preg_replace('/[^a-z0-9]/', '', strtolower($ext)) ?: 'jpg';
+
+        return $continentKey . '_' . $mapId . '.' . $ext;
     }
 
     private function absoluteUrl(string $baseUrl, string $href): string

@@ -29,3 +29,26 @@ D3とかなくてもnoteには全部いれてほしい。s
 
 
 php artisan dq10:import-draquex-field-v6 "https://draquex.com/monster/field/1-wena.php"  --download-map-image   
+
+
+
+OK つぎは装備データをよみこもう。
+
+https://draquex.com/buki/0-katate.php
+https://draquex.com/buki/0-taiken.php
+https://draquex.com/buki/0-tanken.php
+https://draquex.com/buki/0-yari.php
+https://draquex.com/buki/0-ono.php
+https://draquex.com/buki/0-hanma.php
+https://draquex.com/buki/0-tsume.php
+https://draquex.com/buki/0-muchi.php
+https://draquex.com/buki/0-bume.php
+https://draquex.com/buki/0-sti.php
+https://draquex.com/buki/0-tsue.php
+https://draquex.com/buki/0-kon.php
+https://draquex.com/buki/0-ougi.php
+https://draquex.com/buki/0-yumi.php
+https://draquex.com/buki/0-kama.php
+
+
+https://draquex.com/buki/0-tate.php
