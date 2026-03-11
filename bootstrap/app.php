@@ -15,7 +15,20 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
-
+        /*
+        $middleware->validateCsrfTokens(except: [
+            '/register',
+            '/login',
+            '/api/user',
+            '/api/equipments',
+            '/api/contact/send',
+            '/admin/blog/post/store',
+            '/api/admin/blog/post/store',
+            //'/admin/blog/post/visible',
+            '/api/admin/blog/post/visible',
+            '/api/admin/blog/post/delete',
+        ]);
+    */
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         ]);

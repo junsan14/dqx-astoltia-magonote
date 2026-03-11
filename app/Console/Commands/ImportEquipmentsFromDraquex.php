@@ -13,7 +13,7 @@ class ImportEquipmentsFromDraquex extends Command
                             {--url= : 一覧URLを直接指定}
                             {--fresh : 対象データを削除して入れ直す}';
 
-    protected $description = 'Import equipments from draquex list/detail pages';
+    protected $description = 'Import equipments from draquex list/detail pages and merge with craft_master.csv';
 
     protected array $urls = [
         'katate' => ['url' => 'https://draquex.com/buki/0-katate.php', 'type' => '片手剣'],
@@ -34,6 +34,8 @@ class ImportEquipmentsFromDraquex extends Command
         'tate'   => ['url' => 'https://draquex.com/buki/0-tate.php',   'type' => '盾'],
     ];
 
+    protected array $itemNameToIdMap = [];
+
     public function handle(): int
     {
         $targets = $this->resolveTargets();
@@ -43,8 +45,11 @@ class ImportEquipmentsFromDraquex extends Command
             return self::FAILURE;
         }
 
+        $this->itemNameToIdMap = $this->loadItemsMap();
+        $csvMap = $this->loadCraftMasterCsv();
+
         if ($this->option('fresh')) {
-            $this->deleteTargetRows($targets);
+            $this->freshDelete($targets);
         }
 
         foreach ($targets as $key => $target) {
@@ -59,57 +64,80 @@ class ImportEquipmentsFromDraquex extends Command
                 continue;
             }
 
-            $items = $this->parseList($html, $listUrl, $itemType);
+            $items = $this->parseList($html, $listUrl, $itemType, $key);
 
             $this->info("found: " . count($items));
 
             foreach ($items as $index => $item) {
                 $this->line(sprintf(
-                    '[%d/%d] Lv%s %s',
+                    '[%d/%d] %s %s',
                     $index + 1,
                     count($items),
-                    $item['equip_level'] ?? '-',
+                    $item['item_id'],
                     $item['item_name']
                 ));
 
                 $detailHtml = $this->fetch($item['detail_url']);
+
+                $detail = [
+                    'craft_level' => null,
+                    'equip_level' => $item['equip_level'],
+                    'recipe_book' => null,
+                    'recipe_place' => null,
+                    'description' => null,
+                    'jobs' => [],
+                    'materials' => [],
+                    'effects' => [],
+                ];
+
                 if (!$detailHtml) {
-                    $this->warn("failed detail: {$item['detail_url']}");
-                    continue;
+                    $this->warn("failed detail: {$item['detail_url']} (list情報だけ保存する)");
+                } else {
+                    try {
+                        $detail = $this->parseDetail($detailHtml, $itemType);
+                    } catch (\Throwable $e) {
+                        $this->warn("parse detail failed: {$item['detail_url']} / {$e->getMessage()}");
+                    }
                 }
 
-                $detail = $this->parseDetail($detailHtml, $itemType);
+                $csv = $this->findCsvRow($csvMap, $item['item_name'], $itemType, $item['equip_level']);
+
+                $rawMaterials = $this->resolveRawMaterials($csv, $detail);
+                $materialsWithIds = $this->convertMaterialsToItemIds($rawMaterials, $item['item_name']);
 
                 $payload = [
-                    'item_id'            => md5($item['detail_url']),
+                    'item_id'            => $item['item_id'],
                     'item_name'          => $item['item_name'],
-                    'item_kind'          => $itemType === '盾' ? '盾' : '武器',
-                    'item_type_key'      => $key,
-                    'item_type'          => $itemType,
-                    'craft_type'         => $itemType === '盾' ? '防具鍛冶' : '武器鍛冶',
-                    'craft_level'        => $detail['craft_level'],
-                    'equip_level'        => $detail['equip_level'] ?? $item['equip_level'],
-                    'recipe_book'        => $detail['recipe_book'],
+
+                    // CSV優先
+                    'item_kind'          => $this->csvValue($csv, 'itemKind', $itemType === '盾' ? '盾' : '武器'),
+                    'item_type_key'      => $this->csvValue($csv, 'itemTypeKey', $key),
+                    'item_type'          => $this->csvValue($csv, 'itemType', $itemType),
+                    'craft_type'         => $this->csvValue($csv, 'craftType', $itemType === '盾' ? '防具鍛冶' : '武器鍛冶'),
+                    'slot'               => $this->csvValue($csv, 'slot', $itemType),
+                    'slot_grid_type'     => $this->csvValue($csv, 'slotGridType', null),
+                    'slot_grid_cols'     => $this->csvNumericValue($csv, 'slotGridCols', null),
+                    'group_kind'         => $this->csvValue($csv, 'groupKind', $itemType === '盾' ? 'shield' : 'weapon'),
+                    'group_id'           => $this->csvValue($csv, 'groupId', null),
+                    'group_name'         => $this->csvValue($csv, 'groupName', $item['item_name']),
+                    'items_count'        => $this->csvNumericValue($csv, 'itemsCount', null),
+                    'slot_grid_json'     => $this->csvJsonValue($csv, 'slotGridJson', null),
+                    'equipable_type'     => $this->csvValue($csv, 'equipableType', $itemType),
+
+                    // detail / fallback
+                    'craft_level'        => $this->csvNumericValue($csv, 'craftLevel', $detail['craft_level']),
+                    'equip_level'        => $this->csvNumericValue($csv, 'equipLevel', $detail['equip_level'] ?? $item['equip_level']),
+                    'recipe_book'        => $this->csvValue($csv, 'recipeBook', $detail['recipe_book']),
                     'recipe_place'       => $detail['recipe_place'],
                     'description'        => $detail['description'],
-                    'effect'             => $detail['effect'],
-                    'slot'               => $itemType,
-                    'slot_grid_type'     => null,
-                    'slot_grid_cols'     => null,
-                    'group_kind'         => $itemType === '盾' ? 'shield' : 'weapon',
-                    'group_id'           => null,
-                    'group_name'         => $itemType,
-                    'items_count'        => null,
-                    'crystal_by_alchemy' => null,
-                    'materials_json'     => $this->toJsonOrNull($detail['materials']),
-                    'slot_grid_json'     => null,
-                    'jobs_json'          => $this->toJsonOrNull($detail['jobs']),
-                    'equipable_type'     => $itemType,
+                    'materials_json'     => $this->toJsonOrNull($materialsWithIds),
+                    'jobs_json'          => $this->csvJsonValue($csv, 'jobsJson', $this->toJsonOrNull($detail['jobs'])),
+                    'effects_json'       => $this->toJsonOrNull($detail['effects']),
+
+                    'crystal_by_alchemy' => $this->csvValue($csv, 'crystalByAlchemy', null),
+
                     'source_url'         => $listUrl,
                     'detail_url'         => $item['detail_url'],
-                    'effects_json'       => $this->toJsonOrNull($detail['effects']),
-                    'stats_json'         => $this->toJsonOrNull($detail['stats']),
-                    'artisan_level_text' => $detail['artisan_level_text'],
                     'updated_at'         => now(),
                 ];
 
@@ -166,14 +194,32 @@ class ImportEquipmentsFromDraquex extends Command
         return $this->urls;
     }
 
-    private function deleteTargetRows(array $targets): void
+    private function freshDelete(array $targets): void
     {
+        $isAllTargets = count($targets) === count($this->urls);
+
+        if ($isAllTargets) {
+            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            DB::table('equipments')->truncate();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+            $this->warn('truncate equipments: id reset to 1');
+            return;
+        }
+
         foreach ($targets as $key => $target) {
             $deleted = DB::table('equipments')
                 ->where('item_type_key', $key)
                 ->delete();
 
             $this->warn("deleted {$deleted} rows: {$target['type']}");
+        }
+
+        if (DB::table('equipments')->count() === 0) {
+            DB::statement('ALTER TABLE equipments AUTO_INCREMENT = 1');
+            $this->warn('equipments is empty: auto_increment reset to 1');
+        } else {
+            $this->warn('partial deleteなので id は1からには戻らない');
         }
     }
 
@@ -196,7 +242,7 @@ class ImportEquipmentsFromDraquex extends Command
         }
     }
 
-    private function parseList(string $html, string $baseUrl, string $itemType): array
+    private function parseList(string $html, string $baseUrl, string $itemType, string $typeKey): array
     {
         libxml_use_internal_errors(true);
 
@@ -207,6 +253,7 @@ class ImportEquipmentsFromDraquex extends Command
         $nodes = $xpath->query('//section[contains(@class,"item")]//ul/li/a[contains(@class,"arrow")]');
 
         $items = [];
+        $sameLevelCounts = [];
 
         foreach ($nodes as $a) {
             $href = trim((string) $a->getAttribute('href'));
@@ -234,7 +281,10 @@ class ImportEquipmentsFromDraquex extends Command
                 continue;
             }
 
+            $sameLevelCounts[$equipLevel] = ($sameLevelCounts[$equipLevel] ?? 0) + 1;
+
             $items[] = [
+                'item_id'     => $this->buildItemId($typeKey, $equipLevel, $sameLevelCounts[$equipLevel]),
                 'item_name'   => $itemName,
                 'equip_level' => $equipLevel,
                 'item_type'   => $itemType,
@@ -254,13 +304,10 @@ class ImportEquipmentsFromDraquex extends Command
             'equip_level' => null,
             'recipe_book' => null,
             'recipe_place' => null,
-            'artisan_level_text' => null,
             'description' => null,
-            'effect' => null,
             'jobs' => [],
             'materials' => [],
             'effects' => [],
-            'stats' => [],
         ];
 
         $dom = new \DOMDocument();
@@ -281,12 +328,9 @@ class ImportEquipmentsFromDraquex extends Command
             $tdText = trim(preg_replace('/\s+/u', ' ', $tdNode->textContent));
 
             if ($thText === '職人レベル') {
-                $result['artisan_level_text'] = $tdText;
-
                 if (preg_match('/Lv\s*([0-9]+)/u', $tdText, $m)) {
                     $result['craft_level'] = (int) $m[1];
                 }
-
                 continue;
             }
 
@@ -302,8 +346,7 @@ class ImportEquipmentsFromDraquex extends Command
 
             if ($thText === '装備可能な職業') {
                 $jobs = preg_split('/[･・、,\s]+/u', $tdText);
-                $jobs = array_values(array_filter(array_map('trim', $jobs)));
-                $result['jobs'] = $jobs;
+                $result['jobs'] = array_values(array_filter(array_map('trim', $jobs)));
                 continue;
             }
 
@@ -320,55 +363,28 @@ class ImportEquipmentsFromDraquex extends Command
             }
 
             if ($thText === '武器の効果' || $thText === '盾の効果') {
-                $effectLines = $this->extractLinesFromTd($tdNode);
-                $effectLines = array_values(array_filter($effectLines));
-
-                $result['effects'] = $effectLines;
-                $result['effect'] = implode("\n", $effectLines);
+                $result['effects'] = array_values(array_filter($this->extractLinesFromTd($tdNode)));
                 continue;
             }
 
-            if ($this->isDescriptionRow($thNode, $tdNode, $itemType)) {
+            if ($this->isDescriptionRow($thNode, $tdNode)) {
                 $result['description'] = $this->cleanDescription($tdNode, $itemType);
-                continue;
-            }
-
-            if (in_array($thText, ['攻撃力', '守備力', 'おしゃれさ', '重さ', 'こうげき魔力', 'かいふく魔力', 'きようさ', 'すばやさ', 'MP吸収率', '盾ガード率'], true)) {
-                $num = $this->extractInt($tdText);
-                if ($num !== null) {
-                    $result['stats'][$thText] = $num;
-                }
-                continue;
-            }
-
-            if (str_contains($thText, '効果') || str_contains($thText, '基礎効果')) {
-                if ($tdText !== '') {
-                    $result['effects'][] = $tdText;
-                }
                 continue;
             }
         }
 
         $result['jobs'] = array_values(array_unique($result['jobs']));
-        $result['effects'] = array_values(array_unique(array_filter($result['effects'])));
-
-        if ($result['effect'] === null && !empty($result['effects'])) {
-            $result['effect'] = implode("\n", $result['effects']);
-        }
+        $result['effects'] = array_values(array_unique($result['effects']));
 
         return $result;
     }
 
-    private function isDescriptionRow(\DOMNode $thNode, \DOMNode $tdNode, string $itemType): bool
+    private function isDescriptionRow(\DOMNode $thNode, \DOMNode $tdNode): bool
     {
         $thHtml = $thNode->ownerDocument->saveHTML($thNode);
         $tdText = trim(preg_replace('/\s+/u', ' ', $tdNode->textContent));
 
-        if (stripos($thHtml, '<img') !== false && $tdText !== '') {
-            return true;
-        }
-
-        return false;
+        return stripos($thHtml, '<img') !== false && $tdText !== '';
     }
 
     private function cleanDescription(\DOMNode $tdNode, string $itemType): ?string
@@ -388,7 +404,7 @@ class ImportEquipmentsFromDraquex extends Command
             return null;
         }
 
-        return implode("\n", $lines);
+        return implode(' ', $lines);
     }
 
     private function extractLinesFromTd(\DOMNode $tdNode): array
@@ -436,13 +452,298 @@ class ImportEquipmentsFromDraquex extends Command
         return $materials;
     }
 
-    private function extractInt(string $text): ?int
+    private function loadItemsMap(): array
     {
-        if (preg_match('/-?\d+/u', $text, $m)) {
-            return (int) $m[0];
+        return DB::table('items')
+            ->select('id', 'name')
+            ->get()
+            ->mapWithKeys(function ($row) {
+                return [trim((string) $row->name) => (int) $row->id];
+            })
+            ->all();
+    }
+
+    private function resolveRawMaterials(?array $csv, array $detail): array
+    {
+        if ($csv) {
+            $csvMaterials = $this->csvMaterialsToArray($csv);
+            if (!empty($csvMaterials)) {
+                return $csvMaterials;
+            }
+        }
+
+        return $detail['materials'] ?? [];
+    }
+
+    private function csvMaterialsToArray(?array $csv): array
+    {
+        if (!$csv || !array_key_exists('materialsJson', $csv)) {
+            return [];
+        }
+
+        $raw = trim((string) $csv['materialsJson']);
+        if ($raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $materials = [];
+
+        foreach ($decoded as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $name = trim((string) ($row['name'] ?? $row['itemName'] ?? ''));
+            $count = $row['count'] ?? $row['qty'] ?? $row['num'] ?? null;
+
+            if ($name === '') {
+                continue;
+            }
+
+            $materials[] = [
+                'name' => $name,
+                'count' => is_numeric($count) ? (int) $count : 1,
+            ];
+        }
+
+        return $materials;
+    }
+
+    private function convertMaterialsToItemIds(array $materials, string $equipmentName): array
+    {
+        $results = [];
+
+        foreach ($materials as $material) {
+            $name = trim((string) ($material['name'] ?? ''));
+            $count = $material['count'] ?? $material['qty'] ?? 1;
+            $count = is_numeric($count) ? (int) $count : 1;
+
+            if ($name === '') {
+                continue;
+            }
+
+            $itemId = $this->findItemIdByMaterialName($name);
+
+            if ($itemId === null) {
+                $this->warn("items未登録素材: {$equipmentName} / {$name}");
+
+                $results[] = [
+                    'item_id' => null,
+                    'count' => $count,
+                    'name' => $name,
+                ];
+                continue;
+            }
+
+            $results[] = [
+                'item_id' => $itemId,
+                'count' => $count,
+            ];
+        }
+
+        return $results;
+    }
+
+    private function findItemIdByMaterialName(string $name): ?int
+    {
+        $normalizedCandidates = $this->materialNameCandidates($name);
+
+        foreach ($normalizedCandidates as $candidate) {
+            if (isset($this->itemNameToIdMap[$candidate])) {
+                return $this->itemNameToIdMap[$candidate];
+            }
         }
 
         return null;
+    }
+
+    private function materialNameCandidates(string $name): array
+    {
+        $name = trim($name);
+
+        $candidates = [
+            $name,
+            str_replace('　', '', $name),
+            preg_replace('/\s+/u', '', $name),
+            preg_replace('/[・･]/u', '', $name),
+        ];
+
+        return array_values(array_unique(array_filter($candidates)));
+    }
+
+    private function loadCraftMasterCsv(): array
+    {
+        $path = $this->findCsvPath();
+
+        if (!$path || !file_exists($path)) {
+            $this->warn('craft_master.csv が見つからないので draquex のみで進める');
+            return [];
+        }
+
+        $this->info("load csv: {$path}");
+
+        $handle = fopen($path, 'r');
+        if (!$handle) {
+            $this->warn('csv open failed');
+            return [];
+        }
+
+        $header = fgetcsv($handle);
+        if (!$header) {
+            fclose($handle);
+            return [];
+        }
+
+        $map = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($row) !== count($header)) {
+                continue;
+            }
+
+            $assoc = array_combine($header, $row);
+
+            $itemName = trim((string) ($assoc['itemName'] ?? ''));
+            $itemType = trim((string) ($assoc['itemType'] ?? ''));
+            $equipLevel = trim((string) ($assoc['equipLevel'] ?? ''));
+
+            if ($itemName === '') {
+                continue;
+            }
+
+            $key1 = $this->csvKey($itemName, $itemType, $equipLevel);
+            $key2 = $this->csvKey($itemName, $itemType, null);
+            $key3 = $this->csvKey($itemName, null, null);
+
+            $map[$key1] = $assoc;
+            $map[$key2] = $assoc;
+            $map[$key3] = $assoc;
+        }
+
+        fclose($handle);
+
+        return $map;
+    }
+
+    private function findCsvPath(): ?string
+    {
+        $paths = [
+            storage_path('app/craft_master.csv'),
+            base_path('craft_master.csv'),
+            public_path('craft_master.csv'),
+        ];
+
+        foreach ($paths as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    private function findCsvRow(array $csvMap, string $itemName, string $itemType, ?int $equipLevel): ?array
+    {
+        $keys = [
+            $this->csvKey($itemName, $itemType, $equipLevel),
+            $this->csvKey($itemName, $itemType, null),
+            $this->csvKey($itemName, null, null),
+        ];
+
+        foreach ($keys as $key) {
+            if (isset($csvMap[$key])) {
+                return $csvMap[$key];
+            }
+        }
+
+        return null;
+    }
+
+    private function csvKey(?string $itemName, ?string $itemType, $equipLevel): string
+    {
+        return trim((string) $itemName) . '|' . trim((string) $itemType) . '|' . trim((string) $equipLevel);
+    }
+
+    private function csvValue(?array $csv, string $key, $default = null)
+    {
+        if (!$csv || !array_key_exists($key, $csv)) {
+            return $default;
+        }
+
+        $value = trim((string) $csv[$key]);
+
+        return $value === '' ? $default : $value;
+    }
+
+    private function csvNumericValue(?array $csv, string $key, $default = null)
+    {
+        if (!$csv || !array_key_exists($key, $csv)) {
+            return $default;
+        }
+
+        $value = trim((string) $csv[$key]);
+
+        if ($value === '') {
+            return $default;
+        }
+
+        if (is_numeric($value)) {
+            return str_contains($value, '.') ? (float) $value : (int) $value;
+        }
+
+        return $default;
+    }
+
+    private function csvJsonValue(?array $csv, string $key, $default = null)
+    {
+        if (!$csv || !array_key_exists($key, $csv)) {
+            return $default;
+        }
+
+        $value = trim((string) $csv[$key]);
+
+        return $value === '' ? $default : $value;
+    }
+
+    private function buildItemId(string $typeKey, ?int $equipLevel, int $index): string
+    {
+        $prefix = $this->itemIdPrefix($typeKey);
+        $level = $equipLevel ?? 0;
+
+        if ($index <= 1) {
+            return "{$prefix}_{$level}";
+        }
+
+        return "{$prefix}_{$level}_{$index}";
+    }
+
+    private function itemIdPrefix(string $typeKey): string
+    {
+        return match ($typeKey) {
+            'katate' => 'katateken',
+            'taiken' => 'taiken',
+            'tanken' => 'tanken',
+            'yari'   => 'yari',
+            'ono'    => 'ono',
+            'hanma'  => 'hanma',
+            'tsume'  => 'tsume',
+            'muchi'  => 'muchi',
+            'bume'   => 'boomerang',
+            'sti'    => 'stick',
+            'tsue'   => 'ryoutesue',
+            'kon'    => 'kon',
+            'ougi'   => 'ougi',
+            'yumi'   => 'yumi',
+            'kama'   => 'kama',
+            'tate'   => 'tate',
+            default  => $typeKey,
+        };
     }
 
     private function absoluteUrl(string $base, string $href): string

@@ -17,8 +17,8 @@ class ImportItemsFromWiki extends Command
     public function handle(): int
     {
         if ($this->option('fresh')) {
-            Item::query()->delete();
-            $this->warn('items テーブルを空にした');
+            Item::truncate();
+            $this->warn('items テーブルを空にしてIDもリセットした');
         }
 
         $targets = [
@@ -29,6 +29,14 @@ class ImportItemsFromWiki extends Command
             [
                 'url' => 'https://wikiwiki.jp/dq10dic2nd/%E9%81%93%E5%85%B7/%E7%B4%A0%E6%9D%90%E3%83%BB%E6%9C%AA%E9%91%91%E5%AE%9A%E3%82%A2%E3%82%A4%E3%83%86%E3%83%A0',
                 'category' => 'material',
+            ],
+            [
+                'url' => 'https://wikiwiki.jp/dq10dic2nd/%E9%81%93%E5%85%B7/%E3%83%AC%E3%82%B7%E3%83%94%E5%B8%B3',
+                'category' => 'recipe',
+            ],
+            [
+                'url' => 'https://wikiwiki.jp/dq10dic2nd/%E9%81%93%E5%85%B7/%E3%82%B9%E3%82%AB%E3%82%A6%E3%83%88%E3%81%AE%E6%9B%B8',
+                'category' => 'scout',
             ],
         ];
 

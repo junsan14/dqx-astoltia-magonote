@@ -11,11 +11,11 @@ use Throwable;
 class ImportMonsterDropsFromDraquex extends Command
 {
     protected $signature = 'dq10:import-monster-drops-draquex
-                            {--refresh : 対象モンスターの既存dropを削除して入れ直す}
+                            {--fresh : monster_drops テーブルを全削除して入れ直す}
                             {--only= : 指定モンスター名だけ実行}
                             {--limit= : 先頭から指定件数だけ実行}';
 
-    protected $description = 'draquex.com のモンスター詳細ページから通常ドロップ・レアドロップ・宝珠・装備を取得して monster_drops に投入する';
+    protected $description = 'draquex.com のモンスター詳細ページからドロップ情報を取得して monster_drops に投入する';
 
     private array $indexUrls = [
         'https://draquex.com/monster/field/0-a-gyou.php',
@@ -30,10 +30,21 @@ class ImportMonsterDropsFromDraquex extends Command
         'https://draquex.com/monster/field/0-wa-gyou.php',
     ];
 
+    private array $missingRows = [];
+
     public function handle(): int
     {
         $only = $this->option('only');
         $limit = $this->option('limit') ? (int) $this->option('limit') : null;
+        $fresh = (bool) $this->option('fresh');
+
+        if ($fresh) {
+            $this->warn('fresh mode: monster_drops テーブルを全削除してIDもリセットする');
+
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            DB::table('monster_drops')->truncate();
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        }
 
         $detailUrls = $this->collectDetailUrls();
 
@@ -72,6 +83,14 @@ class ImportMonsterDropsFromDraquex extends Command
                     ->first();
 
                 if (!$monster) {
+                    $this->recordMissing(
+                        $data['monster_name'],
+                        $detailUrl,
+                        'monster',
+                        $data['monster_name'],
+                        'monsters.name で見つからない'
+                    );
+
                     $this->newLine();
                     $this->warn("monster not found: {$data['monster_name']} ({$detailUrl})");
                     $bar->advance();
@@ -80,6 +99,8 @@ class ImportMonsterDropsFromDraquex extends Command
 
                 $this->saveMonsterDrops(
                     (int) $monster->id,
+                    $data['monster_name'],
+                    $detailUrl,
                     $data['normal_drop'],
                     $data['rare_drop'],
                     $data['orbs'],
@@ -97,71 +118,76 @@ class ImportMonsterDropsFromDraquex extends Command
 
         $bar->finish();
         $this->newLine();
+
+        $csvPath = $this->exportMissingRowsCsv();
+
+        if ($csvPath) {
+            $this->warn("missing csv exported: {$csvPath}");
+        } else {
+            $this->info('missing data はなかった');
+        }
+
         $this->info('done');
 
         return self::SUCCESS;
     }
-private function collectDetailUrls(): array
-{
-    $urls = [];
 
-    foreach ($this->indexUrls as $indexUrl) {
-        $this->newLine();
-        $this->info("fetch index: {$indexUrl}");
+    private function collectDetailUrls(): array
+    {
+        $urls = [];
 
-        $html = $this->fetchHtml($indexUrl);
+        foreach ($this->indexUrls as $indexUrl) {
+            $this->newLine();
+            $this->info("fetch index: {$indexUrl}");
 
-        if (!$html) {
-            $this->warn("failed index: {$indexUrl}");
-            continue;
+            $html = $this->fetchHtml($indexUrl);
+
+            if (!$html) {
+                $this->warn("failed index: {$indexUrl}");
+                continue;
+            }
+
+            $crawler = new Crawler($html, $indexUrl);
+            $count = 0;
+
+            $crawler->filter('a')->each(function (Crawler $node) use (&$urls, &$count) {
+                try {
+                    $text = trim($node->text(''));
+                    $href = trim((string) $node->attr('href'));
+
+                    if ($href === '') {
+                        return;
+                    }
+
+                    $absoluteUrl = $node->link()->getUri();
+                    $path = parse_url($absoluteUrl, PHP_URL_PATH) ?? '';
+
+                    if (
+                        preg_match('#^/monster/[a-z0-9\-]+\.php$#i', $path)
+                        && !str_contains($path, '/monster/field/')
+                    ) {
+                        $urls[] = $absoluteUrl;
+                        $count++;
+
+                        if ($count <= 5) {
+                            $this->line("found: {$text} => {$absoluteUrl}");
+                        }
+                    }
+                } catch (Throwable $e) {
+                    // ignore
+                }
+            });
+
+            $this->info("current collected: " . count($urls));
         }
 
-        $crawler = new Crawler($html, $indexUrl);
+        $urls = array_values(array_unique($urls));
 
-        $count = 0;
+        $this->newLine();
+        $this->info('detail urls found: ' . count($urls));
 
-        $crawler->filter('a')->each(function (Crawler $node) use (&$urls, &$count) {
-            try {
-                $text = trim($node->text(''));
-                $href = trim((string) $node->attr('href'));
-
-                if ($href === '') {
-                    return;
-                }
-
-                // 相対URLを絶対URLに変換
-                $absoluteUrl = $node->link()->getUri();
-
-                $path = parse_url($absoluteUrl, PHP_URL_PATH) ?? '';
-
-                // モンスター詳細だけ通す
-                // 例: /monster/a-1.php
-                if (
-                    preg_match('#^/monster/[a-z0-9\-]+\.php$#i', $path)
-                    && !str_contains($path, '/monster/field/')
-                ) {
-                    $urls[] = $absoluteUrl;
-                    $count++;
-
-                    if ($count <= 5) {
-                        $this->line("found: {$text} => {$absoluteUrl}");
-                    }
-                }
-            } catch (\Throwable $e) {
-                // link() が失敗しても無視
-            }
-        });
-
-        $this->info("current collected: " . count($urls));
+        return $urls;
     }
-
-    $urls = array_values(array_unique($urls));
-
-    $this->newLine();
-    $this->info('detail urls found: ' . count($urls));
-
-    return $urls;
-}
 
     private function parseMonsterDetail(string $url): ?array
     {
@@ -198,7 +224,6 @@ private function collectDetailUrls(): array
         $equipments = [];
         $orbs = [];
 
-        // ドロップ
         $dropIndex = $this->findLineIndex($lines, 'ドロップアイテム(通ドロ/レアドロ)');
         if ($dropIndex !== null) {
             $dropLines = $this->sliceUntilNextSection($lines, $dropIndex + 1);
@@ -216,12 +241,10 @@ private function collectDetailUrls(): array
             }
 
             $dropCandidates = array_values(array_unique($dropCandidates));
-
             $normalDrop = $dropCandidates[0] ?? null;
             $rareDrop   = $dropCandidates[1] ?? null;
         }
 
-        // 装備
         $equipmentIndex = $this->findSectionIndexByRegex($lines, '/が落とす装備/u');
         if ($equipmentIndex !== null) {
             $equipmentLines = $this->sliceUntilNextSection($lines, $equipmentIndex + 1);
@@ -238,7 +261,6 @@ private function collectDetailUrls(): array
             }
         }
 
-        // 宝珠
         $orbIndex = $this->findSectionIndexByRegex($lines, '/が落とす宝珠/u');
         if ($orbIndex !== null) {
             $orbLines = $this->sliceUntilNextSection($lines, $orbIndex + 1);
@@ -267,22 +289,15 @@ private function collectDetailUrls(): array
 
     private function saveMonsterDrops(
         int $monsterId,
+        string $monsterName,
+        string $sourceUrl,
         ?string $normalDrop,
         ?string $rareDrop,
         array $orbs,
         array $equipments
     ): void {
-        if ($this->option('refresh')) {
-            DB::table('monster_drops')
-                ->where('monster_id', $monsterId)
-                ->delete();
-        }
-
-        // 通常ドロップ
         if ($normalDrop) {
-            $item = DB::table('items')
-                ->where('name', $normalDrop)
-                ->first();
+            $item = $this->findBestMatch('items', ['name'], $normalDrop);
 
             if ($item) {
                 $this->insertDropIfNotExists(
@@ -293,15 +308,19 @@ private function collectDetailUrls(): array
                     1
                 );
             } else {
+                $this->recordMissing(
+                    $monsterName,
+                    $sourceUrl,
+                    'normal_item',
+                    $normalDrop,
+                    'items.name で見つからない'
+                );
                 $this->warn("normal item not found: {$normalDrop}");
             }
         }
 
-        // レアドロップ
         if ($rareDrop) {
-            $item = DB::table('items')
-                ->where('name', $rareDrop)
-                ->first();
+            $item = $this->findBestMatch('items', ['name'], $rareDrop);
 
             if ($item) {
                 $this->insertDropIfNotExists(
@@ -312,15 +331,31 @@ private function collectDetailUrls(): array
                     2
                 );
             } else {
-                $this->warn("rare item not found: {$rareDrop}");
+                $accessory = $this->findBestMatch('accessories', ['name', 'item_name'], $rareDrop);
+
+                if ($accessory) {
+                    $this->insertDropIfNotExists(
+                        $monsterId,
+                        'accessory',
+                        (int) $accessory->id,
+                        'rare',
+                        2
+                    );
+                } else {
+                    $this->recordMissing(
+                        $monsterName,
+                        $sourceUrl,
+                        'rare_item_or_accessory',
+                        $rareDrop,
+                        'items.name / accessories.name / accessories.item_name で見つからない'
+                    );
+                    $this->warn("rare drop not found in items/accessories: {$rareDrop}");
+                }
             }
         }
 
-        // オーブ
         foreach (array_values($orbs) as $index => $orbName) {
-            $orb = DB::table('orbs')
-                ->where('name', $orbName)
-                ->first();
+            $orb = $this->findBestMatch('orbs', ['name'], $orbName);
 
             if ($orb) {
                 $this->insertDropIfNotExists(
@@ -331,15 +366,19 @@ private function collectDetailUrls(): array
                     $index + 1
                 );
             } else {
+                $this->recordMissing(
+                    $monsterName,
+                    $sourceUrl,
+                    'orb',
+                    $orbName,
+                    'orbs.name で見つからない'
+                );
                 $this->warn("orb not found: {$orbName}");
             }
         }
 
-        // 装備
         foreach (array_values($equipments) as $index => $equipmentName) {
-            $equipment = DB::table('equipments')
-                ->where('name', $equipmentName)
-                ->first();
+            $equipment = $this->findBestMatch('equipments', ['item_name'], $equipmentName);
 
             if ($equipment) {
                 $this->insertDropIfNotExists(
@@ -350,9 +389,186 @@ private function collectDetailUrls(): array
                     $index + 1
                 );
             } else {
+                $this->recordMissing(
+                    $monsterName,
+                    $sourceUrl,
+                    'equipment',
+                    $equipmentName,
+                    'equipments.item_name で見つからない'
+                );
                 $this->warn("equipment not found: {$equipmentName}");
             }
         }
+    }
+
+    private function findBestMatch(string $table, array $columns, string $rawValue): ?object
+    {
+        $rawValue = trim($rawValue);
+        if ($rawValue === '') {
+            return null;
+        }
+
+        foreach ($columns as $column) {
+            $row = DB::table($table)
+                ->where($column, $rawValue)
+                ->first();
+
+            if ($row) {
+                return $row;
+            }
+        }
+
+        $normalizedInput = $this->normalizeForCompare($rawValue);
+
+        foreach ($columns as $column) {
+            $likeRows = DB::table($table)
+                ->select(['id', $column])
+                ->where($column, 'like', '%' . $rawValue . '%')
+                ->limit(10)
+                ->get();
+
+            $best = $this->pickBestCandidateFromRows($likeRows, $column, $normalizedInput);
+            if ($best) {
+                return DB::table($table)->where('id', $best->id)->first();
+            }
+        }
+
+        foreach ($columns as $column) {
+            $likeRows = DB::table($table)
+                ->select(['id', $column])
+                ->where($column, 'like', '%' . mb_substr($rawValue, 0, max(1, mb_strlen($rawValue) - 1)) . '%')
+                ->limit(30)
+                ->get();
+
+            $best = $this->pickBestCandidateFromRows($likeRows, $column, $normalizedInput);
+            if ($best) {
+                return DB::table($table)->where('id', $best->id)->first();
+            }
+        }
+
+        foreach ($columns as $column) {
+            $allRows = DB::table($table)
+                ->select(['id', $column])
+                ->get();
+
+            $best = $this->pickBestCandidateFromRows($allRows, $column, $normalizedInput);
+            if ($best) {
+                return DB::table($table)->where('id', $best->id)->first();
+            }
+        }
+
+        return null;
+    }
+
+    private function pickBestCandidateFromRows($rows, string $column, string $normalizedInput): ?object
+    {
+        $bestRow = null;
+        $bestScore = PHP_INT_MAX;
+        $inputLen = mb_strlen($normalizedInput);
+
+        foreach ($rows as $row) {
+            $candidate = (string) ($row->{$column} ?? '');
+            if ($candidate === '') {
+                continue;
+            }
+
+            $normalizedCandidate = $this->normalizeForCompare($candidate);
+
+            if ($normalizedCandidate === '') {
+                continue;
+            }
+
+            if ($normalizedCandidate === $normalizedInput) {
+                return $row;
+            }
+
+            if (
+                str_contains($normalizedCandidate, $normalizedInput)
+                || str_contains($normalizedInput, $normalizedCandidate)
+            ) {
+                $lenDiff = abs(mb_strlen($normalizedCandidate) - $inputLen);
+                if ($lenDiff <= 2) {
+                    return $row;
+                }
+            }
+
+            $distance = levenshtein(
+                $this->toAsciiComparable($normalizedInput),
+                $this->toAsciiComparable($normalizedCandidate)
+            );
+
+            $candidateLen = mb_strlen($normalizedCandidate);
+            $lenDiff = abs($candidateLen - $inputLen);
+
+            if ($inputLen <= 4) {
+                $threshold = 1;
+            } elseif ($inputLen <= 8) {
+                $threshold = 2;
+            } else {
+                $threshold = 3;
+            }
+
+            if ($lenDiff > 3) {
+                continue;
+            }
+
+            if ($distance <= $threshold && $distance < $bestScore) {
+                $bestScore = $distance;
+                $bestRow = $row;
+            }
+        }
+
+        return $bestRow;
+    }
+
+    private function normalizeForCompare(string $value): string
+    {
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = mb_convert_kana($value, 'asKV', 'UTF-8');
+        $value = preg_replace('/\x{00A0}/u', ' ', $value);
+        $value = preg_replace('/[[:space:]]+/u', '', $value);
+
+        $value = str_replace([
+            '・', '･', '—', '―', '‐', '-', 'ｰ', '－',
+            '（', '）', '(', ')', '【', '】', '[', ']',
+            '「', '」', '『', '』', '〈', '〉', '《', '》',
+            '：', ':', '　', '／', '/', '，', '、', '。',
+            '＋', '+', '％', '%', '！', '？', '!',
+            '?', '　'
+        ], '', $value);
+
+        $value = trim($value);
+
+        return $value;
+    }
+
+    private function toAsciiComparable(string $value): string
+    {
+        $map = [
+            'ア' => 'a','イ' => 'i','ウ' => 'u','エ' => 'e','オ' => 'o',
+            'カ' => 'ka','キ' => 'ki','ク' => 'ku','ケ' => 'ke','コ' => 'ko',
+            'サ' => 'sa','シ' => 'si','ス' => 'su','セ' => 'se','ソ' => 'so',
+            'タ' => 'ta','チ' => 'ti','ツ' => 'tu','テ' => 'te','ト' => 'to',
+            'ナ' => 'na','ニ' => 'ni','ヌ' => 'nu','ネ' => 'ne','ノ' => 'no',
+            'ハ' => 'ha','ヒ' => 'hi','フ' => 'hu','ヘ' => 'he','ホ' => 'ho',
+            'マ' => 'ma','ミ' => 'mi','ム' => 'mu','メ' => 'me','モ' => 'mo',
+            'ヤ' => 'ya','ユ' => 'yu','ヨ' => 'yo',
+            'ラ' => 'ra','リ' => 'ri','ル' => 'ru','レ' => 're','ロ' => 'ro',
+            'ワ' => 'wa','ヲ' => 'wo','ン' => 'n',
+            'ガ' => 'ga','ギ' => 'gi','グ' => 'gu','ゲ' => 'ge','ゴ' => 'go',
+            'ザ' => 'za','ジ' => 'zi','ズ' => 'zu','ゼ' => 'ze','ゾ' => 'zo',
+            'ダ' => 'da','ヂ' => 'di','ヅ' => 'du','デ' => 'de','ド' => 'do',
+            'バ' => 'ba','ビ' => 'bi','ブ' => 'bu','ベ' => 'be','ボ' => 'bo',
+            'パ' => 'pa','ピ' => 'pi','プ' => 'pu','ペ' => 'pe','ポ' => 'po',
+            'ャ' => 'ya','ュ' => 'yu','ョ' => 'yo','ッ' => 'tu',
+            'ァ' => 'a','ィ' => 'i','ゥ' => 'u','ェ' => 'e','ォ' => 'o',
+            'ヴ' => 'vu',
+        ];
+
+        $converted = strtr($value, $map);
+        $converted = mb_strtolower($converted, 'UTF-8');
+
+        return preg_replace('/[^a-z0-9]/', '', $converted) ?? '';
     }
 
     private function insertDropIfNotExists(
@@ -384,97 +600,96 @@ private function collectDetailUrls(): array
         ]);
     }
 
-   private function fetchHtml(string $url): ?string
-{
-    try {
-        $response = Http::withOptions([
-                'verify' => false,          // SSL検証を切る
-                'allow_redirects' => true,
-                'http_errors' => false,
-                'timeout' => 30,
-                'connect_timeout' => 15,
-            ])
-            ->withHeaders([
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language' => 'ja,en-US;q=0.9,en;q=0.8',
-                'Cache-Control' => 'no-cache',
-                'Pragma' => 'no-cache',
-            ])
-            ->get($url);
+    private function fetchHtml(string $url): ?string
+    {
+        try {
+            $response = Http::withOptions([
+                    'verify' => false,
+                    'allow_redirects' => true,
+                    'http_errors' => false,
+                    'timeout' => 30,
+                    'connect_timeout' => 15,
+                ])
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                    'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language' => 'ja,en-US;q=0.9,en;q=0.8',
+                    'Cache-Control' => 'no-cache',
+                    'Pragma' => 'no-cache',
+                ])
+                ->get($url);
 
-        $this->line("status: {$response->status()} url: {$url}");
+            $this->line("status: {$response->status()} url: {$url}");
 
-        if (!$response->successful()) {
-            $bodyPreview = mb_substr($response->body(), 0, 300);
-            $this->warn("http failed: {$url}");
-            $this->warn("status: {$response->status()}");
-            if ($bodyPreview !== '') {
-                $this->warn("body: " . $bodyPreview);
-            }
-            return null;
-        }
-
-        $html = $response->body();
-
-        if (trim($html) === '') {
-            $this->warn("empty body: {$url}");
-            return null;
-        }
-
-        return $html;
-    } catch (\Throwable $e) {
-        $this->warn("fetch exception: {$url}");
-        $this->warn($e->getMessage());
-
-        // cURL直叩き fallback
-        if (function_exists('curl_init')) {
-            try {
-                $ch = curl_init($url);
-
-                curl_setopt_array($ch, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_SSL_VERIFYPEER => false,
-                    CURLOPT_SSL_VERIFYHOST => false,
-                    CURLOPT_TIMEOUT => 30,
-                    CURLOPT_CONNECTTIMEOUT => 15,
-                    CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                    CURLOPT_HTTPHEADER => [
-                        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                        'Accept-Language: ja,en-US;q=0.9,en;q=0.8',
-                        'Cache-Control: no-cache',
-                        'Pragma: no-cache',
-                    ],
-                ]);
-
-                $html = curl_exec($ch);
-                $errno = curl_errno($ch);
-                $error = curl_error($ch);
-                $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
-
-                $this->line("curl status: {$status} url: {$url}");
-
-                if ($errno) {
-                    $this->warn("curl error: {$error}");
-                    return null;
+            if (!$response->successful()) {
+                $bodyPreview = mb_substr($response->body(), 0, 300);
+                $this->warn("http failed: {$url}");
+                $this->warn("status: {$response->status()}");
+                if ($bodyPreview !== '') {
+                    $this->warn("body: " . $bodyPreview);
                 }
-
-                if ($status >= 200 && $status < 300 && is_string($html) && trim($html) !== '') {
-                    return $html;
-                }
-
-                $this->warn("curl failed: {$url}");
                 return null;
-            } catch (\Throwable $e2) {
-                $this->warn("curl exception: " . $e2->getMessage());
             }
-        }
 
-        return null;
+            $html = $response->body();
+
+            if (trim($html) === '') {
+                $this->warn("empty body: {$url}");
+                return null;
+            }
+
+            return $html;
+        } catch (Throwable $e) {
+            $this->warn("fetch exception: {$url}");
+            $this->warn($e->getMessage());
+
+            if (function_exists('curl_init')) {
+                try {
+                    $ch = curl_init($url);
+
+                    curl_setopt_array($ch, [
+                        CURLOPT_RETURNTRANSFER => true,
+                        CURLOPT_FOLLOWLOCATION => true,
+                        CURLOPT_SSL_VERIFYPEER => false,
+                        CURLOPT_SSL_VERIFYHOST => false,
+                        CURLOPT_TIMEOUT => 30,
+                        CURLOPT_CONNECTTIMEOUT => 15,
+                        CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                        CURLOPT_HTTPHEADER => [
+                            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language: ja,en-US;q=0.9,en;q=0.8',
+                            'Cache-Control: no-cache',
+                            'Pragma: no-cache',
+                        ],
+                    ]);
+
+                    $html = curl_exec($ch);
+                    $errno = curl_errno($ch);
+                    $error = curl_error($ch);
+                    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+
+                    $this->line("curl status: {$status} url: {$url}");
+
+                    if ($errno) {
+                        $this->warn("curl error: {$error}");
+                        return null;
+                    }
+
+                    if ($status >= 200 && $status < 300 && is_string($html) && trim($html) !== '') {
+                        return $html;
+                    }
+
+                    $this->warn("curl failed: {$url}");
+                    return null;
+                } catch (Throwable $e2) {
+                    $this->warn("curl exception: " . $e2->getMessage());
+                }
+            }
+
+            return null;
+        }
     }
-}
 
     private function normalizeMonsterName(string $name): string
     {
@@ -587,5 +802,82 @@ private function collectDetailUrls(): array
         }
 
         return true;
+    }
+
+    private function recordMissing(
+        string $monsterName,
+        string $sourceUrl,
+        string $category,
+        string $rawName,
+        string $note
+    ): void {
+        $key = implode('|', [$monsterName, $sourceUrl, $category, $rawName, $note]);
+
+        foreach ($this->missingRows as $row) {
+            $rowKey = implode('|', [
+                $row['monster_name'],
+                $row['source_url'],
+                $row['category'],
+                $row['raw_name'],
+                $row['note'],
+            ]);
+
+            if ($rowKey === $key) {
+                return;
+            }
+        }
+
+        $this->missingRows[] = [
+            'monster_name' => $monsterName,
+            'source_url'   => $sourceUrl,
+            'category'     => $category,
+            'raw_name'     => $rawName,
+            'note'         => $note,
+        ];
+    }
+
+    private function exportMissingRowsCsv(): ?string
+    {
+        if (empty($this->missingRows)) {
+            return null;
+        }
+
+        $dir = storage_path('app');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        $path = $dir . DIRECTORY_SEPARATOR . 'missing_monster_drops_' . now()->format('Ymd_His') . '.csv';
+
+        $fp = fopen($path, 'w');
+
+        if ($fp === false) {
+            $this->error('missing csv の作成に失敗した');
+            return null;
+        }
+
+        fwrite($fp, "\xEF\xBB\xBF");
+
+        fputcsv($fp, [
+            'monster_name',
+            'source_url',
+            'category',
+            'raw_name',
+            'note',
+        ]);
+
+        foreach ($this->missingRows as $row) {
+            fputcsv($fp, [
+                $row['monster_name'],
+                $row['source_url'],
+                $row['category'],
+                $row['raw_name'],
+                $row['note'],
+            ]);
+        }
+
+        fclose($fp);
+
+        return $path;
     }
 }

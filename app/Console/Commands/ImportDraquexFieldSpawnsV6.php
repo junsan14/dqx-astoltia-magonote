@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Http;
 class ImportDraquexFieldSpawnsV6 extends Command
 {
     protected $signature = 'dq10:import-draquex-field-v6
-                            {list_url : 例 https://draquex.com/map/1-augu.php}
+                            {list_url?* : 一覧URLを複数指定可能。未指定なら全大陸を巡回}
+                            {--fresh : monster_map_spawns と maps を空にしてIDもリセット}
                             {--dry-run : DBに保存しない}
                             {--map= : 特定マップ名だけに絞る}
                             {--download-map-image : マップ画像も保存する}';
@@ -18,34 +19,69 @@ class ImportDraquexFieldSpawnsV6 extends Command
 
     public function handle(): int
     {
-        $this->warn('ImportDraquexFieldSpawnsV7 running');
+        $this->warn('ImportDraquexFieldSpawnsV6 running');
 
-        $listUrl = $this->argument('list_url');
         $dryRun = (bool) $this->option('dry-run');
         $onlyMap = $this->option('map');
         $downloadMapImage = (bool) $this->option('download-map-image');
+        $fresh = (bool) $this->option('fresh');
 
-        $continentKey = $this->detectContinentKeyFromListUrl($listUrl);
+        if ($fresh) {
+            if ($dryRun) {
+                $this->warn('[dry-run] --fresh が指定されたが、DB削除は実行しない');
+            } else {
+                $this->warn('monster_map_spawns と maps を空にしてIDをリセットする');
 
-        $listHtml = $this->fetch($listUrl);
+                DB::statement('SET FOREIGN_KEY_CHECKS=0');
+                DB::table('monster_map_spawns')->truncate();
+                DB::table('maps')->truncate();
+                DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-        if (! $listHtml) {
-            $this->error("一覧ページ取得失敗: {$listUrl}");
-            return self::FAILURE;
+                $this->info('monster_map_spawns / maps を truncate 完了');
+            }
         }
 
-        $mapLinks = $this->extractMapLinksFromListPage($listHtml, $listUrl);
+        $listUrls = $this->getTargetListUrls();
+
+        $this->info('対象一覧URL数: ' . count($listUrls));
+        foreach ($listUrls as $url) {
+            $this->line(' - ' . $url);
+        }
+
+        $allMapLinks = [];
+
+        foreach ($listUrls as $listUrl) {
+            $this->newLine();
+            $this->info("一覧取得: {$listUrl}");
+
+            $listHtml = $this->fetch($listUrl);
+
+            if (! $listHtml) {
+                $this->error("一覧ページ取得失敗: {$listUrl}");
+                continue;
+            }
+
+            $mapLinks = $this->extractMapLinksFromListPage($listHtml, $listUrl);
+
+            foreach ($mapLinks as $row) {
+                $row['continent_key'] = $this->detectContinentKeyFromListUrl($listUrl);
+                $allMapLinks[] = $row;
+            }
+        }
+
+        $allMapLinks = $this->uniqueMapLinks($allMapLinks);
 
         if ($onlyMap) {
-            $mapLinks = array_values(array_filter($mapLinks, fn ($row) => $row['map'] === $onlyMap));
+            $allMapLinks = array_values(array_filter($allMapLinks, fn ($row) => $row['map'] === $onlyMap));
         }
 
-        $this->info('対象マップ数: ' . count($mapLinks));
-        foreach (array_slice($mapLinks, 0, 20) as $link) {
+        $this->newLine();
+        $this->info('対象マップ数: ' . count($allMapLinks));
+        foreach (array_slice($allMapLinks, 0, 30) as $link) {
             $this->line(" - {$link['map']} => {$link['url']}");
         }
 
-        if (empty($mapLinks)) {
+        if (empty($allMapLinks)) {
             $this->error('マップリンクが1件も取れていない');
             return self::FAILURE;
         }
@@ -53,9 +89,12 @@ class ImportDraquexFieldSpawnsV6 extends Command
         $inserted = 0;
         $skipped = 0;
 
-        foreach ($mapLinks as $mapLink) {
+        foreach ($allMapLinks as $mapLink) {
             $mapName = $this->normalizeMapName($mapLink['map']);
             $mapUrl = $mapLink['url'];
+            $continentKey = $mapLink['continent_key'] ?? 'other';
+            $continentName = $this->detectContinentNameFromKey($continentKey);
+            $mapType = $this->detectMapTypeFromUrl($mapUrl);
 
             $this->newLine();
             $this->info("MAP: {$mapName}");
@@ -79,21 +118,27 @@ class ImportDraquexFieldSpawnsV6 extends Command
 
             if (! $map && ! $dryRun) {
                 DB::table('maps')->insert([
+                    'continent' => $continentName,
                     'name' => $mapName,
+                    'map_type' => $mapType,
                     'image_path' => null,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
 
                 $map = DB::table('maps')->where('name', $mapName)->first();
-                $this->line("  maps に追加: {$mapName}");
+                $this->line("  maps に追加: {$continentName} / {$mapName} / {$mapType}");
             }
 
             if (! $map && $dryRun) {
-                $this->line("  [dry-run] maps に追加予定: {$mapName}");
+                $this->line("  [dry-run] maps に追加予定: {$continentName} / {$mapName} / {$mapType}");
+
                 $map = (object) [
                     'id' => 1,
+                    'continent' => $continentName,
                     'name' => $mapName,
+                    'map_type' => $mapType,
+                    'image_path' => null,
                 ];
             }
 
@@ -101,6 +146,34 @@ class ImportDraquexFieldSpawnsV6 extends Command
                 $this->warn("  maps 登録失敗: {$mapName}");
                 $skipped++;
                 continue;
+            }
+
+            if (! $dryRun) {
+                $updateMapFields = [];
+
+                if ((property_exists($map, 'continent') && ($map->continent === null || $map->continent === '')) || ! property_exists($map, 'continent')) {
+                    $updateMapFields['continent'] = $continentName;
+                }
+
+                if ((property_exists($map, 'map_type') && ($map->map_type === null || $map->map_type === '')) || ! property_exists($map, 'map_type')) {
+                    $updateMapFields['map_type'] = $mapType;
+                }
+
+                if ((property_exists($map, 'name') && ($map->name === null || $map->name === '')) || ! property_exists($map, 'name')) {
+                    $updateMapFields['name'] = $mapName;
+                }
+
+                if (! empty($updateMapFields)) {
+                    $updateMapFields['updated_at'] = now();
+
+                    DB::table('maps')
+                        ->where('id', $map->id)
+                        ->update($updateMapFields);
+
+                    $this->line('  maps 補完更新: ' . json_encode($updateMapFields, JSON_UNESCAPED_UNICODE));
+
+                    $map = DB::table('maps')->where('id', $map->id)->first();
+                }
             }
 
             if ($downloadMapImage) {
@@ -112,7 +185,7 @@ class ImportDraquexFieldSpawnsV6 extends Command
                         $fileName = $this->buildMapImageFileName($continentKey, (int) $map->id, $ext);
 
                         $this->line("  [dry-run] map image: {$imageUrl}");
-                        $this->line("  [dry-run] image_path: /images/maps/{$continentKey}/{$fileName}");
+                        $this->line("  [dry-run] image_path: /images/maps/{$fileName}");
                     } else {
                         $imageInfo = $this->downloadMapImage($imageUrl, $continentKey, (int) $map->id);
 
@@ -232,6 +305,31 @@ class ImportDraquexFieldSpawnsV6 extends Command
         $this->info("完了 inserted={$inserted} skipped={$skipped}");
 
         return self::SUCCESS;
+    }
+
+    private function getTargetListUrls(): array
+    {
+        $inputUrls = $this->argument('list_url');
+
+        if (is_array($inputUrls) && count($inputUrls) > 0) {
+            return array_values(array_unique(array_filter(array_map('trim', $inputUrls))));
+        }
+
+        return [
+            'https://draquex.com/monster/field/1-wena.php',
+            'https://draquex.com/monster/field/1-augu.php',
+            'https://draquex.com/monster/field/1-puku.php',
+            'https://draquex.com/monster/field/1-eltona.php',
+            'https://draquex.com/monster/field/1-dowa.php',
+            'https://draquex.com/monster/field/1-sonota.php',
+            'https://draquex.com/monster/field/1-itsuwari.php',
+            'https://draquex.com/monster/field/1-shin.php',
+            'https://draquex.com/monster/field/1-nadora.php',
+            'https://draquex.com/monster/field/1-kyuru.php',
+            'https://draquex.com/monster/field/1-makai.php',
+            'https://draquex.com/monster/field/1-tensei.php',
+            'https://draquex.com/monster/field/1-hate.php',
+        ];
     }
 
     private function fetch(string $url): ?string
@@ -365,7 +463,9 @@ class ImportDraquexFieldSpawnsV6 extends Command
             $ext = strtolower(pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg');
             $fileName = $this->buildMapImageFileName($continentKey, $mapId, $ext);
 
+            //$relativePath = 'images/maps/' . $fileName;
             $relativePath = 'images/maps/' . $continentKey . '/' . $fileName;
+
             $publicPath = public_path($relativePath);
 
             if (! is_dir(dirname($publicPath))) {
@@ -511,87 +611,85 @@ class ImportDraquexFieldSpawnsV6 extends Command
         $matched = [];
 
         $directionPatterns = [
-    [
-        'keywords' => ['北東', '北東側', '北東部', '北東方面', '北東エリア', '右上', '右上側', '右上部'],
-        'cols' => ['E', 'F', 'G', 'H'],
-        'rows' => [1, 2, 3],
-    ],
-    [
-        'keywords' => ['北西', '北西側', '北西部', '北西方面', '北西エリア', '左上', '左上側', '左上部'],
-        'cols' => ['A', 'B', 'C', 'D'],
-        'rows' => [1, 2, 3],
-    ],
-    [
-        'keywords' => ['南東', '南東側', '南東部', '南東方面', '南東エリア', '右下', '右下側', '右下部'],
-        'cols' => ['E', 'F', 'G', 'H'],
-        'rows' => [6, 7, 8],
-    ],
-    [
-        'keywords' => ['南西', '南西側', '南西部', '南西方面', '南西エリア', '左下', '左下側', '左下部'],
-        'cols' => ['A', 'B', 'C', 'D'],
-        'rows' => [6, 7, 8],
-    ],
-
-    [
-        'keywords' => [
-            '北側', '北部', '北のほう', '北の方', '上のほう', '上の方', '上側',
-            '上部', '上エリア', '北方面', '北エリア', '北寄り', '上寄り',
-            '北一帯', '上半分', '北周辺', '北付近', '北あたり', '北近辺'
-        ],
-        'cols' => ['B', 'C', 'D', 'E', 'F', 'G'],
-        'rows' => [1, 2, 3],
-    ],
-    [
-        'keywords' => [
-            '南側', '南部', '南のほう', '南の方', '下のほう', '下の方', '下側',
-            '下部', '下エリア', '南方面', '南エリア', '南寄り', '下寄り',
-            '南一帯', '下半分', '南周辺', '南付近', '南あたり', '南近辺'
-        ],
-        'cols' => ['B', 'C', 'D', 'E', 'F', 'G'],
-        'rows' => [6, 7, 8],
-    ],
-    [
-        'keywords' => [
-            '東側', '東部', '右のほう', '右の方', '右側', '東', '右寄り',
-            '東方面', '東エリア', '東一帯', '右半分', '東周辺', '東付近',
-            '東あたり', '東近辺'
-        ],
-        'cols' => ['F', 'G', 'H'],
-        'rows' => [2, 3, 4, 5, 6, 7],
-    ],
-    [
-        'keywords' => [
-            '西側', '西部', '左のほう', '左の方', '左側', '西', '左寄り',
-            '西方面', '西エリア', '西一帯', '左半分', '西周辺', '西付近',
-            '西あたり', '西近辺'
-        ],
-        'cols' => ['A', 'B', 'C'],
-        'rows' => [2, 3, 4, 5, 6, 7],
-    ],
-
-    [
-        'keywords' => [
-            '中央', '中央付近', 'マップ中央', '中心', '中央部', '中央あたり',
-            '中央近辺', '中央周辺', '中央一帯', 'ど真ん中', '真ん中', '中ほど',
-            '中程', '中間', '中央エリア'
-        ],
-        'cols' => ['C', 'D', 'E', 'F'],
-        'rows' => [3, 4, 5, 6],
-    ],
-    [
-        'keywords' => ['中腹', '山の中腹', '途中', '中段'],
-        'cols' => ['C', 'D', 'E', 'F'],
-        'rows' => [3, 4, 5],
-    ],
-    [
-        'keywords' => [
-            '全域', '広範囲', '全体', '全体的', '一帯', '各地', '各所',
-            '広い範囲', '広く分布', '広く生息', 'マップ全域', 'ほぼ全域'
-        ],
-        'cols' => ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-        'rows' => [1, 2, 3, 4, 5, 6, 7, 8],
-    ],
-];
+            [
+                'keywords' => ['北東', '北東側', '北東部', '北東方面', '北東エリア', '右上', '右上側', '右上部'],
+                'cols' => ['E', 'F', 'G', 'H'],
+                'rows' => [1, 2, 3],
+            ],
+            [
+                'keywords' => ['北西', '北西側', '北西部', '北西方面', '北西エリア', '左上', '左上側', '左上部'],
+                'cols' => ['A', 'B', 'C', 'D'],
+                'rows' => [1, 2, 3],
+            ],
+            [
+                'keywords' => ['南東', '南東側', '南東部', '南東方面', '南東エリア', '右下', '右下側', '右下部'],
+                'cols' => ['E', 'F', 'G', 'H'],
+                'rows' => [6, 7, 8],
+            ],
+            [
+                'keywords' => ['南西', '南西側', '南西部', '南西方面', '南西エリア', '左下', '左下側', '左下部'],
+                'cols' => ['A', 'B', 'C', 'D'],
+                'rows' => [6, 7, 8],
+            ],
+            [
+                'keywords' => [
+                    '北側', '北部', '北のほう', '北の方', '上のほう', '上の方', '上側',
+                    '上部', '上エリア', '北方面', '北エリア', '北寄り', '上寄り',
+                    '北一帯', '上半分', '北周辺', '北付近', '北あたり', '北近辺'
+                ],
+                'cols' => ['B', 'C', 'D', 'E', 'F', 'G'],
+                'rows' => [1, 2, 3],
+            ],
+            [
+                'keywords' => [
+                    '南側', '南部', '南のほう', '南の方', '下のほう', '下の方', '下側',
+                    '下部', '下エリア', '南方面', '南エリア', '南寄り', '下寄り',
+                    '南一帯', '下半分', '南周辺', '南付近', '南あたり', '南近辺'
+                ],
+                'cols' => ['B', 'C', 'D', 'E', 'F', 'G'],
+                'rows' => [6, 7, 8],
+            ],
+            [
+                'keywords' => [
+                    '東側', '東部', '右のほう', '右の方', '右側', '東', '右寄り',
+                    '東方面', '東エリア', '東一帯', '右半分', '東周辺', '東付近',
+                    '東あたり', '東近辺'
+                ],
+                'cols' => ['F', 'G', 'H'],
+                'rows' => [2, 3, 4, 5, 6, 7],
+            ],
+            [
+                'keywords' => [
+                    '西側', '西部', '左のほう', '左の方', '左側', '西', '左寄り',
+                    '西方面', '西エリア', '西一帯', '左半分', '西周辺', '西付近',
+                    '西あたり', '西近辺'
+                ],
+                'cols' => ['A', 'B', 'C'],
+                'rows' => [2, 3, 4, 5, 6, 7],
+            ],
+            [
+                'keywords' => [
+                    '中央', '中央付近', 'マップ中央', '中心', '中央部', '中央あたり',
+                    '中央近辺', '中央周辺', '中央一帯', 'ど真ん中', '真ん中', '中ほど',
+                    '中程', '中間', '中央エリア'
+                ],
+                'cols' => ['C', 'D', 'E', 'F'],
+                'rows' => [3, 4, 5, 6],
+            ],
+            [
+                'keywords' => ['中腹', '山の中腹', '途中', '中段'],
+                'cols' => ['C', 'D', 'E', 'F'],
+                'rows' => [3, 4, 5],
+            ],
+            [
+                'keywords' => [
+                    '全域', '広範囲', '全体', '全体的', '一帯', '各地', '各所',
+                    '広い範囲', '広く分布', '広く生息', 'マップ全域', 'ほぼ全域'
+                ],
+                'cols' => ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
+                'rows' => [1, 2, 3, 4, 5, 6, 7, 8],
+            ],
+        ];
 
         foreach ($directionPatterns as $pattern) {
             foreach ($pattern['keywords'] as $keyword) {
@@ -727,6 +825,35 @@ class ImportDraquexFieldSpawnsV6 extends Command
         return 'other';
     }
 
+    private function detectContinentNameFromKey(string $continentKey): string
+    {
+        return match ($continentKey) {
+            'orgreed'   => 'オーグリード大陸',
+            'pukuland'  => 'プクランド大陸',
+            'eltona'    => 'エルトナ大陸',
+            'wena'      => 'ウェナ諸島',
+            'dwachakka' => 'ドワチャッカ大陸',
+            'sonota'    => 'その他',
+            'itsuwari'  => '偽りのレンダーシア',
+            'shin'      => '真のレンダーシア',
+            'nadora'    => 'ナドラガンド',
+            'kyururu'   => 'キュルルと行く世界',
+            'makai'     => '魔界',
+            'tensei'    => '天星郷',
+            'hate'      => '果ての大地ゼニアス',
+            default     => 'その他',
+        };
+    }
+
+    private function detectMapTypeFromUrl(string $url): string
+    {
+        if (str_contains($url, '/monster/field/')) {
+            return 'フィールド';
+        }
+
+        return '不明';
+    }
+
     private function buildMapImageFileName(string $continentKey, int $mapId, string $ext = 'jpg'): string
     {
         $continentKey = preg_replace('/[^a-z0-9_-]/', '', strtolower($continentKey)) ?: 'other';
@@ -766,6 +893,29 @@ class ImportDraquexFieldSpawnsV6 extends Command
             }
 
             $seen[$item['url']] = true;
+            $result[] = $item;
+        }
+
+        return $result;
+    }
+
+    private function uniqueMapLinks(array $items): array
+    {
+        $seen = [];
+        $result = [];
+
+        foreach ($items as $item) {
+            $key = ($item['url'] ?? '') . '|' . ($item['map'] ?? '');
+
+            if ($key === '|') {
+                continue;
+            }
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
             $result[] = $item;
         }
 

@@ -53,11 +53,11 @@ class MonsterController extends Controller
                     'monsters.system_type',
                     'items.name as matched_name'
                 )
-                ->join('monster_drops', 'monster_drops.monster_id', '=', 'monsters.id')
-                ->join('items', function ($join) {
-                    $join->on('items.id', '=', 'monster_drops.drop_target_id')
+                ->join('monster_drops', function ($join) {
+                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
                         ->where('monster_drops.drop_target_type', '=', 'item');
                 })
+                ->join('items', 'items.id', '=', 'monster_drops.drop_target_id')
                 ->when($keyword !== '', function ($query) use ($keyword) {
                     $escapedKeyword = addcslashes($keyword, '\\%_');
 
@@ -98,11 +98,11 @@ class MonsterController extends Controller
                     'orbs.name as matched_name',
                     'orbs.color as matched_color'
                 )
-                ->join('monster_drops', 'monster_drops.monster_id', '=', 'monsters.id')
-                ->join('orbs', function ($join) {
-                    $join->on('orbs.id', '=', 'monster_drops.drop_target_id')
+                ->join('monster_drops', function ($join) {
+                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
                         ->where('monster_drops.drop_target_type', '=', 'orb');
                 })
+                ->join('orbs', 'orbs.id', '=', 'monster_drops.drop_target_id')
                 ->when($keyword !== '', function ($query) use ($keyword) {
                     $escapedKeyword = addcslashes($keyword, '\\%_');
 
@@ -140,29 +140,29 @@ class MonsterController extends Controller
                     'monsters.monster_no',
                     'monsters.name',
                     'monsters.system_type',
-                    'equipments.name as matched_name'
+                    'equipments.item_name as matched_name'
                 )
-                ->join('monster_drops', 'monster_drops.monster_id', '=', 'monsters.id')
-                ->join('equipments', function ($join) {
-                    $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
+                ->join('monster_drops', function ($join) {
+                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
                         ->where('monster_drops.drop_target_type', '=', 'equipment');
                 })
+                ->join('equipments', 'equipments.id', '=', 'monster_drops.drop_target_id')
                 ->when($keyword !== '', function ($query) use ($keyword) {
                     $escapedKeyword = addcslashes($keyword, '\\%_');
 
-                    $query->where('equipments.name', 'like', '%' . $escapedKeyword . '%')
+                    $query->where('equipments.item_name', 'like', '%' . $escapedKeyword . '%')
                         ->orderByRaw(
                             "
                             CASE
-                                WHEN equipments.name = ? THEN 0
-                                WHEN equipments.name LIKE ? THEN 1
+                                WHEN equipments.item_name = ? THEN 0
+                                WHEN equipments.item_name LIKE ? THEN 1
                                 ELSE 2
                             END
                             ",
                             [$keyword, $escapedKeyword . '%']
                         )
-                        ->orderByRaw('LENGTH(equipments.name) ASC')
-                        ->orderBy('equipments.name')
+                        ->orderByRaw('LENGTH(equipments.item_name) ASC')
+                        ->orderBy('equipments.item_name')
                         ->orderBy('monsters.name');
                 }, function ($query) {
                     $query->orderBy('monsters.name');
@@ -180,195 +180,196 @@ class MonsterController extends Controller
         return response()->json([]);
     }
 
-public function show($id)
-{
-    $monster = Monster::query()
-        ->select(
-            'id',
-            'monster_no',
-            'name',
-            'system_type',
-            'source_url',
-            'created_at',
-            'updated_at'
-        )
-        ->findOrFail($id);
+    public function show($id)
+    {
+        $monster = Monster::query()
+            ->select(
+                'id',
+                'monster_no',
+                'name',
+                'system_type',
+                'source_url',
+                'created_at',
+                'updated_at'
+            )
+            ->findOrFail($id);
 
-    $drops = DB::table('monster_drops')
-        ->leftJoin('items', function ($join) {
-            $join->on('items.id', '=', 'monster_drops.drop_target_id')
-                ->where('monster_drops.drop_target_type', '=', 'item');
-        })
-        ->leftJoin('orbs', function ($join) {
-            $join->on('orbs.id', '=', 'monster_drops.drop_target_id')
-                ->where('monster_drops.drop_target_type', '=', 'orb');
-        })
-        ->leftJoin('equipments', function ($join) {
-            $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
-                ->where('monster_drops.drop_target_type', '=', 'equipment');
-        })
-        ->where('monster_drops.monster_id', $monster->id)
-        ->orderByRaw("
-            CASE monster_drops.drop_type
-                WHEN 'normal' THEN 1
-                WHEN 'rare' THEN 2
-                WHEN 'white_box' THEN 3
-                ELSE 99
-            END
-        ")
-        ->orderBy('monster_drops.sort_order')
-        ->orderBy('monster_drops.id')
-        ->get([
-            'monster_drops.id',
-            'monster_drops.monster_id',
-            'monster_drops.drop_target_type',
-            'monster_drops.drop_target_id',
-            'monster_drops.drop_type',
-            'monster_drops.sort_order',
+        $drops = DB::table('monster_drops')
+            ->leftJoin('items', function ($join) {
+                $join->on('items.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'item');
+            })
+            ->leftJoin('orbs', function ($join) {
+                $join->on('orbs.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'orb');
+            })
+            ->leftJoin('equipments', function ($join) {
+                $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'equipment');
+            })
+            ->where('monster_drops.monster_id', $monster->id)
+            ->orderByRaw("
+                CASE
+                    WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'normal' THEN 1
+                    WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'rare' THEN 2
+                    WHEN monster_drops.drop_type = 'white_box' THEN 3
+                    WHEN monster_drops.drop_target_type = 'orb' THEN 4
+                    WHEN monster_drops.drop_target_type = 'equipment' THEN 5
+                    ELSE 99
+                END
+            ")
+            ->orderBy('monster_drops.sort_order')
+            ->orderBy('monster_drops.id')
+            ->get([
+                'monster_drops.id',
+                'monster_drops.monster_id',
+                'monster_drops.drop_target_type',
+                'monster_drops.drop_target_id',
+                'monster_drops.drop_type',
+                'monster_drops.sort_order',
 
-            'items.name as item_name',
-            'items.category as item_category',
+                'items.name as item_name',
+                'items.category as item_category',
 
-            'orbs.name as orb_name',
-            'orbs.color as orb_color',
-            'orbs.effect as orb_effect',
+                'orbs.name as orb_name',
+                'orbs.color as orb_color',
+                'orbs.effect as orb_effect',
 
-            'equipments.name as equipment_name',
-        ])
-        ->map(function ($drop) {
-            $name = null;
-            $category = null;
-            $extra = [];
+                'equipments.item_name as equipment_name',
+            ])
+            ->map(function ($drop) {
+                $name = null;
+                $category = null;
+                $extra = [];
 
-            if ($drop->drop_target_type === 'item') {
-                $name = $drop->item_name;
-                $category = $drop->item_category;
-            }
+                if ($drop->drop_target_type === 'item') {
+                    $name = $drop->item_name;
+                    $category = $drop->item_category;
+                }
 
-            if ($drop->drop_target_type === 'orb') {
-                $name = $drop->orb_name;
-                $category = 'orb';
-                $extra = [
-                    'color' => $drop->orb_color,
-                    'effect' => $drop->orb_effect,
-                ];
-            }
-
-            if ($drop->drop_target_type === 'equipment') {
-                $name = $drop->equipment_name;
-                $category = 'equipment';
-            }
-
-            return [
-                'id' => $drop->id,
-                'monster_id' => $drop->monster_id,
-                'drop_target_type' => $drop->drop_target_type,
-                'drop_target_id' => $drop->drop_target_id,
-                'drop_type' => $drop->drop_type,
-                'drop_type_label' => $this->dropTypeLabel($drop->drop_type),
-                'sort_order' => $drop->sort_order,
-                'name' => $name,
-                'category' => $category,
-                ...$extra,
-            ];
-        })
-        ->filter(fn ($drop) => !empty($drop['name']))
-        ->values();
-
-    $maps = DB::table('monster_map_spawns')
-        ->join('maps', 'maps.id', '=', 'monster_map_spawns.map_id')
-        ->where('monster_map_spawns.monster_id', $monster->id)
-        ->orderBy('maps.name')
-        ->orderBy('monster_map_spawns.id')
-        ->get([
-            'monster_map_spawns.id',
-            'monster_map_spawns.map_id',
-            'monster_map_spawns.area',
-            'monster_map_spawns.spawn_time',
-            'monster_map_spawns.note',
-            'maps.name as map_name',
-            'maps.image_path',
-        ])
-        ->groupBy('map_id')
-        ->map(function ($rows, $mapId) {
-            $first = $rows->first();
-
-            return [
-                'id' => (int) $mapId,
-                'name' => $first->map_name,
-                'image_path' => $first->image_path,
-                'spawns' => $rows->map(function ($row) {
-                    return [
-                        'id' => $row->id,
-                        'area' => $this->parseArea($row->area),
-                        'spawn_time' => $row->spawn_time,
-                        'note' => $row->note,
+                if ($drop->drop_target_type === 'orb') {
+                    $name = $drop->orb_name;
+                    $category = 'orb';
+                    $extra = [
+                        'color' => $drop->orb_color,
+                        'effect' => $drop->orb_effect,
                     ];
-                })->values(),
-            ];
-        })
-        ->values();
+                }
 
-    return response()->json([
-        'id' => $monster->id,
-        'monster_no' => $monster->monster_no,
-        'name' => $monster->name,
-        'system_type' => $monster->system_type,
-        'source_url' => $monster->source_url,
+                if ($drop->drop_target_type === 'equipment') {
+                    $name = $drop->equipment_name;
+                    $category = 'equipment';
+                }
 
-        'drops' => $drops,
+                return [
+                    'id' => $drop->id,
+                    'monster_id' => $drop->monster_id,
+                    'drop_target_type' => $drop->drop_target_type,
+                    'drop_target_id' => $drop->drop_target_id,
+                    'drop_type' => $drop->drop_type,
+                    'drop_type_label' => $this->dropTypeLabel($drop->drop_type, $drop->drop_target_type),
+                    'sort_order' => $drop->sort_order,
+                    'name' => $name,
+                    'category' => $category,
+                    ...$extra,
+                ];
+            })
+            ->filter(fn ($drop) => !empty($drop['name']))
+            ->values();
 
-        'normal_drops' => $drops
-            ->where('drop_target_type', 'item')
-            ->where('drop_type', 'normal')
-            ->values(),
+        $maps = DB::table('monster_map_spawns')
+            ->join('maps', 'maps.id', '=', 'monster_map_spawns.map_id')
+            ->where('monster_map_spawns.monster_id', $monster->id)
+            ->orderBy('maps.name')
+            ->orderBy('monster_map_spawns.id')
+            ->get([
+                'monster_map_spawns.id',
+                'monster_map_spawns.map_id',
+                'monster_map_spawns.area',
+                'monster_map_spawns.spawn_time',
+                'monster_map_spawns.note',
+                'maps.name as map_name',
+                'maps.image_path',
+            ])
+            ->groupBy('map_id')
+            ->map(function ($rows, $mapId) {
+                $first = $rows->first();
 
-        'rare_drops' => $drops
-            ->where('drop_target_type', 'item')
-            ->where('drop_type', 'rare')
-            ->values(),
+                return [
+                    'id' => (int) $mapId,
+                    'name' => $first->map_name,
+                    'image_path' => $first->image_path,
+                    'spawns' => $rows->map(function ($row) {
+                        return [
+                            'id' => $row->id,
+                            'area' => $this->parseArea($row->area),
+                            'spawn_time' => $row->spawn_time,
+                            'note' => $row->note,
+                        ];
+                    })->values(),
+                ];
+            })
+            ->values();
 
-        'white_box_drops' => $drops
-            ->where('drop_type', 'white_box')
-            ->values(),
+        return response()->json([
+            'id' => $monster->id,
+            'monster_no' => $monster->monster_no,
+            'name' => $monster->name,
+            'system_type' => $monster->system_type,
+            'source_url' => $monster->source_url,
 
-        'orb_drops' => $drops
-            ->where('drop_target_type', 'orb')
-            ->values(),
+            'drops' => $drops,
 
-        'equipment_drops' => $drops
-            ->where('drop_target_type', 'equipment')
-            ->values(),
+            'normal_drops' => $drops
+                ->where('drop_target_type', 'item')
+                ->where('drop_type', 'normal')
+                ->values(),
 
-        'maps' => $maps,
-    ]);
-}
-private function parseArea($area): array
-{
-    if (empty($area)) {
-        return [];
+            'rare_drops' => $drops
+                ->where('drop_target_type', 'item')
+                ->where('drop_type', 'rare')
+                ->values(),
+
+            'white_box_drops' => $drops
+                ->where('drop_type', 'white_box')
+                ->values(),
+
+            'orb_drops' => $drops
+                ->where('drop_target_type', 'orb')
+                ->values(),
+
+            'equipment_drops' => $drops
+                ->where('drop_target_type', 'equipment')
+                ->values(),
+
+            'maps' => $maps,
+        ]);
     }
 
-    if (is_array($area)) {
-        return array_values(array_filter($area));
-    }
-
-    if (is_string($area)) {
-        $decoded = json_decode($area, true);
-
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            return array_values(array_filter($decoded));
+    private function parseArea($area): array
+    {
+        if (empty($area)) {
+            return [];
         }
 
-        return array_values(array_filter(
-            array_map('trim', explode(',', $area))
-        ));
+        if (is_array($area)) {
+            return array_values(array_filter($area));
+        }
+
+        if (is_string($area)) {
+            $decoded = json_decode($area, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return array_values(array_filter($decoded));
+            }
+
+            return array_values(array_filter(
+                array_map('trim', explode(',', $area))
+            ));
+        }
+
+        return [];
     }
-
-    return [];
-}
-
-
 
     private function attachDropSummaries(Collection $monsters, string $searchType, string $keyword = ''): Collection
     {
@@ -392,16 +393,27 @@ private function parseArea($area): array
                     ->where('monster_drops.drop_target_type', '=', 'equipment');
             })
             ->whereIn('monster_drops.monster_id', $monsterIds)
+            ->orderByRaw("
+                CASE
+                    WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'normal' THEN 1
+                    WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'rare' THEN 2
+                    WHEN monster_drops.drop_type = 'white_box' THEN 3
+                    WHEN monster_drops.drop_target_type = 'orb' THEN 4
+                    WHEN monster_drops.drop_target_type = 'equipment' THEN 5
+                    ELSE 99
+                END
+            ")
             ->orderBy('monster_drops.sort_order')
             ->orderBy('monster_drops.id')
             ->get([
                 'monster_drops.monster_id',
                 'monster_drops.drop_target_type',
                 'monster_drops.drop_type',
+                'monster_drops.sort_order',
                 'items.name as item_name',
                 'orbs.name as orb_name',
                 'orbs.color as orb_color',
-                'equipments.name as equipment_name',
+                'equipments.item_name as equipment_name',
             ])
             ->groupBy('monster_id');
 
@@ -420,6 +432,27 @@ private function parseArea($area): array
                 ->where('drop_target_type', 'item')
                 ->where('drop_type', 'rare')
                 ->pluck('item_name')
+                ->filter()
+                ->unique()
+                ->values();
+
+            $whiteBoxDrops = $monsterDrops
+                ->where('drop_type', 'white_box')
+                ->map(function ($drop) {
+                    if ($drop->drop_target_type === 'item') {
+                        return $drop->item_name;
+                    }
+
+                    if ($drop->drop_target_type === 'equipment') {
+                        return $drop->equipment_name;
+                    }
+
+                    if ($drop->drop_target_type === 'orb') {
+                        return $drop->orb_name;
+                    }
+
+                    return null;
+                })
                 ->filter()
                 ->unique()
                 ->values();
@@ -458,19 +491,35 @@ private function parseArea($area): array
                 },
                 'normal_drops' => $normalDrops,
                 'rare_drops' => $rareDrops,
+                'white_box_drops' => $whiteBoxDrops,
                 'orb_drops' => $orbDrops,
                 'equipment_drops' => $equipmentDrops,
             ];
         })->values();
     }
 
-    private function dropTypeLabel(?string $dropType): string
+    private function dropTypeLabel(?string $dropType, ?string $dropTargetType = null): string
     {
-        return match ($dropType) {
-            'normal' => '通常ドロップ',
-            'rare' => 'レアドロップ',
-            'white_box' => '白宝箱',
-            default => $dropType ?? '',
-        };
+        if ($dropType === 'normal') {
+            return '通常ドロップ';
+        }
+
+        if ($dropType === 'rare') {
+            return 'レアドロップ';
+        }
+
+        if ($dropType === 'white_box') {
+            return '白宝箱';
+        }
+
+        if ($dropType === 'orb' || $dropTargetType === 'orb') {
+            return '宝珠';
+        }
+
+        if ($dropType === 'equipment' || $dropTargetType === 'equipment') {
+            return '装備';
+        }
+
+        return $dropType ?? '';
     }
 }

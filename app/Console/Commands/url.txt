@@ -13,7 +13,7 @@ https://draquex.com/monster/field/1-tensei.php
 https://draquex.com/monster/field/1-hate.php
 
 
-
+$relativePath = 'images/maps/' . $continentKey . '/' . $fileName;
 取得したいエリアのURLが全部のっている大陸の一覧URLがこれ。
 このURL全部でそれぞれのURLを取得したい。画像が二枚あるやつはそれぞれ保存します。
 
