@@ -8,32 +8,56 @@ use App\Http\Requests\UpdateOrbRequest;
 use App\Models\Monster;
 use App\Models\MonsterDrop;
 use App\Models\Orb;
+use App\Services\MonsterDropSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class OrbController extends Controller
 {
-    public function index(Request $request): JsonResponse
-    {
-        $q = trim((string) $request->query('q', ''));
+    public function __construct(
+        private MonsterDropSyncService $monsterDropSyncService
+    ) {}
 
-        $query = Orb::query()->orderBy('id', 'desc');
+ public function index(Request $request): JsonResponse
+{
+    $q = trim((string) $request->query('q', ''));
+    $color = trim((string) $request->query('color', ''));
 
-        if ($q !== '') {
-            $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('color', 'like', "%{$q}%")
-                    ->orWhere('effect', 'like', "%{$q}%");
-            });
-        }
+    $query = Orb::query();
 
-        $orbs = $query->paginate(100);
-
-        return response()->json([
-            'data' => $orbs,
-        ]);
+    if ($color !== '') {
+        $query->where('color', $color);
     }
+
+    if ($q !== '') {
+        $escaped = addcslashes($q, '\\%_');
+
+        $query->where(function ($sub) use ($escaped) {
+            $sub->where('name', 'like', "%{$escaped}%")
+                ->orWhere('color', 'like', "%{$escaped}%")
+                ->orWhere('effect', 'like', "%{$escaped}%");
+        })
+        ->orderByRaw(
+            "
+            CASE
+                WHEN name = ? THEN 0
+                WHEN name LIKE ? THEN 1
+                ELSE 2
+            END
+            ",
+            [$q, $escaped . '%']
+        )
+        ->orderByRaw('LENGTH(name) ASC')
+        ->orderBy('name');
+    } else {
+        $query->orderBy('name');
+    }
+
+    return response()->json([
+        'data' => $query->get(),
+    ]);
+}
 
     public function show(Orb $orb): JsonResponse
     {
@@ -78,34 +102,38 @@ class OrbController extends Controller
         ]);
     }
 
-  public function store(StoreOrbRequest $request): JsonResponse
-{
-    $validated = $request->validated();
+    public function store(StoreOrbRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
 
-    logger()->info('orb store validated', $validated);
+        logger()->info('orb store validated', $validated);
 
-    $orb = DB::transaction(function () use ($validated) {
-        $orb = Orb::create([
-            'name' => $validated['name'],
-            'color' => $validated['color'] ?? null,
-            'effect' => $validated['effect'] ?? null,
-        ]);
+        $orb = DB::transaction(function () use ($validated) {
+            $orb = Orb::create([
+                'name' => $validated['name'],
+                'color' => $validated['color'] ?? null,
+                'effect' => $validated['effect'] ?? null,
+            ]);
 
-        $this->syncDropMonsters($orb->id, $validated['drop_monsters'] ?? []);
+            $this->monsterDropSyncService->sync(
+                'orb',
+                $orb->id,
+                $validated['drop_monsters'] ?? []
+            );
 
-        return $orb;
-    });
+            return $orb;
+        });
 
-    return response()->json([
-        'message' => 'オーブを作成した',
-        'data' => $this->buildOrbResponse($orb->fresh()),
-    ], 201);
-}
+        return response()->json([
+            'message' => 'オーブを作成した',
+            'data' => $this->buildOrbResponse($orb->fresh()),
+        ], 201);
+    }
 
     public function update(UpdateOrbRequest $request, Orb $orb): JsonResponse
     {
         $validated = $request->validated();
-
+         logger()->info('orb store validated', $validated);
         DB::transaction(function () use ($orb, $validated) {
             $orb->update([
                 'name' => $validated['name'],
@@ -113,7 +141,11 @@ class OrbController extends Controller
                 'effect' => $validated['effect'] ?? null,
             ]);
 
-            $this->syncDropMonsters($orb->id, $validated['drop_monsters'] ?? []);
+            $this->monsterDropSyncService->sync(
+                'orb',
+                $orb->id,
+                $validated['drop_monsters'] ?? []
+            );
         });
 
         return response()->json([
@@ -136,29 +168,6 @@ class OrbController extends Controller
         return response()->json([
             'message' => 'オーブを削除した',
         ]);
-    }
-
-    private function syncDropMonsters(int $orbId, array $dropMonsters): void
-    {
-        MonsterDrop::query()
-            ->where('drop_target_type', 'orb')
-            ->where('drop_target_id', $orbId)
-            ->delete();
-
-        foreach (array_values($dropMonsters) as $index => $row) {
-            $monsterId = (int) ($row['monster_id'] ?? 0);
-            if (!$monsterId) {
-                continue;
-            }
-
-            MonsterDrop::create([
-                'monster_id' => $monsterId,
-                'drop_target_type' => 'orb',
-                'drop_target_id' => $orbId,
-                'drop_type' => $row['drop_type'] ?? 'normal',
-                'sort_order' => $row['sort_order'] ?? ($index + 1),
-            ]);
-        }
     }
 
     private function buildOrbResponse(Orb $orb): array

@@ -17,17 +17,25 @@ class ImportArmorsFromDraquex extends Command
     protected string $listUrl = 'https://draquex.com/bougu/0-zenbu.php';
 
     protected array $itemNameToIdMap = [];
+    protected array $equipmentTypeNameToIdMap = [];
+    protected array $jobNameToIdMap = [];
+    protected array $defaultJobsByEquipmentTypeId = [];
 
     public function handle(): int
     {
         $this->itemNameToIdMap = $this->loadItemsMap();
+        $this->equipmentTypeNameToIdMap = $this->loadEquipmentTypeMap();
+        $this->jobNameToIdMap = $this->loadJobMap();
+        $this->defaultJobsByEquipmentTypeId = $this->loadDefaultJobsByEquipmentTypeId();
+
         $csvMap = $this->loadCraftMasterCsv();
 
         if ($this->option('fresh')) {
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            DB::table('equipment_job_overrides')->truncate();
             DB::table('equipments')->truncate();
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
-            $this->warn('truncate equipments: id reset to 1');
+            $this->warn('truncate equipments + equipment_job_overrides: id reset to 1');
         }
 
         $html = $this->fetch($this->listUrl);
@@ -77,55 +85,72 @@ class ImportArmorsFromDraquex extends Command
                 $materialsWithIds = $this->convertMaterialsToItemIds($rawMaterials, $part['item_name']);
 
                 $typeKey = $this->slotTypeKey($part['slot']);
+                
+                $desiredJobs = $this->resolveDesiredJobs($csv, $detail);
+                $desiredJobs = $this->normalizeJobNames($desiredJobs);
+                $equipmentTypeName = $this->resolveArmorEquipmentTypeName(
+                    $csv,
+                    $part,
+                    $craftType,
+                    $desiredJobs
+                );
+                $equipmentTypeId = $this->equipmentTypeNameToIdMap[$equipmentTypeName] ?? null;
+
+                if (!$equipmentTypeId) {
+                    $this->warn("equipment_types 未登録: {$part['item_name']} / {$equipmentTypeName}");
+                }
+
+
+
+                $jobOverrideMode = $this->resolveJobOverrideMode($equipmentTypeId, $desiredJobs);
 
                 $payload = [
                     'item_id'            => $itemId,
                     'item_name'          => $part['item_name'],
+                    'equipment_type_id'  => $equipmentTypeId,
+                    'job_override_mode'  => $jobOverrideMode,
 
-                    // CSV優先
-                    'item_kind'          => $this->csvValue($csv, 'itemKind', '防具'),
-                    'item_type_key'      => $this->csvValue($csv, 'itemTypeKey', $typeKey),
-                    'item_type'          => $this->csvValue($csv, 'itemType', $part['slot']),
-                    'craft_type'         => $craftType,
+                    'craft_level'        => $this->csvNumericValue($csv, 'craftLevel', $part['craft_level']),
+                    'equip_level'        => $this->csvNumericValue($csv, 'equipLevel', $detail['equip_level']),
+                    'recipe_book'        => $this->csvValue($csv, 'recipeBook', $detail['recipe_book']),
+                    'recipe_place'       => $detail['recipe_place'],
+                    'description'        => null,
+
                     'slot'               => $this->csvValue($csv, 'slot', $part['slot']),
                     'slot_grid_type'     => $this->csvValue($csv, 'slotGridType', $part['slot']),
                     'slot_grid_cols'     => $this->csvNumericValue($csv, 'slotGridCols', null),
                     'group_kind'         => $this->csvValue($csv, 'groupKind', 'armor_set'),
                     'group_id'           => $this->csvValue($csv, 'groupId', '防具_' . $detail['set_name']),
                     'group_name'         => $this->csvValue($csv, 'groupName', $detail['set_name']),
-                    'items_count'        => $this->csvNumericValue($csv, 'itemsCount', count($detail['parts'])),
-                    'slot_grid_json'     => $this->csvJsonValue($csv, 'slotGridJson', null),
-                    'equipable_type'     => $this->csvValue($csv, 'equipableType', $part['slot']),
-
-                    // detail / fallback
-                    'craft_level'        => $this->csvNumericValue($csv, 'craftLevel', $part['craft_level']),
-                    'equip_level'        => $this->csvNumericValue($csv, 'equipLevel', $detail['equip_level']),
-                    'recipe_book'        => $this->csvValue($csv, 'recipeBook', $detail['recipe_book']),
-                    'recipe_place'       => $detail['recipe_place'],
-                    'description'        => null,
                     'materials_json'     => $this->toJsonOrNull($materialsWithIds),
-                    'jobs_json'          => $this->csvJsonValue($csv, 'jobsJson', $this->toJsonOrNull($detail['jobs'])),
-                    'effects_json'       => $this->toJsonOrNull($detail['effects']),
-                    'crystal_by_alchemy' => $this->csvValue($csv, 'crystalByAlchemy', null),
+                    'slot_grid_json'     => $this->csvJsonValue($csv, 'slotGridJson', null),
 
                     'source_url'         => $this->listUrl,
                     'detail_url'         => $part['detail_url'] ?: $detail['detail_url'],
+                    'effects_json'       => $this->toJsonOrNull($detail['effects']),
                     'updated_at'         => now(),
                 ];
 
-                $exists = DB::table('equipments')
+                $existing = DB::table('equipments')
+                    ->select('id')
                     ->where('detail_url', $payload['detail_url'])
-                    ->exists();
+                    ->first();
 
-                if ($exists) {
+                if ($existing) {
                     DB::table('equipments')
-                        ->where('detail_url', $payload['detail_url'])
+                        ->where('id', $existing->id)
                         ->update($payload);
+
+                    $equipmentId = (int) $existing->id;
+                    $this->syncJobOverrides($equipmentId, $equipmentTypeId, $desiredJobs);
 
                     $this->info("updated: {$part['item_name']}");
                 } else {
                     $payload['created_at'] = now();
-                    DB::table('equipments')->insert($payload);
+                    $equipmentId = DB::table('equipments')->insertGetId($payload);
+
+                    $this->syncJobOverrides($equipmentId, $equipmentTypeId, $desiredJobs);
+
                     $this->info("inserted: {$part['item_name']}");
                 }
             }
@@ -312,21 +337,11 @@ class ImportArmorsFromDraquex extends Command
     {
         $text = trim(preg_replace('/\s+/u', ' ', $thNode->textContent));
 
-        if (preg_match('/【\s*アタマ\s*】|〖\s*アタマ\s*〗/u', $text)) {
-            return 'アタマ';
-        }
-        if (preg_match('/【\s*からだ上\s*】|〖\s*からだ上\s*〗/u', $text)) {
-            return 'からだ上';
-        }
-        if (preg_match('/【\s*からだ下\s*】|〖\s*からだ下\s*〗/u', $text)) {
-            return 'からだ下';
-        }
-        if (preg_match('/【\s*ウデ\s*】|〖\s*ウデ\s*〗/u', $text)) {
-            return 'ウデ';
-        }
-        if (preg_match('/【\s*足\s*】|〖\s*足\s*〗/u', $text)) {
-            return '足';
-        }
+        if (preg_match('/【\s*アタマ\s*】|〖\s*アタマ\s*〗/u', $text)) return 'アタマ';
+        if (preg_match('/【\s*からだ上\s*】|〖\s*からだ上\s*〗/u', $text)) return 'からだ上';
+        if (preg_match('/【\s*からだ下\s*】|〖\s*からだ下\s*〗/u', $text)) return 'からだ下';
+        if (preg_match('/【\s*ウデ\s*】|〖\s*ウデ\s*〗/u', $text)) return 'ウデ';
+        if (preg_match('/【\s*足\s*】|〖\s*足\s*〗/u', $text)) return '足';
 
         return null;
     }
@@ -380,26 +395,10 @@ class ImportArmorsFromDraquex extends Command
         $name = (string) $name;
 
         $tailorKeywords = [
-            'ローブ',
-            'ころも',
-            '服',
-            'ドレス',
-            'コート',
-            'スーツ',
-            '帽子',
-            'ぼうし',
-            'ハット',
-            'キャップ',
-            'ターバン',
-            'バンド',
-            'リスト',
-            'グローブ',
-            'こて',
-            'うであて',
-            'くつ',
-            'ブーツ',
-            'シューズ',
-            'サンダル',
+            'ローブ', 'ころも', '服', 'ドレス', 'コート', 'スーツ',
+            '帽子', 'ぼうし', 'ハット', 'キャップ', 'ターバン',
+            'バンド', 'リスト', 'グローブ', 'こて', 'うであて',
+            'くつ', 'ブーツ', 'シューズ', 'サンダル',
         ];
 
         foreach ($tailorKeywords as $keyword) {
@@ -414,7 +413,6 @@ class ImportArmorsFromDraquex extends Command
     private function buildArmorItemId(array $part, array $detail, string $craftType): string
     {
         $level = $detail['equip_level'] ?? 0;
-
         $prefix = $craftType === '裁縫' ? 'tailor' : 'armor';
 
         $slot = match ($part['slot']) {
@@ -500,10 +498,52 @@ class ImportArmorsFromDraquex extends Command
         return DB::table('items')
             ->select('id', 'name')
             ->get()
-            ->mapWithKeys(function ($row) {
-                return [trim((string) $row->name) => (int) $row->id];
-            })
+            ->mapWithKeys(fn ($row) => [trim((string) $row->name) => (int) $row->id])
             ->all();
+    }
+
+    private function loadEquipmentTypeMap(): array
+    {
+        return DB::table('equipment_types')
+            ->select('id', 'name')
+            ->get()
+            ->mapWithKeys(fn ($row) => [trim((string) $row->name) => (int) $row->id])
+            ->all();
+    }
+
+    private function loadJobMap(): array
+    {
+        return DB::table('game_jobs')
+            ->select('id', 'name')
+            ->get()
+            ->mapWithKeys(fn ($row) => [trim((string) $row->name) => (int) $row->id])
+            ->all();
+    }
+
+    private function loadDefaultJobsByEquipmentTypeId(): array
+    {
+        $rows = DB::table('equipable_types')
+            ->join('game_jobs', 'equipable_types.game_job_id', '=', 'game_jobs.id')
+            ->select('equipable_types.equipment_type_id', 'game_jobs.name')
+            ->get();
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $equipmentTypeId = (int) $row->equipment_type_id;
+            $jobName = trim((string) $row->name);
+
+            $map[$equipmentTypeId] ??= [];
+            $map[$equipmentTypeId][] = $jobName;
+        }
+
+        foreach ($map as $equipmentTypeId => $jobs) {
+            $jobs = array_values(array_unique($jobs));
+            sort($jobs);
+            $map[$equipmentTypeId] = $jobs;
+        }
+
+        return $map;
     }
 
     private function resolveRawMaterials(?array $csv, array $detailMaterials): array
@@ -746,7 +786,42 @@ class ImportArmorsFromDraquex extends Command
 
         return $value === '' ? $default : $value;
     }
+    private function guessArmorEquipmentTypeNameFromJobs(array $jobs): ?string
+    {
+        $jobs = $this->normalizeJobNames($jobs);
+        $joined = implode(' ', $jobs);
 
+        if ($this->containsAnyKeyword($joined, ['僧侶'])) {
+            return 'ローブ';
+        }
+
+        if ($this->containsAnyKeyword($joined, ['盗賊'])) {
+            return '盗賊装備';
+        }
+
+        if ($this->containsAnyKeyword($joined, ['旅芸', '旅芸人'])) {
+            return '旅芸人装備';
+        }
+
+        if ($this->containsAnyKeyword($joined, ['武闘', '武闘家'])) {
+            return '武闘家装備';
+        }
+        if ($this->containsAnyKeyword($joined, ['戦士'])) {
+            return '鎧';
+        }
+
+        return null;
+    }
+    private function containsAnyKeyword(string $text, array $keywords): bool
+{
+    foreach ($keywords as $keyword) {
+        if ($keyword !== '' && mb_strpos($text, $keyword) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
     private function absoluteUrl(string $base, string $href): string
     {
         if (str_starts_with($href, 'http://') || str_starts_with($href, 'https://')) {
@@ -773,5 +848,199 @@ class ImportArmorsFromDraquex extends Command
         }
 
         return json_encode($value, JSON_UNESCAPED_UNICODE);
+    }
+
+private function resolveArmorEquipmentTypeName(
+    ?array $csv,
+    array $part,
+    string $craftType,
+    array $desiredJobs = []
+): string {
+    $jobBasedType = $this->guessArmorEquipmentTypeNameFromJobs($desiredJobs);
+    if ($jobBasedType !== null) {
+        return $jobBasedType;
+    }
+
+    $csvType = $this->csvValue($csv, 'itemType', null);
+    if ($csvType) {
+        return $this->normalizeArmorEquipmentTypeName($csvType);
+    }
+
+    $slot = $part['slot'] ?? '';
+
+    if ($craftType === '裁縫') {
+        return match ($slot) {
+            'アタマ'   => '裁縫頭',
+            'からだ上' => '裁縫上',
+            'からだ下' => '裁縫下',
+            'ウデ'     => '裁縫腕',
+            '足'       => '裁縫足',
+            default    => $slot,
+        };
+    }
+
+    return match ($slot) {
+        'アタマ'   => '鎧頭',
+        'からだ上' => '鎧上',
+        'からだ下' => '鎧下',
+        'ウデ'     => '鎧腕',
+        '足'       => '鎧足',
+        default    => $slot,
+    };
+}
+
+    private function normalizeArmorEquipmentTypeName(string $name): string
+    {
+        $name = trim($name);
+
+        return match ($name) {
+            '頭' => '鎧頭',
+            '上' => '鎧上',
+            '下' => '鎧下',
+            '腕' => '鎧腕',
+            '足' => '鎧足',
+            default => $name,
+        };
+    }
+
+    private function resolveDesiredJobs(?array $csv, array $detail): array
+    {
+        $csvJobs = $this->csvJobsToArray($csv);
+        if (!empty($csvJobs)) {
+            return $csvJobs;
+        }
+
+        return $detail['jobs'] ?? [];
+    }
+
+    private function csvJobsToArray(?array $csv): array
+    {
+        if (!$csv || !array_key_exists('jobsJson', $csv)) {
+            return [];
+        }
+
+        $raw = trim((string) $csv['jobsJson']);
+        if ($raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $jobs = [];
+
+        foreach ($decoded as $row) {
+            if (is_string($row)) {
+                $jobs[] = trim($row);
+                continue;
+            }
+
+            if (is_array($row)) {
+                $name = trim((string) ($row['name'] ?? $row['job'] ?? ''));
+                if ($name !== '') {
+                    $jobs[] = $name;
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($jobs)));
+    }
+
+    private function normalizeJobNames(array $jobs): array
+    {
+        $normalized = [];
+
+        foreach ($jobs as $job) {
+            $job = trim((string) $job);
+            if ($job === '') {
+                continue;
+            }
+
+            $job = match ($job) {
+                '魔法' => '魔法使い',
+                '魔戦' => '魔法戦士',
+                '僧' => '僧侶',
+                '武' => '武闘家',
+                '盗' => '盗賊',
+                '旅' => '旅芸人',
+                'バト' => 'バトルマスター',
+                'パラ' => 'パラディン',
+                'レン' => 'レンジャー',
+                '賢' => '賢者',
+                'スパ' => 'スーパースター',
+                'まも' => 'まもの使い',
+                'どう' => 'どうぐ使い',
+                '踊' => '踊り子',
+                '占' => '占い師',
+                '天地' => '天地雷鳴士',
+                '遊' => '遊び人',
+                'デス' => 'デスマスター',
+                '魔剣' => '魔剣士',
+                'ガデ' => 'ガーディアン',
+                '竜術' => '竜術士',
+                default => $job,
+            };
+
+            $normalized[] = $job;
+        }
+
+        $normalized = array_values(array_unique($normalized));
+        sort($normalized);
+
+        return $normalized;
+    }
+
+    private function resolveJobOverrideMode(?int $equipmentTypeId, array $desiredJobs): string
+    {
+        if (!$equipmentTypeId || empty($desiredJobs)) {
+            return 'inherit';
+        }
+
+        $defaultJobs = $this->defaultJobsByEquipmentTypeId[$equipmentTypeId] ?? [];
+        $defaultJobs = $this->normalizeJobNames($defaultJobs);
+
+        if ($defaultJobs === $desiredJobs) {
+            return 'inherit';
+        }
+
+        return 'replace';
+    }
+
+    private function syncJobOverrides(int $equipmentId, ?int $equipmentTypeId, array $desiredJobs): void
+    {
+        DB::table('equipment_job_overrides')
+            ->where('equipment_id', $equipmentId)
+            ->delete();
+
+        if (!$equipmentTypeId || empty($desiredJobs)) {
+            return;
+        }
+
+        $defaultJobs = $this->defaultJobsByEquipmentTypeId[$equipmentTypeId] ?? [];
+        $defaultJobs = $this->normalizeJobNames($defaultJobs);
+
+        if ($defaultJobs === $desiredJobs) {
+            return;
+        }
+
+        foreach ($desiredJobs as $jobName) {
+            $jobId = $this->jobNameToIdMap[$jobName] ?? null;
+
+            if (!$jobId) {
+                $this->warn("game_jobs 未登録: {$jobName}");
+                continue;
+            }
+
+            DB::table('equipment_job_overrides')->insert([
+                'equipment_id' => $equipmentId,
+                'game_job_id'  => $jobId,
+                'mode'         => 'allow',
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+        }
     }
 }

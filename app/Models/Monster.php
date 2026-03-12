@@ -8,11 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Monster extends Model
 {
     protected $fillable = [
-        'monster_no',
+        'display_order',
         'name',
         'system_type',
-        'normal_drop',
-        'rare_drop',
         'source_url',
     ];
 

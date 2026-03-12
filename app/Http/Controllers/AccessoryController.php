@@ -7,34 +7,53 @@ use App\Http\Requests\UpdateAccessoryRequest;
 use App\Models\Accessory;
 use App\Models\Monster;
 use App\Models\MonsterDrop;
+use App\Services\MonsterDropSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AccessoryController extends Controller
 {
+    public function __construct(
+        private MonsterDropSyncService $monsterDropSyncService
+    ) {}
+
     public function index(Request $request): JsonResponse
-    {
-        $q = trim((string) $request->query('q', ''));
+{
+    $q = trim((string) $request->query('q', ''));
 
-        $query = Accessory::query()->orderBy('id', 'desc');
+    $query = Accessory::query();
 
-        if ($q !== '') {
-            $query->where(function ($sub) use ($q) {
-                $sub->where('item_id', 'like', "%{$q}%")
-                    ->orWhere('name', 'like', "%{$q}%")
-                    ->orWhere('slot', 'like', "%{$q}%")
-                    ->orWhere('accessory_type', 'like', "%{$q}%")
-                    ->orWhere('description', 'like', "%{$q}%");
-            });
-        }
+    if ($q !== '') {
+        $escaped = addcslashes($q, '\\%_');
 
-        $accessories = $query->paginate(100);
-
-        return response()->json([
-            'data' => $accessories,
-        ]);
+        $query->where(function ($sub) use ($escaped) {
+            $sub->where('item_id', 'like', "%{$escaped}%")
+                ->orWhere('name', 'like', "%{$escaped}%")
+                ->orWhere('slot', 'like', "%{$escaped}%")
+                ->orWhere('accessory_type', 'like', "%{$escaped}%")
+                ->orWhere('description', 'like', "%{$escaped}%");
+        })
+        ->orderByRaw(
+            "
+            CASE
+                WHEN name = ? THEN 0
+                WHEN name LIKE ? THEN 1
+                ELSE 2
+            END
+            ",
+            [$q, $escaped . '%']
+        )
+        ->orderByRaw('LENGTH(name) ASC')
+        ->orderBy('name');
+    } else {
+        $query->orderBy('name');
     }
+
+    return response()->json([
+        'data' => $query->get(),
+    ]);
+}
 
     public function show(Accessory $accessory): JsonResponse
     {
@@ -66,7 +85,11 @@ class AccessoryController extends Controller
                 'detail_url' => $validated['detail_url'] ?? null,
             ]);
 
-            $this->syncDropMonsters($accessory->id, $validated['drop_monsters'] ?? []);
+            $this->monsterDropSyncService->sync(
+                'accessory',
+                $accessory->id,
+                $validated['drop_monsters'] ?? []
+            );
 
             return $accessory;
         });
@@ -100,7 +123,11 @@ class AccessoryController extends Controller
                 'detail_url' => $validated['detail_url'] ?? null,
             ]);
 
-            $this->syncDropMonsters($accessory->id, $validated['drop_monsters'] ?? []);
+            $this->monsterDropSyncService->sync(
+                'accessory',
+                $accessory->id,
+                $validated['drop_monsters'] ?? []
+            );
         });
 
         return response()->json([
@@ -123,30 +150,6 @@ class AccessoryController extends Controller
         return response()->json([
             'message' => 'アクセサリを削除した',
         ]);
-    }
-
-    private function syncDropMonsters(int $accessoryId, array $dropMonsters): void
-    {
-        MonsterDrop::query()
-            ->where('drop_target_type', 'accessory')
-            ->where('drop_target_id', $accessoryId)
-            ->delete();
-
-        foreach (array_values($dropMonsters) as $index => $row) {
-            $monsterId = (int) ($row['monster_id'] ?? 0);
-
-            if ($monsterId <= 0) {
-                continue;
-            }
-
-            MonsterDrop::create([
-                'monster_id' => $monsterId,
-                'drop_target_type' => 'accessory',
-                'drop_target_id' => $accessoryId,
-                'drop_type' => $row['drop_type'] ?? 'normal',
-                'sort_order' => isset($row['sort_order']) ? (int) $row['sort_order'] : ($index + 1),
-            ]);
-        }
     }
 
     private function buildAccessoryResponse(Accessory $accessory): array

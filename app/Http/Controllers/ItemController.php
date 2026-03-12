@@ -11,28 +11,45 @@ use App\Models\MonsterDrop;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Services\MonsterDropSyncService;
 
 class ItemController extends Controller
 {
-    public function index(Request $request): JsonResponse
-    {
-        $q = trim((string) $request->query('q', ''));
+    public function __construct(
+    private MonsterDropSyncService $monsterDropSyncService
+) {}
+public function index(Request $request): JsonResponse
+{
+    $query = Item::query();
 
-        $query = Item::query()->orderBy('id', 'desc');
+    if ($request->filled('ids')) {
+        $ids = collect(explode(',', (string) $request->ids))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter(fn ($id) => $id > 0)
+            ->values();
 
-        if ($q !== '') {
-            $query->where(function ($sub) use ($q) {
-                $sub->where('name', 'like', "%{$q}%")
-                    ->orWhere('category', 'like', "%{$q}%");
-            });
+        if ($ids->isNotEmpty()) {
+            $query->whereIn('id', $ids);
+        } else {
+            $query->whereRaw('1 = 0');
         }
-
-        $items = $query->paginate(100);
-
-        return response()->json([
-            'data' => $items,
-        ]);
     }
+
+    if ($request->filled('q')) {
+        $q = trim((string) $request->q);
+        $query->where('name', 'like', "%{$q}%");
+    }
+
+    if ($request->filled('category')) {
+        $query->where('category', $request->category);
+    }
+
+    $rows = $query->orderBy('name')->get();
+
+    return response()->json([
+        'data' => $rows,
+    ]);
+}
 
     public function show(Item $item): JsonResponse
     {
@@ -66,12 +83,11 @@ class ItemController extends Controller
         ], 201);
     }
 
+    
     public function update(UpdateItemRequest $request, Item $item): JsonResponse
     {
         $validated = $request->validated();
-
-        logger()->info('item update validated', $validated);
-
+    logger()->info('item update validated', $validated);
         DB::transaction(function () use ($item, $validated) {
             $item->update([
                 'name' => $validated['name'],
@@ -80,7 +96,12 @@ class ItemController extends Controller
                 'category' => $validated['category'] ?? null,
             ]);
 
-            $this->syncDropMonsters($item->id, $validated['drop_monsters'] ?? []);
+            $this->monsterDropSyncService->sync(
+                'item',
+                $item->id,
+                $validated['drop_monsters'] ?? []
+            );
+            
         });
 
         return response()->json([
@@ -105,29 +126,7 @@ class ItemController extends Controller
         ]);
     }
 
-    private function syncDropMonsters(int $itemId, array $dropMonsters): void
-{
-    MonsterDrop::query()
-        ->where('drop_target_type', 'item')
-        ->where('drop_target_id', $itemId)
-        ->delete();
 
-    foreach (array_values($dropMonsters) as $index => $row) {
-        $monsterId = (int) ($row['monster_id'] ?? 0);
-
-        if ($monsterId <= 0) {
-            continue;
-        }
-
-        MonsterDrop::create([
-            'monster_id' => $monsterId,
-            'drop_target_type' => 'item',
-            'drop_target_id' => $itemId,
-            'drop_type' => $row['drop_type'] ?? 'normal',
-            'sort_order' => isset($row['sort_order']) ? (int) $row['sort_order'] : ($index + 1),
-        ]);
-    }
-}
 
     private function buildItemResponse(Item $item): array
     {

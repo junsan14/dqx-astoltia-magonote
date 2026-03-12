@@ -6,6 +6,7 @@ use App\Models\Monster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class MonsterController extends Controller
 {
@@ -16,25 +17,32 @@ class MonsterController extends Controller
 
         if ($searchType === 'monster') {
             $monsters = Monster::query()
-                ->select('id', 'monster_no', 'name', 'system_type')
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url
+                ')
                 ->when($keyword !== '', function ($query) use ($keyword) {
                     $escapedKeyword = addcslashes($keyword, '\\%_');
 
-                    $query->where('name', 'like', '%' . $escapedKeyword . '%')
+                    $query->where('monsters.name', 'like', '%' . $escapedKeyword . '%')
                         ->orderByRaw(
                             "
                             CASE
-                                WHEN name = ? THEN 0
-                                WHEN name LIKE ? THEN 1
+                                WHEN monsters.name = ? THEN 0
+                                WHEN monsters.name LIKE ? THEN 1
                                 ELSE 2
                             END
                             ",
                             [$keyword, $escapedKeyword . '%']
                         )
-                        ->orderByRaw('LENGTH(name) ASC')
-                        ->orderBy('name');
+                        ->orderByRaw('LENGTH(monsters.name) ASC')
+                        ->orderBy('monsters.name');
                 }, function ($query) {
-                    $query->orderBy('name');
+                    $query->orderBy('monsters.name');
                 })
                 ->limit(100)
                 ->get();
@@ -46,13 +54,15 @@ class MonsterController extends Controller
 
         if ($searchType === 'item') {
             $monsters = Monster::query()
-                ->select(
-                    'monsters.id',
-                    'monsters.monster_no',
-                    'monsters.name',
-                    'monsters.system_type',
-                    'items.name as matched_name'
-                )
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    items.name as matched_name
+                ')
                 ->join('monster_drops', function ($join) {
                     $join->on('monster_drops.monster_id', '=', 'monsters.id')
                         ->where('monster_drops.drop_target_type', '=', 'item');
@@ -90,14 +100,16 @@ class MonsterController extends Controller
 
         if ($searchType === 'orb') {
             $monsters = Monster::query()
-                ->select(
-                    'monsters.id',
-                    'monsters.monster_no',
-                    'monsters.name',
-                    'monsters.system_type',
-                    'orbs.name as matched_name',
-                    'orbs.color as matched_color'
-                )
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    orbs.name as matched_name,
+                    orbs.color as matched_color
+                ')
                 ->join('monster_drops', function ($join) {
                     $join->on('monster_drops.monster_id', '=', 'monsters.id')
                         ->where('monster_drops.drop_target_type', '=', 'orb');
@@ -135,13 +147,15 @@ class MonsterController extends Controller
 
         if ($searchType === 'equipment') {
             $monsters = Monster::query()
-                ->select(
-                    'monsters.id',
-                    'monsters.monster_no',
-                    'monsters.name',
-                    'monsters.system_type',
-                    'equipments.item_name as matched_name'
-                )
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    equipments.item_name as matched_name
+                ')
                 ->join('monster_drops', function ($join) {
                     $join->on('monster_drops.monster_id', '=', 'monsters.id')
                         ->where('monster_drops.drop_target_type', '=', 'equipment');
@@ -177,21 +191,68 @@ class MonsterController extends Controller
             );
         }
 
+        if ($searchType === 'accessory') {
+            $monsters = Monster::query()
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    accessories.name as matched_name
+                ')
+                ->join('monster_drops', function ($join) {
+                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
+                        ->where('monster_drops.drop_target_type', '=', 'accessory');
+                })
+                ->join('accessories', 'accessories.id', '=', 'monster_drops.drop_target_id')
+                ->when($keyword !== '', function ($query) use ($keyword) {
+                    $escapedKeyword = addcslashes($keyword, '\\%_');
+
+                    $query->where('accessories.name', 'like', '%' . $escapedKeyword . '%')
+                        ->orderByRaw(
+                            "
+                            CASE
+                                WHEN accessories.name = ? THEN 0
+                                WHEN accessories.name LIKE ? THEN 1
+                                ELSE 2
+                            END
+                            ",
+                            [$keyword, $escapedKeyword . '%']
+                        )
+                        ->orderByRaw('LENGTH(accessories.name) ASC')
+                        ->orderBy('accessories.name')
+                        ->orderBy('monsters.name');
+                }, function ($query) {
+                    $query->orderBy('monsters.name');
+                })
+                ->limit(200)
+                ->get()
+                ->unique('id')
+                ->values();
+
+            return response()->json(
+                $this->attachDropSummaries($monsters, 'accessory', $keyword)
+            );
+        }
+
         return response()->json([]);
     }
 
     public function show($id)
     {
         $monster = Monster::query()
-            ->select(
-                'id',
-                'monster_no',
-                'name',
-                'system_type',
-                'source_url',
-                'created_at',
-                'updated_at'
-            )
+            ->selectRaw('
+                monsters.id,
+                monsters.display_order as monster_no,
+                monsters.display_order,
+                monsters.name,
+                monsters.system_type,
+                monsters.source_url,
+                monsters.created_at,
+                monsters.updated_at
+            ')
             ->findOrFail($id);
 
         $drops = DB::table('monster_drops')
@@ -207,6 +268,10 @@ class MonsterController extends Controller
                 $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
                     ->where('monster_drops.drop_target_type', '=', 'equipment');
             })
+            ->leftJoin('accessories', function ($join) {
+                $join->on('accessories.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'accessory');
+            })
             ->where('monster_drops.monster_id', $monster->id)
             ->orderByRaw("
                 CASE
@@ -215,6 +280,7 @@ class MonsterController extends Controller
                     WHEN monster_drops.drop_type = 'white_box' THEN 3
                     WHEN monster_drops.drop_target_type = 'orb' THEN 4
                     WHEN monster_drops.drop_target_type = 'equipment' THEN 5
+                    WHEN monster_drops.drop_target_type = 'accessory' THEN 6
                     ELSE 99
                 END
             ")
@@ -236,6 +302,10 @@ class MonsterController extends Controller
                 'orbs.effect as orb_effect',
 
                 'equipments.item_name as equipment_name',
+
+                'accessories.name as accessory_name',
+                'accessories.slot as accessory_slot',
+                'accessories.accessory_type as accessory_type',
             ])
             ->map(function ($drop) {
                 $name = null;
@@ -261,6 +331,15 @@ class MonsterController extends Controller
                     $category = 'equipment';
                 }
 
+                if ($drop->drop_target_type === 'accessory') {
+                    $name = $drop->accessory_name;
+                    $category = 'accessory';
+                    $extra = [
+                        'slot' => $drop->accessory_slot,
+                        'accessory_type' => $drop->accessory_type,
+                    ];
+                }
+
                 return [
                     'id' => $drop->id,
                     'monster_id' => $drop->monster_id,
@@ -270,6 +349,7 @@ class MonsterController extends Controller
                     'drop_type_label' => $this->dropTypeLabel($drop->drop_type, $drop->drop_target_type),
                     'sort_order' => $drop->sort_order,
                     'name' => $name,
+                    'target_name' => $name,
                     'category' => $category,
                     ...$extra,
                 ];
@@ -314,9 +394,12 @@ class MonsterController extends Controller
         return response()->json([
             'id' => $monster->id,
             'monster_no' => $monster->monster_no,
+            'display_order' => $monster->display_order,
             'name' => $monster->name,
             'system_type' => $monster->system_type,
             'source_url' => $monster->source_url,
+            'created_at' => $monster->created_at,
+            'updated_at' => $monster->updated_at,
 
             'drops' => $drops,
 
@@ -342,8 +425,142 @@ class MonsterController extends Controller
                 ->where('drop_target_type', 'equipment')
                 ->values(),
 
+            'accessory_drops' => $drops
+                ->where('drop_target_type', 'accessory')
+                ->values(),
+
             'maps' => $maps,
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $this->validateMonsterPayload($request);
+
+        $monster = DB::transaction(function () use ($validated) {
+            $monster = Monster::create([
+                'display_order' => (int) $validated['display_order'],
+                'name' => $validated['name'],
+                'system_type' => $validated['system_type'] ?? null,
+                'source_url' => $validated['source_url'] ?? null,
+            ]);
+
+            $this->syncMonsterDrops($monster->id, $validated['drops'] ?? []);
+
+            return $monster;
+        });
+
+        return $this->show($monster->id);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $monster = Monster::findOrFail($id);
+        $validated = $this->validateMonsterPayload($request);
+
+        DB::transaction(function () use ($monster, $validated) {
+            $monster->update([
+                'display_order' => (int) $validated['display_order'],
+                'name' => $validated['name'],
+                'system_type' => $validated['system_type'] ?? null,
+                'source_url' => $validated['source_url'] ?? null,
+            ]);
+
+            $this->syncMonsterDrops($monster->id, $validated['drops'] ?? []);
+        });
+
+        return $this->show($monster->id);
+    }
+
+    public function destroy($id)
+    {
+        $monster = Monster::findOrFail($id);
+
+        DB::transaction(function () use ($monster) {
+            DB::table('monster_drops')
+                ->where('monster_id', $monster->id)
+                ->delete();
+
+            DB::table('monster_map_spawns')
+                ->where('monster_id', $monster->id)
+                ->delete();
+
+            $monster->delete();
+        });
+
+        return response()->json([
+            'data' => [
+                'deleted' => true,
+                'id' => (int) $id,
+            ],
+        ]);
+    }
+
+    private function validateMonsterPayload(Request $request): array
+    {
+        return $request->validate([
+            'display_order' => ['required', 'integer', 'min:0'],
+            'name' => ['required', 'string', 'max:255'],
+            'system_type' => ['nullable', 'string', 'max:255'],
+            'source_url' => ['nullable', 'string'],
+            'drops' => ['nullable', 'array'],
+            'drops.*.id' => ['nullable', 'integer'],
+            'drops.*.drop_target_type' => ['required', Rule::in(['item', 'orb', 'equipment', 'accessory'])],
+            'drops.*.drop_target_id' => ['nullable', 'integer', 'min:1'],
+            'drops.*.drop_type' => ['required', 'string', 'max:50'],
+            'drops.*.sort_order' => ['required', 'integer', 'min:1'],
+        ]);
+    }
+
+    private function syncMonsterDrops(int $monsterId, array $drops): void
+    {
+        $keepIds = [];
+
+        foreach ($drops as $index => $drop) {
+            $targetId = (int) ($drop['drop_target_id'] ?? 0);
+
+            if ($targetId <= 0) {
+                continue;
+            }
+
+            $rowId = (int) ($drop['id'] ?? 0);
+
+            $payload = [
+                'monster_id' => $monsterId,
+                'drop_target_type' => (string) ($drop['drop_target_type'] ?? 'item'),
+                'drop_target_id' => $targetId,
+                'drop_type' => (string) ($drop['drop_type'] ?? 'normal'),
+                'sort_order' => (int) ($drop['sort_order'] ?? ($index + 1)),
+            ];
+
+            if ($rowId > 0) {
+                $exists = DB::table('monster_drops')
+                    ->where('id', $rowId)
+                    ->where('monster_id', $monsterId)
+                    ->exists();
+
+                if ($exists) {
+                    DB::table('monster_drops')
+                        ->where('id', $rowId)
+                        ->where('monster_id', $monsterId)
+                        ->update($payload);
+
+                    $keepIds[] = $rowId;
+                    continue;
+                }
+            }
+
+            $newId = DB::table('monster_drops')->insertGetId($payload);
+            $keepIds[] = $newId;
+        }
+
+        $deleteQuery = DB::table('monster_drops')->where('monster_id', $monsterId);
+
+        if (!empty($keepIds)) {
+            $deleteQuery->whereNotIn('id', $keepIds);
+        }
+
+        $deleteQuery->delete();
     }
 
     private function parseArea($area): array
@@ -392,6 +609,10 @@ class MonsterController extends Controller
                 $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
                     ->where('monster_drops.drop_target_type', '=', 'equipment');
             })
+            ->leftJoin('accessories', function ($join) {
+                $join->on('accessories.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'accessory');
+            })
             ->whereIn('monster_drops.monster_id', $monsterIds)
             ->orderByRaw("
                 CASE
@@ -400,6 +621,7 @@ class MonsterController extends Controller
                     WHEN monster_drops.drop_type = 'white_box' THEN 3
                     WHEN monster_drops.drop_target_type = 'orb' THEN 4
                     WHEN monster_drops.drop_target_type = 'equipment' THEN 5
+                    WHEN monster_drops.drop_target_type = 'accessory' THEN 6
                     ELSE 99
                 END
             ")
@@ -414,6 +636,7 @@ class MonsterController extends Controller
                 'orbs.name as orb_name',
                 'orbs.color as orb_color',
                 'equipments.item_name as equipment_name',
+                'accessories.name as accessory_name',
             ])
             ->groupBy('monster_id');
 
@@ -437,8 +660,11 @@ class MonsterController extends Controller
                 ->values();
 
             $whiteBoxDrops = $monsterDrops
-                ->where('drop_type', 'white_box')
                 ->map(function ($drop) {
+                    if ($drop->drop_type !== 'white_box') {
+                        return null;
+                    }
+
                     if ($drop->drop_target_type === 'item') {
                         return $drop->item_name;
                     }
@@ -449,6 +675,10 @@ class MonsterController extends Controller
 
                     if ($drop->drop_target_type === 'orb') {
                         return $drop->orb_name;
+                    }
+
+                    if ($drop->drop_target_type === 'accessory') {
+                        return $drop->accessory_name;
                     }
 
                     return null;
@@ -476,17 +706,26 @@ class MonsterController extends Controller
                 ->unique()
                 ->values();
 
+            $accessoryDrops = $monsterDrops
+                ->where('drop_target_type', 'accessory')
+                ->pluck('accessory_name')
+                ->filter()
+                ->unique()
+                ->values();
+
             return [
                 'id' => $monster->id,
                 'monster_no' => $monster->monster_no,
+                'display_order' => $monster->display_order ?? $monster->monster_no,
                 'name' => $monster->name,
                 'system_type' => $monster->system_type,
+                'source_url' => $monster->source_url ?? null,
                 'matched_name' => $monster->matched_name ?? null,
                 'matched_color' => $monster->matched_color ?? null,
                 'search_type' => $searchType,
                 'is_exact_match' => match ($searchType) {
                     'monster' => $keyword !== '' && $monster->name === $keyword,
-                    'item', 'equipment', 'orb' => $keyword !== '' && (($monster->matched_name ?? null) === $keyword),
+                    'item', 'equipment', 'orb', 'accessory' => $keyword !== '' && (($monster->matched_name ?? null) === $keyword),
                     default => false,
                 },
                 'normal_drops' => $normalDrops,
@@ -494,6 +733,7 @@ class MonsterController extends Controller
                 'white_box_drops' => $whiteBoxDrops,
                 'orb_drops' => $orbDrops,
                 'equipment_drops' => $equipmentDrops,
+                'accessory_drops' => $accessoryDrops,
             ];
         })->values();
     }
@@ -518,6 +758,10 @@ class MonsterController extends Controller
 
         if ($dropType === 'equipment' || $dropTargetType === 'equipment') {
             return '装備';
+        }
+
+        if ($dropType === 'accessory' || $dropTargetType === 'accessory') {
+            return 'アクセサリ';
         }
 
         return $dropType ?? '';

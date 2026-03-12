@@ -35,6 +35,9 @@ class ImportEquipmentsFromDraquex extends Command
     ];
 
     protected array $itemNameToIdMap = [];
+    protected array $equipmentTypeNameToIdMap = [];
+    protected array $jobNameToIdMap = [];
+    protected array $defaultJobsByEquipmentTypeId = [];
 
     public function handle(): int
     {
@@ -46,6 +49,10 @@ class ImportEquipmentsFromDraquex extends Command
         }
 
         $this->itemNameToIdMap = $this->loadItemsMap();
+        $this->equipmentTypeNameToIdMap = $this->loadEquipmentTypeMap();
+        $this->jobNameToIdMap = $this->loadJobMap();
+        $this->defaultJobsByEquipmentTypeId = $this->loadDefaultJobsByEquipmentTypeId();
+
         $csvMap = $this->loadCraftMasterCsv();
 
         if ($this->option('fresh')) {
@@ -54,7 +61,7 @@ class ImportEquipmentsFromDraquex extends Command
 
         foreach ($targets as $key => $target) {
             $listUrl = $target['url'];
-            $itemType = $target['type'];
+            $rawType = $target['type'];
 
             $this->info("fetch list: {$listUrl}");
 
@@ -64,7 +71,7 @@ class ImportEquipmentsFromDraquex extends Command
                 continue;
             }
 
-            $items = $this->parseList($html, $listUrl, $itemType, $key);
+            $items = $this->parseList($html, $listUrl, $rawType, $key);
 
             $this->info("found: " . count($items));
 
@@ -94,66 +101,81 @@ class ImportEquipmentsFromDraquex extends Command
                     $this->warn("failed detail: {$item['detail_url']} (list情報だけ保存する)");
                 } else {
                     try {
-                        $detail = $this->parseDetail($detailHtml, $itemType);
+                        $detail = $this->parseDetail($detailHtml, $rawType);
                     } catch (\Throwable $e) {
                         $this->warn("parse detail failed: {$item['detail_url']} / {$e->getMessage()}");
                     }
                 }
 
-                $csv = $this->findCsvRow($csvMap, $item['item_name'], $itemType, $item['equip_level']);
+                $csv = $this->findCsvRow($csvMap, $item['item_name'], $rawType, $item['equip_level']);
+
+                $equipmentTypeName = $this->resolveEquipmentTypeName(
+                    $rawType,
+                    $csv,
+                    $detail,
+                    $item['equipment_type_name'] ?? null
+                );
+                $equipmentTypeId = $this->equipmentTypeNameToIdMap[$equipmentTypeName] ?? null;
+
+                if (!$equipmentTypeId) {
+                    $this->warn("equipment_types 未登録: {$item['item_name']} / {$equipmentTypeName}");
+                }
 
                 $rawMaterials = $this->resolveRawMaterials($csv, $detail);
                 $materialsWithIds = $this->convertMaterialsToItemIds($rawMaterials, $item['item_name']);
 
+                $desiredJobs = $this->resolveDesiredJobs($csv, $detail);
+                $desiredJobs = $this->normalizeJobNames($desiredJobs);
+
+                $jobOverrideMode = $this->resolveJobOverrideMode($equipmentTypeId, $desiredJobs);
+
                 $payload = [
                     'item_id'            => $item['item_id'],
                     'item_name'          => $item['item_name'],
+                    'equipment_type_id'  => $equipmentTypeId,
+                    'job_override_mode'  => $jobOverrideMode,
 
-                    // CSV優先
-                    'item_kind'          => $this->csvValue($csv, 'itemKind', $itemType === '盾' ? '盾' : '武器'),
-                    'item_type_key'      => $this->csvValue($csv, 'itemTypeKey', $key),
-                    'item_type'          => $this->csvValue($csv, 'itemType', $itemType),
-                    'craft_type'         => $this->csvValue($csv, 'craftType', $itemType === '盾' ? '防具鍛冶' : '武器鍛冶'),
-                    'slot'               => $this->csvValue($csv, 'slot', $itemType),
+                    'slot'               => $this->csvValue($csv, 'slot', $equipmentTypeName),
                     'slot_grid_type'     => $this->csvValue($csv, 'slotGridType', null),
                     'slot_grid_cols'     => $this->csvNumericValue($csv, 'slotGridCols', null),
-                    'group_kind'         => $this->csvValue($csv, 'groupKind', $itemType === '盾' ? 'shield' : 'weapon'),
+                    'group_kind'         => $this->csvValue($csv, 'groupKind', $rawType === '盾' ? 'shield' : 'weapon'),
                     'group_id'           => $this->csvValue($csv, 'groupId', null),
                     'group_name'         => $this->csvValue($csv, 'groupName', $item['item_name']),
-                    'items_count'        => $this->csvNumericValue($csv, 'itemsCount', null),
                     'slot_grid_json'     => $this->csvJsonValue($csv, 'slotGridJson', null),
-                    'equipable_type'     => $this->csvValue($csv, 'equipableType', $itemType),
 
-                    // detail / fallback
                     'craft_level'        => $this->csvNumericValue($csv, 'craftLevel', $detail['craft_level']),
                     'equip_level'        => $this->csvNumericValue($csv, 'equipLevel', $detail['equip_level'] ?? $item['equip_level']),
                     'recipe_book'        => $this->csvValue($csv, 'recipeBook', $detail['recipe_book']),
                     'recipe_place'       => $detail['recipe_place'],
                     'description'        => $detail['description'],
                     'materials_json'     => $this->toJsonOrNull($materialsWithIds),
-                    'jobs_json'          => $this->csvJsonValue($csv, 'jobsJson', $this->toJsonOrNull($detail['jobs'])),
                     'effects_json'       => $this->toJsonOrNull($detail['effects']),
-
-                    'crystal_by_alchemy' => $this->csvValue($csv, 'crystalByAlchemy', null),
 
                     'source_url'         => $listUrl,
                     'detail_url'         => $item['detail_url'],
                     'updated_at'         => now(),
                 ];
 
-                $exists = DB::table('equipments')
+                $existing = DB::table('equipments')
+                    ->select('id')
                     ->where('detail_url', $item['detail_url'])
-                    ->exists();
+                    ->first();
 
-                if ($exists) {
+                if ($existing) {
                     DB::table('equipments')
-                        ->where('detail_url', $item['detail_url'])
+                        ->where('id', $existing->id)
                         ->update($payload);
+
+                    $equipmentId = (int) $existing->id;
+                    $this->syncJobOverrides($equipmentId, $equipmentTypeId, $desiredJobs);
 
                     $this->info("updated: {$item['item_name']}");
                 } else {
                     $payload['created_at'] = now();
-                    DB::table('equipments')->insert($payload);
+                    $equipmentId = DB::table('equipments')->insertGetId($payload);
+
+                    $this->syncJobOverrides($equipmentId, $equipmentTypeId, $desiredJobs);
+
                     $this->info("inserted: {$item['item_name']}");
                 }
 
@@ -200,16 +222,43 @@ class ImportEquipmentsFromDraquex extends Command
 
         if ($isAllTargets) {
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            DB::table('equipment_job_overrides')->truncate();
             DB::table('equipments')->truncate();
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
-            $this->warn('truncate equipments: id reset to 1');
+            $this->warn('truncate equipments + equipment_job_overrides: id reset to 1');
             return;
         }
 
         foreach ($targets as $key => $target) {
+            $typeNames = $this->targetEquipmentTypeNames($target['type']);
+            $typeIds = [];
+
+            foreach ($typeNames as $typeName) {
+                if (isset($this->equipmentTypeNameToIdMap[$typeName])) {
+                    $typeIds[] = $this->equipmentTypeNameToIdMap[$typeName];
+                }
+            }
+
+            if (empty($typeIds)) {
+                $this->warn("equipment_types が見つからないので削除スキップ: {$target['type']}");
+                continue;
+            }
+
+            $equipmentIds = DB::table('equipments')
+                ->whereIn('equipment_type_id', $typeIds)
+                ->pluck('id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+
+            if (!empty($equipmentIds)) {
+                DB::table('equipment_job_overrides')
+                    ->whereIn('equipment_id', $equipmentIds)
+                    ->delete();
+            }
+
             $deleted = DB::table('equipments')
-                ->where('item_type_key', $key)
+                ->whereIn('equipment_type_id', $typeIds)
                 ->delete();
 
             $this->warn("deleted {$deleted} rows: {$target['type']}");
@@ -242,58 +291,219 @@ class ImportEquipmentsFromDraquex extends Command
         }
     }
 
-    private function parseList(string $html, string $baseUrl, string $itemType, string $typeKey): array
-    {
-        libxml_use_internal_errors(true);
+private function parseList(string $html, string $baseUrl, string $itemType, string $typeKey): array
+{
+    libxml_use_internal_errors(true);
 
-        $dom = new \DOMDocument();
-        $dom->loadHTML('<?xml encoding="UTF-8">' . mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'));
+    $dom = new \DOMDocument();
+    $dom->loadHTML('<?xml encoding="UTF-8">' . mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'));
 
-        $xpath = new \DOMXPath($dom);
-        $nodes = $xpath->query('//section[contains(@class,"item")]//ul/li/a[contains(@class,"arrow")]');
+    $xpath = new \DOMXPath($dom);
 
-        $items = [];
-        $sameLevelCounts = [];
+    if ($itemType === '盾') {
+        return $this->parseShieldList($xpath, $baseUrl, $typeKey);
+    }
 
-        foreach ($nodes as $a) {
-            $href = trim((string) $a->getAttribute('href'));
-            if ($href === '') {
-                continue;
-            }
+    $nodes = $xpath->query('//section[contains(@class,"item")]//ul/li/a[contains(@class,"arrow")]');
 
-            $p = $xpath->query('.//p[contains(@class,"name")]', $a)->item(0);
-            if (!$p) {
-                continue;
-            }
+    $items = [];
+    $sameLevelCounts = [];
 
-            $raw = trim($p->textContent);
-            $raw = preg_replace('/\s+/u', ' ', $raw);
+    foreach ($nodes as $a) {
+        $parsed = $this->parseEquipmentAnchor($xpath, $a, $baseUrl, $typeKey);
 
-            $equipLevel = null;
-            $itemName = $raw;
-
-            if (preg_match('/Lv\s*([0-9]+)\s*(.+)$/u', $raw, $m)) {
-                $equipLevel = (int) $m[1];
-                $itemName = trim($m[2]);
-            }
-
-            if ($itemName === '') {
-                continue;
-            }
-
-            $sameLevelCounts[$equipLevel] = ($sameLevelCounts[$equipLevel] ?? 0) + 1;
-
-            $items[] = [
-                'item_id'     => $this->buildItemId($typeKey, $equipLevel, $sameLevelCounts[$equipLevel]),
-                'item_name'   => $itemName,
-                'equip_level' => $equipLevel,
-                'item_type'   => $itemType,
-                'detail_url'  => $this->absoluteUrl($baseUrl, $href),
-            ];
+        if (!$parsed) {
+            continue;
         }
 
-        return $items;
+        $equipLevel = $parsed['equip_level'];
+        $sameLevelCounts[$equipLevel] = ($sameLevelCounts[$equipLevel] ?? 0) + 1;
+        $parsed['item_id'] = $this->buildItemId($typeKey, $equipLevel, $sameLevelCounts[$equipLevel]);
+
+        $items[] = $parsed;
     }
+
+    return $items;
+}
+private function parseShieldList(\DOMXPath $xpath, string $baseUrl, string $typeKey): array
+{
+    $items = [];
+    $sameLevelCounts = [];
+
+    $h2Nodes = $xpath->query('//h2');
+
+    foreach ($h2Nodes as $h2) {
+        $heading = trim(preg_replace('/\s+/u', ' ', $h2->textContent));
+
+        $shieldType = null;
+
+        if (mb_strpos($heading, '小盾一覧') !== false) {
+            $shieldType = '小盾';
+        } elseif (mb_strpos($heading, '大盾一覧') !== false) {
+            $shieldType = '大盾';
+        }
+
+        if (!$shieldType) {
+            continue;
+        }
+
+        $section = $this->findNextElementSiblingByTagAndClass($h2, 'section', 'item');
+        if (!$section) {
+            $this->warn("盾セクションが見つからない: {$heading}");
+            continue;
+        }
+
+        $anchors = $xpath->query('.//ul/li/a[contains(@class,"arrow")]', $section);
+
+        foreach ($anchors as $a) {
+            $parsed = $this->parseEquipmentAnchor($xpath, $a, $baseUrl, $typeKey);
+
+            if (!$parsed) {
+                continue;
+            }
+
+            $equipLevel = $parsed['equip_level'];
+            $sameLevelCounts[$equipLevel] = ($sameLevelCounts[$equipLevel] ?? 0) + 1;
+            $parsed['item_id'] = $this->buildItemId($typeKey, $equipLevel, $sameLevelCounts[$equipLevel]);
+            $parsed['equipment_type_name'] = $shieldType;
+
+            $items[] = $parsed;
+        }
+    }
+
+    return $items;
+}
+private function parseEquipmentAnchor(\DOMXPath $xpath, \DOMNode $a, string $baseUrl, string $typeKey): ?array
+{
+    $href = trim((string) $a->getAttribute('href'));
+    if ($href === '') {
+        return null;
+    }
+
+    $p = $xpath->query('.//p[contains(@class,"name")]', $a)->item(0);
+    if (!$p) {
+        return null;
+    }
+
+    $raw = trim($p->textContent);
+    $raw = preg_replace('/\s+/u', ' ', $raw);
+
+    $equipLevel = null;
+    $itemName = $raw;
+
+    if (preg_match('/Lv\s*([0-9]+)\s*(.+)$/u', $raw, $m)) {
+        $equipLevel = (int) $m[1];
+        $itemName = trim($m[2]);
+    }
+
+    if ($itemName === '') {
+        return null;
+    }
+
+    return [
+        'item_name' => $itemName,
+        'equip_level' => $equipLevel,
+        'detail_url' => $this->absoluteUrl($baseUrl, $href),
+    ];
+}
+private function findNextElementSiblingByTagAndClass(\DOMNode $node, string $tagName, ?string $className = null): ?\DOMElement
+{
+    $sibling = $node->nextSibling;
+
+    while ($sibling) {
+        if ($sibling->nodeType === XML_ELEMENT_NODE) {
+            $tag = strtolower($sibling->nodeName);
+
+            if ($tag === strtolower($tagName)) {
+                if ($className === null) {
+                    return $sibling;
+                }
+
+                $classAttr = ' ' . trim((string) $sibling->attributes?->getNamedItem('class')?->nodeValue) . ' ';
+                if (str_contains($classAttr, ' ' . $className . ' ')) {
+                    return $sibling;
+                }
+            }
+        }
+
+        $sibling = $sibling->nextSibling;
+    }
+
+    return null;
+}
+private function detectShieldTypeFromAnchor(\DOMNode $node, \DOMXPath $xpath): ?string
+{
+    $current = $node;
+
+    while ($current) {
+        $sibling = $current->previousSibling;
+
+        while ($sibling) {
+            if ($sibling->nodeType === XML_ELEMENT_NODE) {
+                $tag = strtolower($sibling->nodeName);
+
+                if ($tag === 'h2') {
+                    $text = trim(preg_replace('/\s+/u', ' ', $sibling->textContent));
+
+                    if (mb_strpos($text, '小盾一覧') !== false || mb_strpos($text, '小盾') !== false) {
+                        return '小盾';
+                    }
+
+                    if (mb_strpos($text, '大盾一覧') !== false || mb_strpos($text, '大盾') !== false) {
+                        return '大盾';
+                    }
+                }
+
+                $found = $this->findLastH2InNode($sibling);
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+
+            $sibling = $sibling->previousSibling;
+        }
+
+        $current = $current->parentNode;
+    }
+
+    return null;
+}
+
+private function findLastH2InNode(\DOMNode $node): ?string
+{
+    if (!$node->hasChildNodes()) {
+        return null;
+    }
+
+    for ($i = $node->childNodes->length - 1; $i >= 0; $i--) {
+        $child = $node->childNodes->item($i);
+
+        if ($child->nodeType !== XML_ELEMENT_NODE) {
+            continue;
+        }
+
+        $tag = strtolower($child->nodeName);
+
+        if ($tag === 'h2') {
+            $text = trim(preg_replace('/\s+/u', ' ', $child->textContent));
+
+            if (mb_strpos($text, '小盾一覧') !== false || mb_strpos($text, '小盾') !== false) {
+                return '小盾';
+            }
+
+            if (mb_strpos($text, '大盾一覧') !== false || mb_strpos($text, '大盾') !== false) {
+                return '大盾';
+            }
+        }
+
+        $nested = $this->findLastH2InNode($child);
+        if ($nested !== null) {
+            return $nested;
+        }
+    }
+
+    return null;
+}
 
     private function parseDetail(string $html, string $itemType): array
     {
@@ -461,6 +671,54 @@ class ImportEquipmentsFromDraquex extends Command
                 return [trim((string) $row->name) => (int) $row->id];
             })
             ->all();
+    }
+
+    private function loadEquipmentTypeMap(): array
+    {
+        return DB::table('equipment_types')
+            ->select('id', 'name')
+            ->get()
+            ->mapWithKeys(function ($row) {
+                return [trim((string) $row->name) => (int) $row->id];
+            })
+            ->all();
+    }
+
+    private function loadJobMap(): array
+    {
+        return DB::table('game_jobs')
+            ->select('id', 'name')
+            ->get()
+            ->mapWithKeys(function ($row) {
+                return [trim((string) $row->name) => (int) $row->id];
+            })
+            ->all();
+    }
+
+    private function loadDefaultJobsByEquipmentTypeId(): array
+    {
+        $rows = DB::table('equipable_types')
+            ->join('game_jobs', 'equipable_types.game_job_id', '=', 'game_jobs.id')
+            ->select('equipable_types.equipment_type_id', 'game_jobs.name')
+            ->get();
+
+        $map = [];
+
+        foreach ($rows as $row) {
+            $equipmentTypeId = (int) $row->equipment_type_id;
+            $jobName = trim((string) $row->name);
+
+            $map[$equipmentTypeId] ??= [];
+            $map[$equipmentTypeId][] = $jobName;
+        }
+
+        foreach ($map as $equipmentTypeId => $jobs) {
+            $jobs = array_values(array_unique($jobs));
+            sort($jobs);
+            $map[$equipmentTypeId] = $jobs;
+        }
+
+        return $map;
     }
 
     private function resolveRawMaterials(?array $csv, array $detail): array
@@ -787,5 +1045,211 @@ class ImportEquipmentsFromDraquex extends Command
         }
 
         return json_encode($value, JSON_UNESCAPED_UNICODE);
+    }
+
+private function resolveEquipmentTypeName(
+    string $rawType,
+    ?array $csv,
+    array $detail,
+    ?string $listDetectedType = null
+): string {
+    $csvType = $this->csvValue($csv, 'itemType', null);
+    if ($csvType) {
+        return $this->normalizeEquipmentTypeName($csvType);
+    }
+
+    if ($listDetectedType) {
+        return $this->normalizeEquipmentTypeName($listDetectedType);
+    }
+
+    return $this->normalizeEquipmentTypeName($rawType);
+}
+
+    private function normalizeEquipmentTypeName(string $name): string
+    {
+        $name = trim($name);
+
+        return match ($name) {
+            '盾' => '小盾',
+            '武道家装備' => '武闘家装備',
+            default => $name,
+        };
+    }
+
+    private function guessShieldTypeFromJobs(array $jobs): string
+    {
+        $jobs = $this->normalizeJobNames($jobs);
+
+        $largeShieldJobs = ['戦士', 'パラディン', '魔法戦士', '魔剣士', 'ガーディアン'];
+        sort($largeShieldJobs);
+
+        $normalized = array_values(array_unique(array_filter($jobs)));
+        sort($normalized);
+
+        if (!empty($normalized) && $normalized === $largeShieldJobs) {
+            return '大盾';
+        }
+
+        return '小盾';
+    }
+
+    private function resolveDesiredJobs(?array $csv, array $detail): array
+    {
+        $csvJobs = $this->csvJobsToArray($csv);
+        if (!empty($csvJobs)) {
+            return $csvJobs;
+        }
+
+        return $detail['jobs'] ?? [];
+    }
+
+    private function csvJobsToArray(?array $csv): array
+    {
+        if (!$csv || !array_key_exists('jobsJson', $csv)) {
+            return [];
+        }
+
+        $raw = trim((string) $csv['jobsJson']);
+        if ($raw === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $jobs = [];
+
+        foreach ($decoded as $row) {
+            if (is_string($row)) {
+                $jobs[] = trim($row);
+                continue;
+            }
+
+            if (is_array($row)) {
+                $name = trim((string) ($row['name'] ?? $row['job'] ?? ''));
+                if ($name !== '') {
+                    $jobs[] = $name;
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($jobs)));
+    }
+
+    private function normalizeJobNames(array $jobs): array
+    {
+        $normalized = [];
+
+        foreach ($jobs as $job) {
+            $job = trim((string) $job);
+            if ($job === '') {
+                continue;
+            }
+
+            $job = match ($job) {
+                '魔法' => '魔法使い',
+                '魔法戦士(スキル)' => '魔法戦士',
+                default => $job,
+            };
+
+            $normalized[] = $job;
+        }
+
+        $normalized = array_values(array_unique($normalized));
+        sort($normalized);
+
+        return $normalized;
+    }
+
+    private function resolveJobOverrideMode(?int $equipmentTypeId, array $desiredJobs): string
+    {
+        if (!$equipmentTypeId || empty($desiredJobs)) {
+            return 'inherit';
+        }
+
+        $defaultJobs = $this->defaultJobsByEquipmentTypeId[$equipmentTypeId] ?? [];
+        $defaultJobs = $this->normalizeJobNames($defaultJobs);
+
+        if ($defaultJobs === $desiredJobs) {
+            return 'inherit';
+        }
+
+        return 'add';
+    }
+
+    private function syncJobOverrides(int $equipmentId, ?int $equipmentTypeId, array $desiredJobs): void
+    {
+        DB::table('equipment_job_overrides')
+            ->where('equipment_id', $equipmentId)
+            ->delete();
+
+        if (!$equipmentTypeId || empty($desiredJobs)) {
+            return;
+        }
+
+        $defaultJobs = $this->defaultJobsByEquipmentTypeId[$equipmentTypeId] ?? [];
+        $defaultJobs = $this->normalizeJobNames($defaultJobs);
+
+        if ($defaultJobs === $desiredJobs) {
+            return;
+        }
+
+        $desiredSet = array_flip($desiredJobs);
+        $defaultSet = array_flip($defaultJobs);
+
+        $allowJobs = array_values(array_diff($desiredJobs, $defaultJobs));
+        $denyJobs = array_values(array_diff($defaultJobs, $desiredJobs));
+
+        $rows = [];
+
+        foreach ($allowJobs as $jobName) {
+            $jobId = $this->jobNameToIdMap[$jobName] ?? null;
+
+            if (!$jobId) {
+                $this->warn("game_jobs 未登録(allow): {$jobName}");
+                continue;
+            }
+
+            $rows[] = [
+                'equipment_id' => $equipmentId,
+                'game_job_id' => $jobId,
+                'mode' => 'allow',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        foreach ($denyJobs as $jobName) {
+            $jobId = $this->jobNameToIdMap[$jobName] ?? null;
+
+            if (!$jobId) {
+                $this->warn("game_jobs 未登録(deny): {$jobName}");
+                continue;
+            }
+
+            $rows[] = [
+                'equipment_id' => $equipmentId,
+                'game_job_id' => $jobId,
+                'mode' => 'deny',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if (!empty($rows)) {
+            DB::table('equipment_job_overrides')->insert($rows);
+        }
+    }
+
+    private function targetEquipmentTypeNames(string $targetType): array
+    {
+        if ($targetType === '盾') {
+            return ['小盾', '大盾'];
+        }
+
+        return [$targetType];
     }
 }

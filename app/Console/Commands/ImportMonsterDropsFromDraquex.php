@@ -83,18 +83,29 @@ class ImportMonsterDropsFromDraquex extends Command
                     ->first();
 
                 if (!$monster) {
-                    $this->recordMissing(
+                    $monster = $this->createMonsterIfNotExists(
                         $data['monster_name'],
-                        $detailUrl,
-                        'monster',
-                        $data['monster_name'],
-                        'monsters.name で見つからない'
+                        $data['system_type'],
+                        $detailUrl
                     );
 
+                    if (!$monster) {
+                        $this->recordMissing(
+                            $data['monster_name'],
+                            $detailUrl,
+                            'monster',
+                            $data['monster_name'],
+                            'monsters への自動追加に失敗'
+                        );
+
+                        $this->newLine();
+                        $this->warn("monster create failed: {$data['monster_name']} ({$detailUrl})");
+                        $bar->advance();
+                        continue;
+                    }
+
                     $this->newLine();
-                    $this->warn("monster not found: {$data['monster_name']} ({$detailUrl})");
-                    $bar->advance();
-                    continue;
+                    $this->info("monster created: {$data['monster_name']} / {$data['system_type']}");
                 }
 
                 $this->saveMonsterDrops(
@@ -219,6 +230,8 @@ class ImportMonsterDropsFromDraquex extends Command
         }, $lines);
         $lines = array_values(array_filter($lines, fn ($line) => $line !== ''));
 
+        $systemType = $this->extractSystemType($crawler, $lines);
+
         $normalDrop = null;
         $rareDrop = null;
         $equipments = [];
@@ -279,12 +292,97 @@ class ImportMonsterDropsFromDraquex extends Command
 
         return [
             'monster_name' => $monsterName,
+            'system_type'  => $systemType,
             'normal_drop'  => $normalDrop,
             'rare_drop'    => $rareDrop,
             'equipments'   => array_values(array_unique($equipments)),
             'orbs'         => array_values(array_unique($orbs)),
             'url'          => $url,
         ];
+    }
+
+    private function extractSystemType(Crawler $crawler, array $lines): ?string
+    {
+        try {
+            $systemType = null;
+
+            $crawler->filter('tr')->each(function (Crawler $tr) use (&$systemType) {
+                if ($systemType !== null) {
+                    return;
+                }
+
+                $th = $tr->filter('th')->count() ? trim($tr->filter('th')->first()->text('')) : '';
+                $td = $tr->filter('td')->count() ? trim($tr->filter('td')->first()->text('')) : '';
+
+                if ($th === '系統' && $td !== '') {
+                    $systemType = $td;
+                }
+            });
+
+            if ($systemType !== null) {
+                return $this->cleanupSystemTypeText($systemType);
+            }
+        } catch (Throwable $e) {
+            // ignore
+        }
+
+        for ($i = 0; $i < count($lines); $i++) {
+            if ($lines[$i] === '系統') {
+                $next = $lines[$i + 1] ?? null;
+                if ($next) {
+                    return $this->cleanupSystemTypeText($next);
+                }
+            }
+
+            if (preg_match('/^系統\s*[:：]?\s*(.+)$/u', $lines[$i], $m)) {
+                return $this->cleanupSystemTypeText($m[1]);
+            }
+        }
+
+        return null;
+    }
+
+    private function cleanupSystemTypeText(string $text): ?string
+    {
+        $text = strip_tags($text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/\s+/u', ' ', $text);
+        $text = trim($text);
+
+        return $text !== '' ? $text : null;
+    }
+
+    private function createMonsterIfNotExists(string $monsterName, ?string $systemType, string $sourceUrl): ?object
+    {
+        $existing = DB::table('monsters')
+            ->where('name', $monsterName)
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        try {
+            $nextDisplayOrder = ((int) DB::table('monsters')->max('display_order')) + 1;
+
+            $monsterId = DB::table('monsters')->insertGetId([
+                'display_order' => $nextDisplayOrder,
+                'name'          => $monsterName,
+                'system_type'   => $systemType,
+                'source_url'    => $sourceUrl,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ]);
+
+            return DB::table('monsters')->where('id', $monsterId)->first();
+        } catch (Throwable $e) {
+            $this->warn("monster insert failed: {$monsterName}");
+            $this->warn($e->getMessage());
+
+            return DB::table('monsters')
+                ->where('name', $monsterName)
+                ->first();
+        }
     }
 
     private function saveMonsterDrops(
@@ -434,9 +532,11 @@ class ImportMonsterDropsFromDraquex extends Command
         }
 
         foreach ($columns as $column) {
+            $prefix = mb_substr($rawValue, 0, max(1, mb_strlen($rawValue) - 1));
+
             $likeRows = DB::table($table)
                 ->select(['id', $column])
-                ->where($column, 'like', '%' . mb_substr($rawValue, 0, max(1, mb_strlen($rawValue) - 1)) . '%')
+                ->where($column, 'like', '%' . $prefix . '%')
                 ->limit(30)
                 ->get();
 
