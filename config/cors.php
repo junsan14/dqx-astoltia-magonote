@@ -26,7 +26,13 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000'), 'http://127.0.0.1:3000'],
+    'allowed_origins' => [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://dqx-tool.com',
+        'https://www.dqx-tool.com',
+    ],
+
 
 
     'allowed_origins_patterns' => [],
