@@ -13,7 +13,11 @@ class Map extends Model
         'source_url'
     ];
     public function spawns()
-{
-    return $this->hasMany(MonsterMapSpawn::class);
-}
+    {
+        return $this->hasMany(MonsterMapSpawn::class);
+    }
+    public function layers(): HasMany
+    {
+        return $this->hasMany(MapLayer::class)->orderBy('display_order');
+    }
 }

@@ -51,4 +51,9 @@ class Equipment extends Model
     {
         return $this->belongsTo(EquipmentType::class, 'equipment_type_id');
     }
+
+    public function craftType()
+    {
+        return $this->belongsTo(CraftType::class, 'craft_type_id');
+    }
 }

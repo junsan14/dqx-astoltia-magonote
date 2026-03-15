@@ -359,32 +359,64 @@ class MonsterController extends Controller
 
         $maps = DB::table('monster_map_spawns')
             ->join('maps', 'maps.id', '=', 'monster_map_spawns.map_id')
+            ->leftJoin('map_layers', 'map_layers.id', '=', 'monster_map_spawns.map_layer_id')
             ->where('monster_map_spawns.monster_id', $monster->id)
             ->orderBy('maps.name')
+            ->orderBy('map_layers.display_order')
+            ->orderBy('map_layers.floor_no')
             ->orderBy('monster_map_spawns.id')
             ->get([
                 'monster_map_spawns.id',
                 'monster_map_spawns.map_id',
+                'monster_map_spawns.map_layer_id',
                 'monster_map_spawns.area',
                 'monster_map_spawns.spawn_time',
                 'monster_map_spawns.note',
+
                 'maps.name as map_name',
-                'maps.image_path',
+
+                'map_layers.layer_name as map_layer_name',
+                'map_layers.floor_no as map_layer_floor_no',
+                'map_layers.image_path as map_layer_image_path',
             ])
             ->groupBy('map_id')
             ->map(function ($rows, $mapId) {
                 $first = $rows->first();
 
+                $mapImagePath = collect($rows)
+                    ->pluck('map_layer_image_path')
+                    ->filter(fn ($path) => !empty($path))
+                    ->first();
+
                 return [
                     'id' => (int) $mapId,
                     'name' => $first->map_name,
-                    'image_path' => $first->image_path,
-                    'spawns' => $rows->map(function ($row) {
+                    'image_path' => $mapImagePath,
+                    'spawns' => $rows->map(function ($row) use ($mapImagePath) {
+                        $layerName = trim((string) ($row->map_layer_name ?? ''));
+
+                        if ($layerName === '' && $row->map_layer_floor_no !== null) {
+                            $floorNo = (int) $row->map_layer_floor_no;
+
+                            if ($floorNo === 0) {
+                                $layerName = '地上';
+                            } elseif ($floorNo < 0) {
+                                $layerName = '地下' . abs($floorNo) . '階';
+                            } else {
+                                $layerName = $floorNo . '階';
+                            }
+                        }
+
                         return [
                             'id' => $row->id,
+                            'map_id' => $row->map_id,
+                            'map_layer_id' => $row->map_layer_id,
                             'area' => $this->parseArea($row->area),
                             'spawn_time' => $row->spawn_time,
                             'note' => $row->note,
+                            'map_layer_name' => $layerName,
+                            'map_layer_floor_no' => $row->map_layer_floor_no,
+                            'map_image_path' => $row->map_layer_image_path ?: $mapImagePath,
                         ];
                     })->values(),
                 ];
@@ -438,8 +470,13 @@ class MonsterController extends Controller
         $validated = $this->validateMonsterPayload($request);
 
         $monster = DB::transaction(function () use ($validated) {
+            $newOrder = max(1, (int) $validated['display_order']);
+
+            Monster::where('display_order', '>=', $newOrder)
+                ->increment('display_order');
+
             $monster = Monster::create([
-                'display_order' => (int) $validated['display_order'],
+                'display_order' => $newOrder,
                 'name' => $validated['name'],
                 'system_type' => $validated['system_type'] ?? null,
                 'source_url' => $validated['source_url'] ?? null,
@@ -459,8 +496,21 @@ class MonsterController extends Controller
         $validated = $this->validateMonsterPayload($request);
 
         DB::transaction(function () use ($monster, $validated) {
+            $oldOrder = (int) $monster->display_order;
+            $newOrder = max(1, (int) $validated['display_order']);
+
+            if ($newOrder < $oldOrder) {
+                Monster::where('id', '!=', $monster->id)
+                    ->whereBetween('display_order', [$newOrder, $oldOrder - 1])
+                    ->increment('display_order');
+            } elseif ($newOrder > $oldOrder) {
+                Monster::where('id', '!=', $monster->id)
+                    ->whereBetween('display_order', [$oldOrder + 1, $newOrder])
+                    ->decrement('display_order');
+            }
+
             $monster->update([
-                'display_order' => (int) $validated['display_order'],
+                'display_order' => $newOrder,
                 'name' => $validated['name'],
                 'system_type' => $validated['system_type'] ?? null,
                 'source_url' => $validated['source_url'] ?? null,
@@ -477,22 +527,57 @@ class MonsterController extends Controller
         $monster = Monster::findOrFail($id);
 
         DB::transaction(function () use ($monster) {
+            $deletedOrder = (int) $monster->display_order;
+            $monsterId = $monster->id;
+
             DB::table('monster_drops')
-                ->where('monster_id', $monster->id)
+                ->where('monster_id', $monsterId)
                 ->delete();
 
             DB::table('monster_map_spawns')
-                ->where('monster_id', $monster->id)
+                ->where('monster_id', $monsterId)
                 ->delete();
 
             $monster->delete();
+
+            Monster::where('display_order', '>', $deletedOrder)
+                ->decrement('display_order');
         });
 
         return response()->json([
-            'data' => [
-                'deleted' => true,
-                'id' => (int) $id,
-            ],
+            'message' => '削除した',
+        ]);
+    }
+
+    public function aroundDisplayOrder(Request $request)
+    {
+        $displayOrder = (int) $request->query('display_order', 0);
+        $range = (int) $request->query('range', 5);
+        $excludeId = (int) $request->query('exclude_id', 0);
+
+        if ($displayOrder < 1) {
+            return response()->json([
+                'data' => [],
+            ]);
+        }
+
+        $range = max(1, min($range, 20));
+
+        $query = Monster::query()
+            ->select(['id', 'display_order', 'name'])
+            ->whereBetween('display_order', [
+                max(1, $displayOrder - $range),
+                $displayOrder + $range,
+            ])
+            ->orderBy('display_order')
+            ->orderBy('id');
+
+        if ($excludeId > 0) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return response()->json([
+            'data' => $query->get(),
         ]);
     }
 

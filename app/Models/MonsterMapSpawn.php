@@ -11,6 +11,9 @@ class MonsterMapSpawn extends Model
         'map_id',
         'area',
         'spawn_count',
+        'map_layer_id',
+        'note',
+        'spawn_time',
         'marker_x',
         'marker_y',
         

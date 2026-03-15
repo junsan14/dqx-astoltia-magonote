@@ -252,53 +252,89 @@ class ImportDraquexFieldSpawnsV6 extends Command
             }
 
             foreach ($grouped as $item) {
-                $coords = array_values(array_unique($item['coords']));
-                sort($coords);
+    $coords = array_values(array_unique($item['coords']));
+    sort($coords);
 
-                $notes = array_values(array_unique(array_filter($item['notes'])));
+    $notes = array_values(array_unique(array_filter($item['notes'])));
 
-                if ($dryRun) {
-                    $debug = [
-                        'monster' => $item['monster_name'],
-                        'coords' => $coords,
-                        'spawn_time' => $item['spawn_time'],
-                        'map' => $item['map_name'],
-                        'note' => $notes,
-                    ];
+    if ($dryRun) {
+        $debug = [
+            'monster' => $item['monster_name'],
+            'coords' => $coords,
+            'spawn_time' => $item['spawn_time'],
+            'map' => $item['map_name'],
+            'note' => $notes,
+        ];
 
-                    $this->line('  ' . json_encode($debug, JSON_UNESCAPED_UNICODE));
-                } else {
-                    $exists = DB::table('monster_map_spawns')
-                        ->where('monster_id', $item['monster_id'])
-                        ->where('map_id', $item['map_id'])
-                        ->where('spawn_time', $item['spawn_time'])
-                        ->exists();
+        $this->line('  ' . json_encode($debug, JSON_UNESCAPED_UNICODE));
+    } else {
+        $existing = DB::table('monster_map_spawns')
+            ->where('monster_id', $item['monster_id'])
+            ->where('map_id', $item['map_id'])
+            ->where('spawn_time', $item['spawn_time'])
+            ->first();
 
-                    if ($exists) {
-                        DB::table('monster_map_spawns')
-                            ->where('monster_id', $item['monster_id'])
-                            ->where('map_id', $item['map_id'])
-                            ->where('spawn_time', $item['spawn_time'])
-                            ->update([
-                                'area' => json_encode($coords, JSON_UNESCAPED_UNICODE),
-                                'note' => json_encode($notes, JSON_UNESCAPED_UNICODE),
-                                'updated_at' => now(),
-                            ]);
-                    } else {
-                        DB::table('monster_map_spawns')->insert([
-                            'monster_id' => $item['monster_id'],
-                            'map_id' => $item['map_id'],
-                            'spawn_time' => $item['spawn_time'],
-                            'area' => json_encode($coords, JSON_UNESCAPED_UNICODE),
-                            'note' => json_encode($notes, JSON_UNESCAPED_UNICODE),
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    }
+        if ($existing) {
+            $updateData = [
+                'updated_at' => now(),
+            ];
+
+            // area は既存が NULL / 空 のときだけ更新
+            $existingAreaRaw = $existing->area ?? null;
+            $existingAreaEmpty = false;
+
+            if ($existingAreaRaw === null) {
+                $existingAreaEmpty = true;
+            } else {
+                $decodedArea = json_decode($existingAreaRaw, true);
+
+                if ($existingAreaRaw === '' || $existingAreaRaw === 'null') {
+                    $existingAreaEmpty = true;
+                } elseif (is_array($decodedArea) && count($decodedArea) === 0) {
+                    $existingAreaEmpty = true;
                 }
-
-                $inserted++;
             }
+
+            if ($existingAreaEmpty && !empty($coords)) {
+                $updateData['area'] = json_encode($coords, JSON_UNESCAPED_UNICODE);
+            }
+
+            // note は既存があれば追加マージ
+            $existingNotes = [];
+            if (!empty($existing->note)) {
+                $decodedNotes = json_decode($existing->note, true);
+
+                if (is_array($decodedNotes)) {
+                    $existingNotes = $decodedNotes;
+                } elseif (is_string($existing->note) && trim($existing->note) !== '') {
+                    $existingNotes = [trim($existing->note)];
+                }
+            }
+
+            $mergedNotes = array_values(array_unique(array_filter(array_merge($existingNotes, $notes))));
+
+            if (!empty($mergedNotes)) {
+                $updateData['note'] = json_encode($mergedNotes, JSON_UNESCAPED_UNICODE);
+            }
+
+            DB::table('monster_map_spawns')
+                ->where('id', $existing->id)
+                ->update($updateData);
+        } else {
+            DB::table('monster_map_spawns')->insert([
+                'monster_id' => $item['monster_id'],
+                'map_id' => $item['map_id'],
+                'spawn_time' => $item['spawn_time'],
+                'area' => !empty($coords) ? json_encode($coords, JSON_UNESCAPED_UNICODE) : null,
+                'note' => !empty($notes) ? json_encode($notes, JSON_UNESCAPED_UNICODE) : null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+    }
+
+    $inserted++;
+}
         }
 
         $this->newLine();

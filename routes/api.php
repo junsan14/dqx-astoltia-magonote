@@ -20,7 +20,7 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 });
 
 
-Route::resource('/maps', MapController::class);
+
 
 Route::Resource('/monster-map-spawns', MonsterMapSpawnController::class);
 
@@ -31,8 +31,20 @@ Route::Resource('/game-jobs', GameJobController::class);
 
 Route::Resource('/accessories', AccessoryController::class);
 
-Route::get('/monster-lookup', [MonsterLookupController::class, 'index']);
+//Route::get('/monster-lookup', [MonsterLookupController::class, 'index']);
 
+Route::get('/maps/options', [MapController::class, 'options']);
+
+Route::resource('maps', MapController::class)->only([
+    'index',
+    'show',
+    'store',
+    'update',
+    'destroy'
+]);
+
+// 画像アップロード
+Route::post('/maps/{map}/layers/upload', [MapController::class, 'uploadLayerImage']);
 
 Route::Resource('/orbs', OrbController::class);
 Route::get('/items/by-ids', [ItemController::class, 'byIds']);
@@ -43,3 +55,4 @@ Route::Resource('/equipments', EquipmentController::class);
 //Route::get('/equipments', [EquipmentController::class, 'index']);
 //Route::get('/monsters/search', [MonsterController::class, 'index']);
 Route::Resource('/monster-search', MonsterController::class);
+Route::get('/monsters/around-display-order', [MonsterController::class, 'aroundDisplayOrder']);

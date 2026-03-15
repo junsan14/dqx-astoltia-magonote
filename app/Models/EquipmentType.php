@@ -23,4 +23,8 @@ class EquipmentType extends Model
     {
         return $this->hasMany(EquipableType::class, 'equipment_type_id');
     }
+        public function craftType()
+    {
+        return $this->belongsTo(CraftType::class, 'craft_type_id');
+    }
 }

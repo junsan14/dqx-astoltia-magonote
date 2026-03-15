@@ -5,16 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Equipment;
 use App\Models\EquipmentType;
 
+
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class EquipmentController extends Controller
 {
-    public function index(Request $request): JsonResponse
+   public function index(Request $request): JsonResponse
 {
     $query = Equipment::query()
         ->with([
+            'equipmentType.craftType:id,name',
             'equipmentType.equipableTypes.gameJob:id,name,key',
         ])
         ->whereNotNull('item_name');
@@ -58,7 +60,6 @@ class EquipmentController extends Controller
         $query->where('group_id', $request->group_id);
     }
 
- 
     if ($request->filled('slot')) {
         $query->where('slot', $request->slot);
     }
