@@ -301,6 +301,8 @@ CREATE TABLE `monster_map_spawns` (
   `map_layer_id` bigint unsigned DEFAULT NULL,
   `area` longtext COLLATE utf8mb4_unicode_ci,
   `spawn_time` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'normal',
+  `spawn_count` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '出現数。例: 1, 2, 1〜2, 2-3, 多数',
+  `symbol_count` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'シンボル数。例: 1, 2, 1〜2, 多数',
   `note` longtext COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -336,11 +338,16 @@ CREATE TABLE `monsters` (
   `display_order` int unsigned NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `system_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_reincarnated` tinyint(1) NOT NULL DEFAULT '0' COMMENT '転生モンスターかどうか',
+  `reincarnation_parent_id` bigint unsigned DEFAULT NULL COMMENT '転生元モンスターID',
   `source_url` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `monsters_display_order_index` (`display_order`)
+  KEY `monsters_display_order_index` (`display_order`),
+  KEY `monsters_is_reincarnated_index` (`is_reincarnated`),
+  KEY `monsters_reincarnation_parent_id_index` (`reincarnation_parent_id`),
+  CONSTRAINT `monsters_reincarnation_parent_id_foreign` FOREIGN KEY (`reincarnation_parent_id`) REFERENCES `monsters` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `orbs`;
@@ -467,3 +474,6 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (39,'2026_03_13_151
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (40,'2026_03_13_180157_add_col_to_monster_map_spawns',6);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (41,'2026_03_14_054245_change_unique_to_monster_map_spawns',7);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (42,'2026_03_14_093555_drop_image_path_from_maps_table',8);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (43,'2026_03_17_144614_add_reincarnation_columns_to_monsters_table',9);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (44,'2026_03_17_174522_add_spawn_count_to_monster_map_spawns_table',10);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_03_17_181013_add_symbol_count_to_monster_map_spawns_table',11);
