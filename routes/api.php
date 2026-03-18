@@ -13,6 +13,7 @@ use App\Http\Controllers\EquipmentTypeController;
 use App\Http\Controllers\GameJobController;
 use App\Http\Controllers\MonsterMapSpawnController;
 use App\Http\Controllers\MapController;
+use App\Http\Controllers\CrystalRuleController;
 
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
@@ -28,7 +29,7 @@ Route::Resource('/monster-map-spawns', MonsterMapSpawnController::class);
 Route::get('/equipment-types', [EquipmentTypeController::class, 'index']);
 Route::Resource('/game-jobs', GameJobController::class);
 
-
+Route::get('/crystal-rules', [CrystalRuleController::class, 'index']);
 Route::Resource('/accessories', AccessoryController::class);
 
 //Route::get('/monster-lookup', [MonsterLookupController::class, 'index']);
