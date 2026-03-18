@@ -12,6 +12,8 @@ class Monster extends Model
         'name',
         'system_type',
         'source_url',
+        'is_reincarnated',
+        'reincarnation_parent_id',
     ];
 
     public function spawns(): HasMany
@@ -28,5 +30,13 @@ class Monster extends Model
     {
         return $this->hasMany(MonsterDrop::class);
     }
+    public function reincarnationParent()
+    {
+        return $this->belongsTo(self::class, 'reincarnation_parent_id');
+    }
 
+    public function reincarnations()
+    {
+        return $this->hasMany(self::class, 'reincarnation_parent_id');
+    }
 }

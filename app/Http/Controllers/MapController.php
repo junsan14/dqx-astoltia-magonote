@@ -6,6 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\WebpEncoder;
+use Intervention\Image\ImageManager;
 
 class MapController extends Controller
 {
@@ -34,7 +37,6 @@ class MapController extends Controller
         }
 
         $rows = $query->get();
-
         $mapIds = $rows->pluck('id')->filter()->values();
 
         $layersByMapId = collect();
@@ -146,9 +148,12 @@ class MapController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $exists = DB::table('maps')->where('id', $id)->exists();
+        $row = DB::table('maps')
+            ->select('id', 'continent')
+            ->where('id', $id)
+            ->first();
 
-        if (!$exists) {
+        if (!$row) {
             return response()->json([
                 'message' => 'マップが見つからない',
             ], 404);
@@ -157,7 +162,7 @@ class MapController extends Controller
         $data = $this->validateMapRequest($request, true);
         $layers = $this->extractLayers($request);
 
-        DB::transaction(function () use ($request, $id, $data, $layers) {
+        DB::transaction(function () use ($request, $id, $row, $data, $layers) {
             $updateData = [
                 'updated_at' => now(),
             ];
@@ -184,7 +189,7 @@ class MapController extends Controller
 
             if ($this->requestHasLayers($request)) {
                 $this->syncLayers($request, (int) $id, $layers, [
-                    'continent_folder' => $data['continent_folder'],
+                    'continent_folder' => $data['continent_folder'] ?? $this->toContinentFolder($row->continent),
                 ]);
             }
         });
@@ -286,6 +291,7 @@ class MapController extends Controller
             return [
                 'id' => isset($layer['id']) && $layer['id'] !== '' ? (int) $layer['id'] : null,
                 'layer_name' => $this->nullableString($layer['layer_name'] ?? null),
+                'layer_file_name' => $this->sanitizeLayerFileName($layer['layer_file_name'] ?? null),
                 'floor_no' => isset($layer['floor_no']) && $layer['floor_no'] !== ''
                     ? (int) $layer['floor_no']
                     : 0,
@@ -336,10 +342,12 @@ class MapController extends Controller
         foreach ($layers as $index => $layer) {
             $layerId = $layer['id'] ?? null;
             $floorNo = (int) ($layer['floor_no'] ?? 0);
+            $layerName = $this->nullableString($layer['layer_name'] ?? null);
+            $layerFileName = $this->sanitizeLayerFileName($layer['layer_file_name'] ?? null);
 
             $payload = [
                 'map_id' => $mapId,
-                'layer_name' => $this->nullableString($layer['layer_name'] ?? null),
+                'layer_name' => $layerName,
                 'floor_no' => $floorNo,
                 'source_url' => $this->nullableString($layer['source_url'] ?? null),
                 'display_order' => max(1, (int) ($layer['display_order'] ?? ($index + 1))),
@@ -348,6 +356,14 @@ class MapController extends Controller
 
             /** @var UploadedFile|null $uploadedFile */
             $uploadedFile = data_get($request->allFiles(), "layers.$index.image");
+
+            if (!$uploadedFile instanceof UploadedFile) {
+                $uploadedFile = data_get($request->allFiles(), "layers.$index.image_file");
+            }
+
+            if ($uploadedFile instanceof UploadedFile && $layerFileName === '') {
+                throw new \InvalidArgumentException("layers.{$index}.layer_file_name is required");
+            }
 
             if ($layerId && in_array($layerId, $existingIds, true)) {
                 $oldLayer = DB::table('map_layers')
@@ -363,7 +379,7 @@ class MapController extends Controller
                         $uploadedFile,
                         $mapId,
                         $mapData['continent_folder'],
-                        $floorNo
+                        $layerFileName
                     );
 
                     if (!empty($oldLayer?->image_path) && $oldLayer->image_path !== $newImagePath) {
@@ -387,7 +403,7 @@ class MapController extends Controller
                     $uploadedFile,
                     $mapId,
                     $mapData['continent_folder'],
-                    $floorNo
+                    $layerFileName
                 );
             } else {
                 $payload['image_path'] = null;
@@ -421,30 +437,66 @@ class MapController extends Controller
         }
     }
 
-    private function storeLayerImage(
-        UploadedFile $file,
-        int|string $mapId,
-        string $continentFolder,
-        int $floorNo
-    ): string {
-        $continentFolder = $this->sanitizePathSegment($continentFolder);
+   private function storeLayerImage(
+    UploadedFile $file,
+    int|string $mapId,
+    string $continentFolder,
+    string $layerFileName
+): string {
+    $continentFolder = $this->sanitizePathSegment($continentFolder);
 
-        if ($continentFolder === '') {
-            throw new \InvalidArgumentException('continent_folder is required');
-        }
-
-        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
-
-        if ($extension === 'jpeg') {
-            $extension = 'jpg';
-        }
-
-        $folder = "images/maps/{$continentFolder}/map_id_{$mapId}";
-        $fileName = "{$floorNo}.{$extension}";
-        $storagePath = $file->storeAs($folder, $fileName, 'public');
-
-        return '/storage/' . $storagePath;
+    if ($continentFolder === '') {
+        throw new \InvalidArgumentException('continent_folder is required');
     }
+
+    $safeLayerFileName = $this->sanitizeLayerFileName($layerFileName);
+
+    if ($safeLayerFileName === '') {
+        throw new \InvalidArgumentException('layer_file_name is required');
+    }
+
+    $folder = "images/maps/{$continentFolder}/map_id_{$mapId}";
+    $fileName = "{$safeLayerFileName}.webp";
+    $storagePath = "{$folder}/{$fileName}";
+
+    $manager = new ImageManager(new Driver());
+    $image = $manager->read($file->getPathname());
+
+    $width = $image->width();
+    $height = $image->height();
+
+    $cropWidth = 490;
+    $cropHeight = 565;
+    $offsetX = 35;
+    $offsetY = 25;
+
+    $canCrop = $width >= ($offsetX + $cropWidth) && $height >= ($offsetY + $cropHeight);
+
+    if ($canCrop) {
+        $image->crop($cropWidth, $cropHeight, $offsetX, $offsetY);
+        $image->sharpen(15);
+    } else {
+        /**
+         * クロップできない小さい画像は
+         * そのまま webp 化だけする。
+         * 必要なら軽く縮小して容量も抑える。
+         */
+        $maxWidth = 700;
+        $maxHeight = 700;
+
+        if ($width > $maxWidth || $height > $maxHeight) {
+            $image->scaleDown($maxWidth, $maxHeight);
+        }
+
+        $image->sharpen(8);
+    }
+
+    $encoded = $image->encode(new WebpEncoder(quality: 65));
+
+    Storage::disk('public')->put($storagePath, (string) $encoded);
+
+    return '/storage/' . $storagePath;
+}
 
     private function deleteImageIfExists(?string $publicPath): void
     {
@@ -467,6 +519,25 @@ class MapController extends Controller
         $value = preg_replace('/[^A-Za-z0-9_\-]/', '', $value ?? '');
 
         return trim((string) $value);
+    }
+
+    private function sanitizeLayerFileName(?string $value): string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $value = preg_replace('/\s+/', '', $value);
+        $value = preg_replace('/[^A-Za-z0-9_\-]/', '', $value ?? '');
+
+        return trim((string) $value);
+    }
+
+    private function toContinentFolder(?string $value): string
+    {
+        return $this->sanitizePathSegment($value);
     }
 
     private function nullableString($value): ?string

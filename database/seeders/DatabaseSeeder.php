@@ -23,10 +23,11 @@ class DatabaseSeeder extends Seeder
         ]);
         */
         $this->call([
-        JobSeeder::class,
-        CraftTypeSeeder::class,
-            EquipmentTypeSeeder::class,
-                EquipableTypeSeeder::class,
+        //JobSeeder::class,
+        //CraftTypeSeeder::class,
+            //EquipmentTypeSeeder::class,
+                //EquipableTypeSeeder::class,
+                CraftToolSeeder::class,
         ]);
     }
 }

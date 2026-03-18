@@ -55,6 +55,8 @@ class MonsterMapSpawnController extends Controller
             'area' => $row->area,
             'coords' => $coords,
             'spawn_time' => $row->spawn_time,
+            'spawn_count' => $row->spawn_count,
+            'symbol_count' => $row->symbol_count,
             'note' => $row->note,
             'created_at' => $row->created_at,
             'updated_at' => $row->updated_at,
@@ -66,10 +68,6 @@ class MonsterMapSpawnController extends Controller
         ];
     }
 
-    /**
-     * 一覧取得
-     * GET /api/monster-map-spawns?monster_id=12
-     */
     public function index(Request $request)
     {
         $monsterId = $request->get('monster_id');
@@ -84,6 +82,8 @@ class MonsterMapSpawnController extends Controller
                 'monster_map_spawns.map_layer_id',
                 'monster_map_spawns.area',
                 'monster_map_spawns.spawn_time',
+                'monster_map_spawns.spawn_count',
+                'monster_map_spawns.symbol_count',
                 'monster_map_spawns.note',
                 'monster_map_spawns.created_at',
                 'monster_map_spawns.updated_at',
@@ -107,10 +107,6 @@ class MonsterMapSpawnController extends Controller
         ]);
     }
 
-    /**
-     * 1件取得
-     * GET /api/monster-map-spawns/{monster_map_spawn}
-     */
     public function show(string $id)
     {
         $row = DB::table('monster_map_spawns')
@@ -124,6 +120,8 @@ class MonsterMapSpawnController extends Controller
                 'monster_map_spawns.map_layer_id',
                 'monster_map_spawns.area',
                 'monster_map_spawns.spawn_time',
+                'monster_map_spawns.spawn_count',
+                'monster_map_spawns.symbol_count',
                 'monster_map_spawns.note',
                 'monster_map_spawns.created_at',
                 'monster_map_spawns.updated_at',
@@ -145,10 +143,6 @@ class MonsterMapSpawnController extends Controller
         ]);
     }
 
-    /**
-     * 作成
-     * POST /api/monster-map-spawns
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -157,6 +151,8 @@ class MonsterMapSpawnController extends Controller
             'map_layer_id' => ['nullable', 'integer', 'exists:map_layers,id'],
             'area' => ['nullable', 'string'],
             'spawn_time' => ['nullable', 'string', 'max:255'],
+            'spawn_count' => ['nullable', 'string', 'max:255'],
+            'symbol_count' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string'],
         ]);
 
@@ -182,6 +178,12 @@ class MonsterMapSpawnController extends Controller
             'map_layer_id' => $data['map_layer_id'] ?? null,
             'area' => $data['area'] ?? null,
             'spawn_time' => !empty($data['spawn_time']) ? $data['spawn_time'] : 'normal',
+            'spawn_count' => array_key_exists('spawn_count', $data) && $data['spawn_count'] !== ''
+                ? $data['spawn_count']
+                : null,
+            'symbol_count' => array_key_exists('symbol_count', $data) && $data['symbol_count'] !== ''
+                ? $data['symbol_count']
+                : null,
             'note' => $data['note'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
@@ -190,10 +192,6 @@ class MonsterMapSpawnController extends Controller
         return $this->show((string) $id);
     }
 
-    /**
-     * 更新
-     * PUT /api/monster-map-spawns/{monster_map_spawn}
-     */
     public function update(Request $request, int $id)
     {
         $current = DB::table('monster_map_spawns')->where('id', $id)->first();
@@ -210,6 +208,8 @@ class MonsterMapSpawnController extends Controller
             'map_layer_id' => ['nullable', 'integer', 'exists:map_layers,id'],
             'area' => ['nullable', 'string'],
             'spawn_time' => ['nullable', 'string', 'max:255'],
+            'spawn_count' => ['nullable', 'string', 'max:255'],
+            'symbol_count' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string'],
         ]);
 
@@ -263,6 +263,18 @@ class MonsterMapSpawnController extends Controller
                 : 'normal';
         }
 
+        if (array_key_exists('spawn_count', $data)) {
+            $updateData['spawn_count'] = !is_null($data['spawn_count']) && $data['spawn_count'] !== ''
+                ? $data['spawn_count']
+                : null;
+        }
+
+        if (array_key_exists('symbol_count', $data)) {
+            $updateData['symbol_count'] = !is_null($data['symbol_count']) && $data['symbol_count'] !== ''
+                ? $data['symbol_count']
+                : null;
+        }
+
         if (array_key_exists('note', $data)) {
             $updateData['note'] = $data['note'];
         }
@@ -274,10 +286,6 @@ class MonsterMapSpawnController extends Controller
         return $this->show((string) $id);
     }
 
-    /**
-     * 削除
-     * DELETE /api/monster-map-spawns/{monster_map_spawn}
-     */
     public function destroy(string $id)
     {
         $exists = DB::table('monster_map_spawns')->where('id', $id)->exists();
