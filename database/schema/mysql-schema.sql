@@ -65,6 +65,22 @@ CREATE TABLE `craft_types` (
   UNIQUE KEY `craft_types_name_unique` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `crystal_rules`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `crystal_rules` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `min_level` int unsigned NOT NULL,
+  `max_level` int unsigned NOT NULL,
+  `plus0` int unsigned NOT NULL,
+  `plus1` int unsigned NOT NULL,
+  `plus2` int unsigned NOT NULL,
+  `plus3` int unsigned NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `equipable_types`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -416,6 +432,7 @@ CREATE TABLE `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_admin` tinyint(1) NOT NULL DEFAULT '0',
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -477,3 +494,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (42,'2026_03_14_093
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (43,'2026_03_17_144614_add_reincarnation_columns_to_monsters_table',9);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (44,'2026_03_17_174522_add_spawn_count_to_monster_map_spawns_table',10);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_03_17_181013_add_symbol_count_to_monster_map_spawns_table',11);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_03_18_130243_add_is_admin_to_users_table',12);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (47,'2026_03_18_170404_create_crystal_rules_table',13);
