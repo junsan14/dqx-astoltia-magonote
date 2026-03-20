@@ -320,6 +320,8 @@ CREATE TABLE `monster_map_spawns` (
   `spawn_count` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '出現数。例: 1, 2, 1〜2, 2-3, 多数',
   `symbol_count` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'シンボル数。例: 1, 2, 1〜2, 多数',
   `note` longtext COLLATE utf8mb4_unicode_ci,
+  `is_hunting_ground` tinyint(1) NOT NULL DEFAULT '0',
+  `imported_note` longtext COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -496,3 +498,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (44,'2026_03_17_174
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_03_17_181013_add_symbol_count_to_monster_map_spawns_table',11);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_03_18_130243_add_is_admin_to_users_table',12);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (47,'2026_03_18_170404_create_crystal_rules_table',13);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (48,'2026_03_20_165009_update_note_columns_and_add_is_hunting_ground_to_monster_map_spawns_table',14);
