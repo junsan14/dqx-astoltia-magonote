@@ -57,7 +57,9 @@ class MonsterMapSpawnController extends Controller
             'spawn_time' => $row->spawn_time,
             'spawn_count' => $row->spawn_count,
             'symbol_count' => $row->symbol_count,
+            'imported_note' => $row->imported_note,
             'note' => $row->note,
+            'is_hunting_ground' => (bool) $row->is_hunting_ground,
             'created_at' => $row->created_at,
             'updated_at' => $row->updated_at,
             'map_name' => $row->map_name,
@@ -84,7 +86,9 @@ class MonsterMapSpawnController extends Controller
                 'monster_map_spawns.spawn_time',
                 'monster_map_spawns.spawn_count',
                 'monster_map_spawns.symbol_count',
+                'monster_map_spawns.imported_note',
                 'monster_map_spawns.note',
+                'monster_map_spawns.is_hunting_ground',
                 'monster_map_spawns.created_at',
                 'monster_map_spawns.updated_at',
                 'maps.name as map_name',
@@ -122,7 +126,9 @@ class MonsterMapSpawnController extends Controller
                 'monster_map_spawns.spawn_time',
                 'monster_map_spawns.spawn_count',
                 'monster_map_spawns.symbol_count',
+                'monster_map_spawns.imported_note',
                 'monster_map_spawns.note',
+                'monster_map_spawns.is_hunting_ground',
                 'monster_map_spawns.created_at',
                 'monster_map_spawns.updated_at',
                 'maps.name as map_name',
@@ -154,6 +160,7 @@ class MonsterMapSpawnController extends Controller
             'spawn_count' => ['nullable', 'string', 'max:255'],
             'symbol_count' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string'],
+            'is_hunting_ground' => ['nullable', 'boolean'],
         ]);
 
         if (!empty($data['map_layer_id'])) {
@@ -185,6 +192,7 @@ class MonsterMapSpawnController extends Controller
                 ? $data['symbol_count']
                 : null,
             'note' => $data['note'] ?? null,
+            'is_hunting_ground' => (bool) ($data['is_hunting_ground'] ?? false),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -211,6 +219,7 @@ class MonsterMapSpawnController extends Controller
             'spawn_count' => ['nullable', 'string', 'max:255'],
             'symbol_count' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string'],
+            'is_hunting_ground' => ['nullable', 'boolean'],
         ]);
 
         $nextMapId = array_key_exists('map_id', $data)
@@ -277,6 +286,10 @@ class MonsterMapSpawnController extends Controller
 
         if (array_key_exists('note', $data)) {
             $updateData['note'] = $data['note'];
+        }
+
+        if (array_key_exists('is_hunting_ground', $data)) {
+            $updateData['is_hunting_ground'] = (bool) $data['is_hunting_ground'];
         }
 
         DB::table('monster_map_spawns')

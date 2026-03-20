@@ -15,8 +15,8 @@ class MonsterMapSpawn extends Model
         'map_layer_id',
         'note',
         'spawn_time',
-        'marker_x',
-        'marker_y',
+        'is_hunting_ground',
+
         
     ];
     public function monster()

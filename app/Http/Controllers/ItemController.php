@@ -59,29 +59,33 @@ public function index(Request $request): JsonResponse
     }
 
     public function store(StoreItemRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
+{
+    $validated = $request->validated();
 
-        logger()->info('item store validated', $validated);
+    logger()->info('item store validated', $validated);
 
-        $item = DB::transaction(function () use ($validated) {
-            $item = Item::create([
-                'name' => $validated['name'],
-                'buy_price' => $validated['buy_price'] ?? null,
-                'sell_price' => $validated['sell_price'] ?? null,
-                'category' => $validated['category'] ?? null,
-            ]);
+    $item = DB::transaction(function () use ($validated) {
+        $item = Item::create([
+            'name' => $validated['name'],
+            'buy_price' => $validated['buy_price'] ?? null,
+            'sell_price' => $validated['sell_price'] ?? null,
+            'category' => $validated['category'] ?? null,
+        ]);
 
-            $this->syncDropMonsters($item->id, $validated['drop_monsters'] ?? []);
+        $this->monsterDropSyncService->sync(
+            'item',
+            $item->id,
+            $validated['drop_monsters'] ?? []
+        );
 
-            return $item;
-        });
+        return $item;
+    });
 
-        return response()->json([
-            'message' => 'アイテムを作成した',
-            'data' => $this->buildItemResponse($item->fresh()),
-        ], 201);
-    }
+    return response()->json([
+        'message' => 'アイテムを作成した',
+        'data' => $this->buildItemResponse($item->fresh()),
+    ], 201);
+}
 
     
     public function update(UpdateItemRequest $request, Item $item): JsonResponse

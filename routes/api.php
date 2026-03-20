@@ -29,7 +29,10 @@ Route::Resource('/monster-map-spawns', MonsterMapSpawnController::class);
 Route::get('/equipment-types', [EquipmentTypeController::class, 'index']);
 Route::Resource('/game-jobs', GameJobController::class);
 
-Route::get('/crystal-rules', [CrystalRuleController::class, 'index']);
+
+
+Route::Resource('crystal-rules', CrystalRuleController::class)
+    ->only(['index', 'store', 'update','destroy']);
 Route::Resource('/accessories', AccessoryController::class);
 
 //Route::get('/monster-lookup', [MonsterLookupController::class, 'index']);
@@ -51,9 +54,8 @@ Route::Resource('/orbs', OrbController::class);
 Route::get('/items/by-ids', [ItemController::class, 'byIds']);
 Route::Resource('/items', ItemController::class);
 
-//Route::get('/equipments', [EquipmentController::class, 'index']);
 Route::Resource('/equipments', EquipmentController::class);
-//Route::get('/equipments', [EquipmentController::class, 'index']);
-//Route::get('/monsters/search', [MonsterController::class, 'index']);
+Route::get('/monsters/zukan', [MonsterController::class, 'zukan']);
+
 Route::Resource('/monster-search', MonsterController::class);
 Route::get('/monsters/around-display-order', [MonsterController::class, 'aroundDisplayOrder']);

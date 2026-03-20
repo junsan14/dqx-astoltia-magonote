@@ -260,245 +260,252 @@ class MonsterController extends Controller
         return response()->json([]);
     }
 
-public function show($id)
-{
-    $monster = Monster::query()
-        ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
-        ->selectRaw('
-            monsters.id,
-            monsters.display_order as monster_no,
-            monsters.display_order,
-            monsters.name,
-            monsters.system_type,
-            monsters.source_url,
-            monsters.is_reincarnated,
-            monsters.reincarnation_parent_id,
-            parents.name as reincarnation_parent_name,
-            monsters.created_at,
-            monsters.updated_at
-        ')
-        ->where('monsters.id', $id)
-        ->firstOrFail();
+    public function show($id)
+    {
+        $monster = Monster::query()
+            ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
+            ->selectRaw('
+                monsters.id,
+                monsters.display_order as monster_no,
+                monsters.display_order,
+                monsters.name,
+                monsters.system_type,
+                monsters.source_url,
+                monsters.is_reincarnated,
+                monsters.reincarnation_parent_id,
+                parents.name as reincarnation_parent_name,
+                monsters.created_at,
+                monsters.updated_at
+            ')
+            ->where('monsters.id', $id)
+            ->firstOrFail();
 
-    $drops = DB::table('monster_drops')
-        ->leftJoin('items', function ($join) {
-            $join->on('items.id', '=', 'monster_drops.drop_target_id')
-                ->where('monster_drops.drop_target_type', '=', 'item');
-        })
-        ->leftJoin('orbs', function ($join) {
-            $join->on('orbs.id', '=', 'monster_drops.drop_target_id')
-                ->where('monster_drops.drop_target_type', '=', 'orb');
-        })
-        ->leftJoin('equipments', function ($join) {
-            $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
-                ->where('monster_drops.drop_target_type', '=', 'equipment');
-        })
-        ->leftJoin('accessories', function ($join) {
-            $join->on('accessories.id', '=', 'monster_drops.drop_target_id')
-                ->where('monster_drops.drop_target_type', '=', 'accessory');
-        })
-        ->where('monster_drops.monster_id', $monster->id)
-        ->orderByRaw("
-            CASE
-                WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'normal' THEN 1
-                WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'rare' THEN 2
-                WHEN monster_drops.drop_type = 'white_box' THEN 3
-                WHEN monster_drops.drop_target_type = 'orb' THEN 4
-                WHEN monster_drops.drop_target_type = 'equipment' THEN 5
-                WHEN monster_drops.drop_target_type = 'accessory' THEN 6
-                ELSE 99
-            END
-        ")
-        ->orderBy('monster_drops.sort_order')
-        ->orderBy('monster_drops.id')
-        ->get([
-            'monster_drops.id',
-            'monster_drops.monster_id',
-            'monster_drops.drop_target_type',
-            'monster_drops.drop_target_id',
-            'monster_drops.drop_type',
-            'monster_drops.sort_order',
+        $drops = DB::table('monster_drops')
+            ->leftJoin('items', function ($join) {
+                $join->on('items.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'item');
+            })
+            ->leftJoin('orbs', function ($join) {
+                $join->on('orbs.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'orb');
+            })
+            ->leftJoin('equipments', function ($join) {
+                $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'equipment');
+            })
+            ->leftJoin('equipment_types', 'equipment_types.id', '=', 'equipments.equipment_type_id')
+            ->leftJoin('accessories', function ($join) {
+                $join->on('accessories.id', '=', 'monster_drops.drop_target_id')
+                    ->where('monster_drops.drop_target_type', '=', 'accessory');
+            })
+            ->where('monster_drops.monster_id', $monster->id)
+            ->orderByRaw("
+                CASE
+                    WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'normal' THEN 1
+                    WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'rare' THEN 2
+                    WHEN monster_drops.drop_type = 'white_box' THEN 3
+                    WHEN monster_drops.drop_target_type = 'orb' THEN 4
+                    WHEN monster_drops.drop_target_type = 'equipment' THEN 5
+                    WHEN monster_drops.drop_target_type = 'accessory' THEN 6
+                    ELSE 99
+                END
+            ")
+            ->orderBy('monster_drops.sort_order')
+            ->orderBy('monster_drops.id')
+            ->get([
+                'monster_drops.id',
+                'monster_drops.monster_id',
+                'monster_drops.drop_target_type',
+                'monster_drops.drop_target_id',
+                'monster_drops.drop_type',
+                'monster_drops.sort_order',
 
-            'items.name as item_name',
-            'items.category as item_category',
+                'items.name as item_name',
+                'items.category as item_category',
 
-            'orbs.name as orb_name',
-            'orbs.color as orb_color',
-            'orbs.effect as orb_effect',
+                'orbs.name as orb_name',
+                'orbs.color as orb_color',
+                'orbs.effect as orb_effect',
 
-            'equipments.item_name as equipment_name',
+                'equipments.item_name as equipment_name',
+                'equipments.slot as equipment_slot',
+                'equipment_types.name as equipment_type_name',
 
-            'accessories.name as accessory_name',
-            'accessories.slot as accessory_slot',
-            'accessories.accessory_type as accessory_type',
-        ])
-        ->map(function ($drop) {
-            $name = null;
-            $category = null;
-            $extra = [];
+                'accessories.name as accessory_name',
+                'accessories.slot as accessory_slot',
+                'accessories.accessory_type as accessory_type',
+            ])
+            ->map(function ($drop) {
+                $name = null;
+                $category = null;
+                $extra = [];
 
-            if ($drop->drop_target_type === 'item') {
-                $name = $drop->item_name;
-                $category = $drop->item_category;
-            }
+                if ($drop->drop_target_type === 'item') {
+                    $name = $drop->item_name;
+                    $category = $drop->item_category;
+                }
 
-            if ($drop->drop_target_type === 'orb') {
-                $name = $drop->orb_name;
-                $category = 'orb';
-                $extra = [
-                    'color' => $drop->orb_color,
-                    'effect' => $drop->orb_effect,
-                ];
-            }
-
-            if ($drop->drop_target_type === 'equipment') {
-                $name = $drop->equipment_name;
-                $category = 'equipment';
-            }
-
-            if ($drop->drop_target_type === 'accessory') {
-                $name = $drop->accessory_name;
-                $category = 'accessory';
-                $extra = [
-                    'slot' => $drop->accessory_slot,
-                    'accessory_type' => $drop->accessory_type,
-                ];
-            }
-
-            return [
-                'id' => $drop->id,
-                'monster_id' => $drop->monster_id,
-                'drop_target_type' => $drop->drop_target_type,
-                'drop_target_id' => $drop->drop_target_id,
-                'drop_type' => $drop->drop_type,
-                'drop_type_label' => $this->dropTypeLabel($drop->drop_type, $drop->drop_target_type),
-                'sort_order' => $drop->sort_order,
-                'name' => $name,
-                'target_name' => $name,
-                'category' => $category,
-                ...$extra,
-            ];
-        })
-        ->filter(fn ($drop) => !empty($drop['name']))
-        ->values();
-
-    $maps = DB::table('monster_map_spawns')
-        ->join('maps', 'maps.id', '=', 'monster_map_spawns.map_id')
-        ->leftJoin('map_layers', 'map_layers.id', '=', 'monster_map_spawns.map_layer_id')
-        ->where('monster_map_spawns.monster_id', $monster->id)
-        ->orderBy('maps.name')
-        ->orderBy('map_layers.display_order')
-        ->orderBy('map_layers.floor_no')
-        ->orderBy('monster_map_spawns.id')
-        ->get([
-            'monster_map_spawns.id',
-            'monster_map_spawns.map_id',
-            'monster_map_spawns.map_layer_id',
-            'monster_map_spawns.area',
-            'monster_map_spawns.spawn_time',
-            'monster_map_spawns.spawn_count',
-            'monster_map_spawns.symbol_count',
-            'monster_map_spawns.note',
-
-            'maps.name as map_name',
-            'maps.continent as map_continent',
-
-            'map_layers.layer_name as map_layer_name',
-            'map_layers.floor_no as map_layer_floor_no',
-            'map_layers.image_path as map_layer_image_path',
-        ])
-        ->groupBy('map_id')
-        ->map(function ($rows, $mapId) {
-            $first = $rows->first();
-
-            $mapImagePath = collect($rows)
-                ->pluck('map_layer_image_path')
-                ->filter(fn ($path) => !empty($path))
-                ->first();
-
-            return [
-                'id' => (int) $mapId,
-                'name' => $first->map_name,
-                'continent' => $first->map_continent,
-                'continent_name' => $first->map_continent,
-                'image_path' => $mapImagePath,
-                'spawns' => $rows->map(function ($row) use ($mapImagePath) {
-                    $layerName = trim((string) ($row->map_layer_name ?? ''));
-
-                    if ($layerName === '' && $row->map_layer_floor_no !== null) {
-                        $floorNo = (int) $row->map_layer_floor_no;
-
-                        if ($floorNo === 0) {
-                            $layerName = '地上';
-                        } elseif ($floorNo < 0) {
-                            $layerName = '地下' . abs($floorNo) . '階';
-                        } else {
-                            $layerName = $floorNo . '階';
-                        }
-                    }
-
-                    return [
-                        'id' => $row->id,
-                        'map_id' => $row->map_id,
-                        'map_layer_id' => $row->map_layer_id,
-                        'area' => $this->parseArea($row->area),
-                        'spawn_time' => $row->spawn_time,
-                        'spawn_count' => $row->spawn_count,
-                        'symbol_count' => $row->symbol_count,
-                        'note' => $row->note,
-                        'map_layer_name' => $layerName,
-                        'map_layer_floor_no' => $row->map_layer_floor_no,
-                        'map_image_path' => $row->map_layer_image_path ?: $mapImagePath,
+                if ($drop->drop_target_type === 'orb') {
+                    $name = $drop->orb_name;
+                    $category = 'orb';
+                    $extra = [
+                        'color' => $drop->orb_color,
+                        'effect' => $drop->orb_effect,
                     ];
-                })->values(),
-            ];
-        })
-        ->values();
+                }
 
-    return response()->json([
-        'id' => $monster->id,
-        'monster_no' => $monster->monster_no,
-        'display_order' => $monster->display_order,
-        'name' => $monster->name,
-        'system_type' => $monster->system_type,
-        'source_url' => $monster->source_url,
-        'is_reincarnated' => (bool) $monster->is_reincarnated,
-        'reincarnation_parent_id' => $monster->reincarnation_parent_id ? (int) $monster->reincarnation_parent_id : null,
-        'reincarnation_parent_name' => $monster->reincarnation_parent_name,
-        'created_at' => $monster->created_at,
-        'updated_at' => $monster->updated_at,
+                if ($drop->drop_target_type === 'equipment') {
+                    $name = $drop->equipment_name;
+                    $category = 'equipment';
+                    $extra = [
+                        'slot' => $drop->equipment_slot,
+                        'equipment_type_name' => $drop->equipment_type_name,
+                    ];
+                }
 
-        'drops' => $drops,
+                if ($drop->drop_target_type === 'accessory') {
+                    $name = $drop->accessory_name;
+                    $category = 'accessory';
+                    $extra = [
+                        'slot' => $drop->accessory_slot,
+                        'accessory_type' => $drop->accessory_type,
+                    ];
+                }
 
-        'normal_drops' => $drops
-            ->where('drop_target_type', 'item')
-            ->where('drop_type', 'normal')
-            ->values(),
+                return [
+                    'id' => $drop->id,
+                    'monster_id' => $drop->monster_id,
+                    'drop_target_type' => $drop->drop_target_type,
+                    'drop_target_id' => $drop->drop_target_id,
+                    'drop_type' => $drop->drop_type,
+                    'drop_type_label' => $this->dropTypeLabel($drop->drop_type, $drop->drop_target_type),
+                    'sort_order' => $drop->sort_order,
+                    'name' => $name,
+                    'target_name' => $name,
+                    'category' => $category,
+                    ...$extra,
+                ];
+            })
+            ->filter(fn ($drop) => !empty($drop['name']))
+            ->values();
 
-        'rare_drops' => $drops
-            ->where('drop_target_type', 'item')
-            ->where('drop_type', 'rare')
-            ->values(),
+        $maps = DB::table('monster_map_spawns')
+            ->join('maps', 'maps.id', '=', 'monster_map_spawns.map_id')
+            ->leftJoin('map_layers', 'map_layers.id', '=', 'monster_map_spawns.map_layer_id')
+            ->where('monster_map_spawns.monster_id', $monster->id)
+            ->orderBy('maps.name')
+            ->orderBy('map_layers.display_order')
+            ->orderBy('map_layers.floor_no')
+            ->orderBy('monster_map_spawns.id')
+            ->get([
+                'monster_map_spawns.id',
+                'monster_map_spawns.map_id',
+                'monster_map_spawns.map_layer_id',
+                'monster_map_spawns.area',
+                'monster_map_spawns.spawn_time',
+                'monster_map_spawns.spawn_count',
+                'monster_map_spawns.symbol_count',
+                'monster_map_spawns.note',
 
-        'white_box_drops' => $drops
-            ->where('drop_type', 'white_box')
-            ->values(),
+                'maps.name as map_name',
+                'maps.continent as map_continent',
 
-        'orb_drops' => $drops
-            ->where('drop_target_type', 'orb')
-            ->values(),
+                'map_layers.layer_name as map_layer_name',
+                'map_layers.floor_no as map_layer_floor_no',
+                'map_layers.image_path as map_layer_image_path',
+            ])
+            ->groupBy('map_id')
+            ->map(function ($rows, $mapId) {
+                $first = $rows->first();
 
-        'equipment_drops' => $drops
-            ->where('drop_target_type', 'equipment')
-            ->values(),
+                $mapImagePath = collect($rows)
+                    ->pluck('map_layer_image_path')
+                    ->filter(fn ($path) => !empty($path))
+                    ->first();
 
-        'accessory_drops' => $drops
-            ->where('drop_target_type', 'accessory')
-            ->values(),
+                return [
+                    'id' => (int) $mapId,
+                    'name' => $first->map_name,
+                    'continent' => $first->map_continent,
+                    'continent_name' => $first->map_continent,
+                    'image_path' => $mapImagePath,
+                    'spawns' => $rows->map(function ($row) use ($mapImagePath) {
+                        $layerName = trim((string) ($row->map_layer_name ?? ''));
 
-        'maps' => $maps,
-    ]);
-}
+                        if ($layerName === '' && $row->map_layer_floor_no !== null) {
+                            $floorNo = (int) $row->map_layer_floor_no;
+
+                            if ($floorNo === 0) {
+                                $layerName = '地上';
+                            } elseif ($floorNo < 0) {
+                                $layerName = '地下' . abs($floorNo) . '階';
+                            } else {
+                                $layerName = $floorNo . '階';
+                            }
+                        }
+
+                        return [
+                            'id' => $row->id,
+                            'map_id' => $row->map_id,
+                            'map_layer_id' => $row->map_layer_id,
+                            'area' => $this->parseArea($row->area),
+                            'spawn_time' => $row->spawn_time,
+                            'spawn_count' => $row->spawn_count,
+                            'symbol_count' => $row->symbol_count,
+                            'note' => $row->note,
+                            'map_layer_name' => $layerName,
+                            'map_layer_floor_no' => $row->map_layer_floor_no,
+                            'map_image_path' => $row->map_layer_image_path ?: $mapImagePath,
+                        ];
+                    })->values(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'id' => $monster->id,
+            'monster_no' => $monster->monster_no,
+            'display_order' => $monster->display_order,
+            'name' => $monster->name,
+            'system_type' => $monster->system_type,
+            'source_url' => $monster->source_url,
+            'is_reincarnated' => (bool) $monster->is_reincarnated,
+            'reincarnation_parent_id' => $monster->reincarnation_parent_id ? (int) $monster->reincarnation_parent_id : null,
+            'reincarnation_parent_name' => $monster->reincarnation_parent_name,
+            'created_at' => $monster->created_at,
+            'updated_at' => $monster->updated_at,
+
+            'drops' => $drops,
+
+            'normal_drops' => $drops
+                ->where('drop_target_type', 'item')
+                ->where('drop_type', 'normal')
+                ->values(),
+
+            'rare_drops' => $drops
+                ->where('drop_target_type', 'item')
+                ->where('drop_type', 'rare')
+                ->values(),
+
+            'white_box_drops' => $drops
+                ->where('drop_type', 'white_box')
+                ->values(),
+
+            'orb_drops' => $drops
+                ->where('drop_target_type', 'orb')
+                ->values(),
+
+            'equipment_drops' => $drops
+                ->where('drop_target_type', 'equipment')
+                ->values(),
+
+            'accessory_drops' => $drops
+                ->where('drop_target_type', 'accessory')
+                ->values(),
+
+            'maps' => $maps,
+        ]);
+    }
 
     public function store(Request $request)
     {
@@ -635,6 +642,62 @@ public function show($id)
         ]);
     }
 
+    public function zukan(Request $request)
+{
+    $perPage = max(1, min((int) $request->query('per_page', 16), 100));
+    $sort = $request->query('sort', 'no');
+
+    $query = Monster::query()
+        ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
+        ->selectRaw('
+            monsters.id,
+            monsters.display_order as monster_no,
+            monsters.display_order,
+            monsters.name,
+            monsters.system_type,
+            monsters.source_url,
+            monsters.is_reincarnated,
+            monsters.reincarnation_parent_id,
+            parents.name as reincarnation_parent_name
+        ');
+
+    if ($sort === 'kana') {
+        $query
+            ->orderBy('monsters.name')
+            ->orderBy('monsters.id');
+    } else {
+        $query
+            ->orderBy('monsters.display_order')
+            ->orderBy('monsters.id');
+    }
+
+    $monsters = $query->paginate($perPage);
+
+    $items = collect($monsters->items())->map(function ($monster) {
+        return [
+            'id' => $monster->id,
+            'monster_no' => $monster->monster_no,
+            'display_order' => $monster->display_order ?? $monster->monster_no,
+            'name' => $monster->name,
+            'system_type' => $monster->system_type,
+            'source_url' => $monster->source_url ?? null,
+            'is_reincarnated' => (bool) ($monster->is_reincarnated ?? false),
+            'reincarnation_parent_id' => !empty($monster->reincarnation_parent_id)
+                ? (int) $monster->reincarnation_parent_id
+                : null,
+            'reincarnation_parent_name' => $monster->reincarnation_parent_name ?? null,
+        ];
+    })->values();
+
+    return response()->json([
+        'data' => $items,
+        'current_page' => $monsters->currentPage(),
+        'last_page' => $monsters->lastPage(),
+        'per_page' => $monsters->perPage(),
+        'total' => $monsters->total(),
+    ]);
+}
+
     private function validateMonsterPayload(Request $request, ?int $monsterId = null): array
     {
         return $request->validate([
@@ -755,6 +818,7 @@ public function show($id)
                 $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
                     ->where('monster_drops.drop_target_type', '=', 'equipment');
             })
+            ->leftJoin('equipment_types', 'equipment_types.id', '=', 'equipments.equipment_type_id')
             ->leftJoin('accessories', function ($join) {
                 $join->on('accessories.id', '=', 'monster_drops.drop_target_id')
                     ->where('monster_drops.drop_target_type', '=', 'accessory');
@@ -782,6 +846,8 @@ public function show($id)
                 'orbs.name as orb_name',
                 'orbs.color as orb_color',
                 'equipments.item_name as equipment_name',
+                'equipments.slot as equipment_slot',
+                'equipment_types.name as equipment_type_name',
                 'accessories.name as accessory_name',
             ])
             ->groupBy('monster_id');
@@ -806,31 +872,41 @@ public function show($id)
                 ->values();
 
             $whiteBoxDrops = $monsterDrops
+                ->where('drop_type', 'white_box')
                 ->map(function ($drop) {
-                    if ($drop->drop_type !== 'white_box') {
-                        return null;
-                    }
-
                     if ($drop->drop_target_type === 'item') {
-                        return $drop->item_name;
+                        return [
+                            'name' => $drop->item_name,
+                            'slot' => null,
+                            'equipment_type_name' => null,
+                        ];
                     }
 
                     if ($drop->drop_target_type === 'equipment') {
-                        return $drop->equipment_name;
+                        return [
+                            'name' => $drop->equipment_name,
+                            'slot' => $drop->equipment_slot,
+                            'equipment_type_name' => $drop->equipment_type_name,
+                        ];
                     }
 
                     if ($drop->drop_target_type === 'orb') {
-                        return $drop->orb_name;
+                        return [
+                            'name' => $drop->orb_name,
+                            'color' => $drop->orb_color,
+                        ];
                     }
 
                     if ($drop->drop_target_type === 'accessory') {
-                        return $drop->accessory_name;
+                        return [
+                            'name' => $drop->accessory_name,
+                        ];
                     }
 
                     return null;
                 })
                 ->filter()
-                ->unique()
+                ->unique(fn ($drop) => json_encode($drop, JSON_UNESCAPED_UNICODE))
                 ->values();
 
             $orbDrops = $monsterDrops
@@ -847,9 +923,15 @@ public function show($id)
 
             $equipmentDrops = $monsterDrops
                 ->where('drop_target_type', 'equipment')
-                ->pluck('equipment_name')
-                ->filter()
-                ->unique()
+                ->map(function ($drop) {
+                    return [
+                        'name' => $drop->equipment_name,
+                        'slot' => $drop->equipment_slot,
+                        'equipment_type_name' => $drop->equipment_type_name,
+                    ];
+                })
+                ->filter(fn ($equipment) => !empty($equipment['name']))
+                ->unique(fn ($equipment) => $equipment['name'])
                 ->values();
 
             $accessoryDrops = $monsterDrops
@@ -867,7 +949,9 @@ public function show($id)
                 'system_type' => $monster->system_type,
                 'source_url' => $monster->source_url ?? null,
                 'is_reincarnated' => (bool) ($monster->is_reincarnated ?? false),
-                'reincarnation_parent_id' => !empty($monster->reincarnation_parent_id) ? (int) $monster->reincarnation_parent_id : null,
+                'reincarnation_parent_id' => !empty($monster->reincarnation_parent_id)
+                    ? (int) $monster->reincarnation_parent_id
+                    : null,
                 'reincarnation_parent_name' => $monster->reincarnation_parent_name ?? null,
                 'matched_name' => $monster->matched_name ?? null,
                 'matched_color' => $monster->matched_color ?? null,
