@@ -437,66 +437,66 @@ class MapController extends Controller
         }
     }
 
-   private function storeLayerImage(
-    UploadedFile $file,
-    int|string $mapId,
-    string $continentFolder,
-    string $layerFileName
-): string {
-    $continentFolder = $this->sanitizePathSegment($continentFolder);
+    private function storeLayerImage(
+        UploadedFile $file,
+        int|string $mapId,
+        string $continentFolder,
+        string $layerFileName
+        ): string {
+            $continentFolder = $this->sanitizePathSegment($continentFolder);
 
-    if ($continentFolder === '') {
-        throw new \InvalidArgumentException('continent_folder is required');
-    }
-
-    $safeLayerFileName = $this->sanitizeLayerFileName($layerFileName);
-
-    if ($safeLayerFileName === '') {
-        throw new \InvalidArgumentException('layer_file_name is required');
-    }
-
-    $folder = "images/maps/{$continentFolder}/map_id_{$mapId}";
-    $fileName = "{$safeLayerFileName}.webp";
-    $storagePath = "{$folder}/{$fileName}";
-
-    $manager = new ImageManager(new Driver());
-    $image = $manager->read($file->getPathname());
-
-    $width = $image->width();
-    $height = $image->height();
-
-    $cropWidth = 490;
-    $cropHeight = 565;
-    $offsetX = 35;
-    $offsetY = 25;
-
-    $canCrop = $width >= ($offsetX + $cropWidth) && $height >= ($offsetY + $cropHeight);
-
-    if ($canCrop) {
-        $image->crop($cropWidth, $cropHeight, $offsetX, $offsetY);
-        $image->sharpen(15);
-    } else {
-        /**
-         * クロップできない小さい画像は
-         * そのまま webp 化だけする。
-         * 必要なら軽く縮小して容量も抑える。
-         */
-        $maxWidth = 700;
-        $maxHeight = 700;
-
-        if ($width > $maxWidth || $height > $maxHeight) {
-            $image->scaleDown($maxWidth, $maxHeight);
+        if ($continentFolder === '') {
+            throw new \InvalidArgumentException('continent_folder is required');
         }
 
-        $image->sharpen(8);
+        $safeLayerFileName = $this->sanitizeLayerFileName($layerFileName);
+
+        if ($safeLayerFileName === '') {
+            throw new \InvalidArgumentException('layer_file_name is required');
+        }
+
+        $folder = "images/maps/{$continentFolder}/map_id_{$mapId}";
+        $fileName = "{$safeLayerFileName}.webp";
+        $storagePath = "{$folder}/{$fileName}";
+
+        $manager = new ImageManager(new Driver());
+        $image = $manager->read($file->getPathname());
+
+        $width = $image->width();
+        $height = $image->height();
+
+        $cropWidth = 490;
+        $cropHeight = 565;
+        $offsetX = 35;
+        $offsetY = 25;
+
+        $canCrop = $width >= ($offsetX + $cropWidth) && $height >= ($offsetY + $cropHeight);
+
+        if ($canCrop) {
+            $image->crop($cropWidth, $cropHeight, $offsetX, $offsetY);
+            $image->sharpen(15);
+        } else {
+            /**
+             * クロップできない小さい画像は
+             * そのまま webp 化だけする。
+             * 必要なら軽く縮小して容量も抑える。
+             */
+            $maxWidth = 700;
+            $maxHeight = 700;
+
+            if ($width > $maxWidth || $height > $maxHeight) {
+                $image->scaleDown($maxWidth, $maxHeight);
+            }
+
+            $image->sharpen(8);
+        }
+
+        $encoded = $image->encode(new WebpEncoder(quality: 65));
+
+        Storage::disk('public')->put($storagePath, (string) $encoded);
+
+        return '/storage/' . $storagePath;
     }
-
-    $encoded = $image->encode(new WebpEncoder(quality: 65));
-
-    Storage::disk('public')->put($storagePath, (string) $encoded);
-
-    return '/storage/' . $storagePath;
-}
 
     private function deleteImageIfExists(?string $publicPath): void
     {

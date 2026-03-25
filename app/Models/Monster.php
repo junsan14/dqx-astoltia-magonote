@@ -14,6 +14,7 @@ class Monster extends Model
         'source_url',
         'is_reincarnated',
         'reincarnation_parent_id',
+        'image_path',
     ];
 
     public function spawns(): HasMany

@@ -8,270 +8,275 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\WebpEncoder;
+
 class MonsterController extends Controller
 {
     public function index(Request $request)
-{
-    $keyword = trim((string) $request->get('keyword', ''));
-    $searchType = (string) $request->get('search_type', 'monster');
+    {
+        $keyword = trim((string) $request->get('keyword', ''));
+        $searchType = (string) $request->get('search_type', 'monster');
 
-    if ($searchType === 'monster') {
-        $monsters = Monster::query()
-            ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
-            ->selectRaw('
-                monsters.id,
-                monsters.display_order as monster_no,
-                monsters.display_order,
-                monsters.name,
-                monsters.system_type,
-                monsters.source_url,
-                monsters.is_reincarnated,
-                monsters.reincarnation_parent_id,
-                parents.name as reincarnation_parent_name
-            ')
-            ->when($keyword !== '', function ($query) use ($keyword) {
-                $escapedKeyword = addcslashes($keyword, '\\%_');
-                $numericKeyword = ctype_digit($keyword) ? (int) $keyword : null;
+        if ($searchType === 'monster') {
+            $monsters = Monster::query()
+                ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    monsters.is_reincarnated,
+                    monsters.reincarnation_parent_id,
+                    parents.name as reincarnation_parent_name
+                ')
+                ->when($keyword !== '', function ($query) use ($keyword) {
+                    $escapedKeyword = addcslashes($keyword, '\\%_');
+                    $numericKeyword = ctype_digit($keyword) ? (int) $keyword : null;
 
-                $query->where(function ($q) use ($escapedKeyword, $numericKeyword) {
-                    $q->where('monsters.name', 'like', '%' . $escapedKeyword . '%');
+                    $query->where(function ($q) use ($escapedKeyword, $numericKeyword) {
+                        $q->where('monsters.name', 'like', '%' . $escapedKeyword . '%');
 
-                    if ($numericKeyword !== null) {
-                        $q->orWhere('monsters.id', $numericKeyword);
-                    }
-                });
+                        if ($numericKeyword !== null) {
+                            $q->orWhere('monsters.id', $numericKeyword);
+                        }
+                    });
 
-                $query->orderByRaw(
-                    "
-                    CASE
-                        WHEN monsters.id = ? THEN 0
-                        WHEN monsters.name = ? THEN 1
-                        WHEN monsters.name LIKE ? THEN 2
-                        ELSE 3
-                    END
-                    ",
-                    [
-                        $numericKeyword ?? 0,
-                        $keyword,
-                        $escapedKeyword . '%',
-                    ]
-                )
-                ->orderByRaw('LENGTH(monsters.name) ASC')
-                ->orderBy('monsters.name');
-            }, function ($query) {
-                $query->orderBy('monsters.name');
-            })
-            ->limit(300)
-            ->get();
-
-        return response()->json(
-            $this->attachDropSummaries($monsters, 'monster', $keyword)
-        );
-    }
-
-    if ($searchType === 'item') {
-        $monsters = Monster::query()
-            ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
-            ->selectRaw('
-                monsters.id,
-                monsters.display_order as monster_no,
-                monsters.display_order,
-                monsters.name,
-                monsters.system_type,
-                monsters.source_url,
-                monsters.is_reincarnated,
-                monsters.reincarnation_parent_id,
-                parents.name as reincarnation_parent_name,
-                items.name as matched_name
-            ')
-            ->join('monster_drops', function ($join) {
-                $join->on('monster_drops.monster_id', '=', 'monsters.id')
-                    ->where('monster_drops.drop_target_type', '=', 'item');
-            })
-            ->join('items', 'items.id', '=', 'monster_drops.drop_target_id')
-            ->when($keyword !== '', function ($query) use ($keyword) {
-                $escapedKeyword = addcslashes($keyword, '\\%_');
-
-                $query->where('items.name', 'like', '%' . $escapedKeyword . '%')
-                    ->orderByRaw(
+                    $query->orderByRaw(
                         "
                         CASE
-                            WHEN items.name = ? THEN 0
-                            WHEN items.name LIKE ? THEN 1
-                            ELSE 2
+                            WHEN monsters.id = ? THEN 0
+                            WHEN monsters.name = ? THEN 1
+                            WHEN monsters.name LIKE ? THEN 2
+                            ELSE 3
                         END
                         ",
-                        [$keyword, $escapedKeyword . '%']
+                        [
+                            $numericKeyword ?? 0,
+                            $keyword,
+                            $escapedKeyword . '%',
+                        ]
                     )
-                    ->orderByRaw('LENGTH(items.name) ASC')
-                    ->orderBy('items.name')
+                    ->orderByRaw('LENGTH(monsters.name) ASC')
                     ->orderBy('monsters.name');
-            }, function ($query) {
-                $query->orderBy('monsters.name');
-            })
-            ->limit(200)
-            ->get()
-            ->unique('id')
-            ->values();
+                }, function ($query) {
+                    $query->orderBy('monsters.name');
+                })
+                ->limit(300)
+                ->get();
 
-        return response()->json(
-            $this->attachDropSummaries($monsters, 'item', $keyword)
-        );
+            return response()->json(
+                $this->attachDropSummaries($monsters, 'monster', $keyword)
+            );
+        }
+
+        if ($searchType === 'item') {
+            $monsters = Monster::query()
+                ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    monsters.is_reincarnated,
+                    monsters.reincarnation_parent_id,
+                    parents.name as reincarnation_parent_name,
+                    items.name as matched_name
+                ')
+                ->join('monster_drops', function ($join) {
+                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
+                        ->where('monster_drops.drop_target_type', '=', 'item');
+                })
+                ->join('items', 'items.id', '=', 'monster_drops.drop_target_id')
+                ->when($keyword !== '', function ($query) use ($keyword) {
+                    $escapedKeyword = addcslashes($keyword, '\\%_');
+
+                    $query->where('items.name', 'like', '%' . $escapedKeyword . '%')
+                        ->orderByRaw(
+                            "
+                            CASE
+                                WHEN items.name = ? THEN 0
+                                WHEN items.name LIKE ? THEN 1
+                                ELSE 2
+                            END
+                            ",
+                            [$keyword, $escapedKeyword . '%']
+                        )
+                        ->orderByRaw('LENGTH(items.name) ASC')
+                        ->orderBy('items.name')
+                        ->orderBy('monsters.name');
+                }, function ($query) {
+                    $query->orderBy('monsters.name');
+                })
+                ->limit(200)
+                ->get()
+                ->unique('id')
+                ->values();
+
+            return response()->json(
+                $this->attachDropSummaries($monsters, 'item', $keyword)
+            );
+        }
+
+        if ($searchType === 'orb') {
+            $monsters = Monster::query()
+                ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    monsters.is_reincarnated,
+                    monsters.reincarnation_parent_id,
+                    parents.name as reincarnation_parent_name,
+                    orbs.name as matched_name,
+                    orbs.color as matched_color
+                ')
+                ->join('monster_drops', function ($join) {
+                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
+                        ->where('monster_drops.drop_target_type', '=', 'orb');
+                })
+                ->join('orbs', 'orbs.id', '=', 'monster_drops.drop_target_id')
+                ->when($keyword !== '', function ($query) use ($keyword) {
+                    $escapedKeyword = addcslashes($keyword, '\\%_');
+
+                    $query->where('orbs.name', 'like', '%' . $escapedKeyword . '%')
+                        ->orderByRaw(
+                            "
+                            CASE
+                                WHEN orbs.name = ? THEN 0
+                                WHEN orbs.name LIKE ? THEN 1
+                                ELSE 2
+                            END
+                            ",
+                            [$keyword, $escapedKeyword . '%']
+                        )
+                        ->orderByRaw('LENGTH(orbs.name) ASC')
+                        ->orderBy('orbs.name')
+                        ->orderBy('monsters.name');
+                }, function ($query) {
+                    $query->orderBy('monsters.name');
+                })
+                ->limit(200)
+                ->get()
+                ->unique('id')
+                ->values();
+
+            return response()->json(
+                $this->attachDropSummaries($monsters, 'orb', $keyword)
+            );
+        }
+
+        if ($searchType === 'equipment') {
+            $monsters = Monster::query()
+                ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    monsters.is_reincarnated,
+                    monsters.reincarnation_parent_id,
+                    parents.name as reincarnation_parent_name,
+                    equipments.item_name as matched_name
+                ')
+                ->join('monster_drops', function ($join) {
+                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
+                        ->where('monster_drops.drop_target_type', '=', 'equipment');
+                })
+                ->join('equipments', 'equipments.id', '=', 'monster_drops.drop_target_id')
+                ->when($keyword !== '', function ($query) use ($keyword) {
+                    $escapedKeyword = addcslashes($keyword, '\\%_');
+
+                    $query->where('equipments.item_name', 'like', '%' . $escapedKeyword . '%')
+                        ->orderByRaw(
+                            "
+                            CASE
+                                WHEN equipments.item_name = ? THEN 0
+                                WHEN equipments.item_name LIKE ? THEN 1
+                                ELSE 2
+                            END
+                            ",
+                            [$keyword, $escapedKeyword . '%']
+                        )
+                        ->orderByRaw('LENGTH(equipments.item_name) ASC')
+                        ->orderBy('equipments.item_name')
+                        ->orderBy('monsters.name');
+                }, function ($query) {
+                    $query->orderBy('monsters.name');
+                })
+                ->limit(200)
+                ->get()
+                ->unique('id')
+                ->values();
+
+            return response()->json(
+                $this->attachDropSummaries($monsters, 'equipment', $keyword)
+            );
+        }
+
+        if ($searchType === 'accessory') {
+            $monsters = Monster::query()
+                ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
+                ->selectRaw('
+                    monsters.id,
+                    monsters.display_order as monster_no,
+                    monsters.display_order,
+                    monsters.name,
+                    monsters.system_type,
+                    monsters.source_url,
+                    monsters.is_reincarnated,
+                    monsters.reincarnation_parent_id,
+                    parents.name as reincarnation_parent_name,
+                    accessories.name as matched_name
+                ')
+                ->join('monster_drops', function ($join) {
+                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
+                        ->where('monster_drops.drop_target_type', '=', 'accessory');
+                })
+                ->join('accessories', 'accessories.id', '=', 'monster_drops.drop_target_id')
+                ->when($keyword !== '', function ($query) use ($keyword) {
+                    $escapedKeyword = addcslashes($keyword, '\\%_');
+
+                    $query->where('accessories.name', 'like', '%' . $escapedKeyword . '%')
+                        ->orderByRaw(
+                            "
+                            CASE
+                                WHEN accessories.name = ? THEN 0
+                                WHEN accessories.name LIKE ? THEN 1
+                                ELSE 2
+                            END
+                            ",
+                            [$keyword, $escapedKeyword . '%']
+                        )
+                        ->orderByRaw('LENGTH(accessories.name) ASC')
+                        ->orderBy('accessories.name')
+                        ->orderBy('monsters.name');
+                }, function ($query) {
+                    $query->orderBy('monsters.name');
+                })
+                ->limit(200)
+                ->get()
+                ->unique('id')
+                ->values();
+
+            return response()->json(
+                $this->attachDropSummaries($monsters, 'accessory', $keyword)
+            );
+        }
+
+        return response()->json([]);
     }
-
-    if ($searchType === 'orb') {
-        $monsters = Monster::query()
-            ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
-            ->selectRaw('
-                monsters.id,
-                monsters.display_order as monster_no,
-                monsters.display_order,
-                monsters.name,
-                monsters.system_type,
-                monsters.source_url,
-                monsters.is_reincarnated,
-                monsters.reincarnation_parent_id,
-                parents.name as reincarnation_parent_name,
-                orbs.name as matched_name,
-                orbs.color as matched_color
-            ')
-            ->join('monster_drops', function ($join) {
-                $join->on('monster_drops.monster_id', '=', 'monsters.id')
-                    ->where('monster_drops.drop_target_type', '=', 'orb');
-            })
-            ->join('orbs', 'orbs.id', '=', 'monster_drops.drop_target_id')
-            ->when($keyword !== '', function ($query) use ($keyword) {
-                $escapedKeyword = addcslashes($keyword, '\\%_');
-
-                $query->where('orbs.name', 'like', '%' . $escapedKeyword . '%')
-                    ->orderByRaw(
-                        "
-                        CASE
-                            WHEN orbs.name = ? THEN 0
-                            WHEN orbs.name LIKE ? THEN 1
-                            ELSE 2
-                        END
-                        ",
-                        [$keyword, $escapedKeyword . '%']
-                    )
-                    ->orderByRaw('LENGTH(orbs.name) ASC')
-                    ->orderBy('orbs.name')
-                    ->orderBy('monsters.name');
-            }, function ($query) {
-                $query->orderBy('monsters.name');
-            })
-            ->limit(200)
-            ->get()
-            ->unique('id')
-            ->values();
-
-        return response()->json(
-            $this->attachDropSummaries($monsters, 'orb', $keyword)
-        );
-    }
-
-    if ($searchType === 'equipment') {
-        $monsters = Monster::query()
-            ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
-            ->selectRaw('
-                monsters.id,
-                monsters.display_order as monster_no,
-                monsters.display_order,
-                monsters.name,
-                monsters.system_type,
-                monsters.source_url,
-                monsters.is_reincarnated,
-                monsters.reincarnation_parent_id,
-                parents.name as reincarnation_parent_name,
-                equipments.item_name as matched_name
-            ')
-            ->join('monster_drops', function ($join) {
-                $join->on('monster_drops.monster_id', '=', 'monsters.id')
-                    ->where('monster_drops.drop_target_type', '=', 'equipment');
-            })
-            ->join('equipments', 'equipments.id', '=', 'monster_drops.drop_target_id')
-            ->when($keyword !== '', function ($query) use ($keyword) {
-                $escapedKeyword = addcslashes($keyword, '\\%_');
-
-                $query->where('equipments.item_name', 'like', '%' . $escapedKeyword . '%')
-                    ->orderByRaw(
-                        "
-                        CASE
-                            WHEN equipments.item_name = ? THEN 0
-                            WHEN equipments.item_name LIKE ? THEN 1
-                            ELSE 2
-                        END
-                        ",
-                        [$keyword, $escapedKeyword . '%']
-                    )
-                    ->orderByRaw('LENGTH(equipments.item_name) ASC')
-                    ->orderBy('equipments.item_name')
-                    ->orderBy('monsters.name');
-            }, function ($query) {
-                $query->orderBy('monsters.name');
-            })
-            ->limit(200)
-            ->get()
-            ->unique('id')
-            ->values();
-
-        return response()->json(
-            $this->attachDropSummaries($monsters, 'equipment', $keyword)
-        );
-    }
-
-    if ($searchType === 'accessory') {
-        $monsters = Monster::query()
-            ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
-            ->selectRaw('
-                monsters.id,
-                monsters.display_order as monster_no,
-                monsters.display_order,
-                monsters.name,
-                monsters.system_type,
-                monsters.source_url,
-                monsters.is_reincarnated,
-                monsters.reincarnation_parent_id,
-                parents.name as reincarnation_parent_name,
-                accessories.name as matched_name
-            ')
-            ->join('monster_drops', function ($join) {
-                $join->on('monster_drops.monster_id', '=', 'monsters.id')
-                    ->where('monster_drops.drop_target_type', '=', 'accessory');
-            })
-            ->join('accessories', 'accessories.id', '=', 'monster_drops.drop_target_id')
-            ->when($keyword !== '', function ($query) use ($keyword) {
-                $escapedKeyword = addcslashes($keyword, '\\%_');
-
-                $query->where('accessories.name', 'like', '%' . $escapedKeyword . '%')
-                    ->orderByRaw(
-                        "
-                        CASE
-                            WHEN accessories.name = ? THEN 0
-                            WHEN accessories.name LIKE ? THEN 1
-                            ELSE 2
-                        END
-                        ",
-                        [$keyword, $escapedKeyword . '%']
-                    )
-                    ->orderByRaw('LENGTH(accessories.name) ASC')
-                    ->orderBy('accessories.name')
-                    ->orderBy('monsters.name');
-            }, function ($query) {
-                $query->orderBy('monsters.name');
-            })
-            ->limit(200)
-            ->get()
-            ->unique('id')
-            ->values();
-
-        return response()->json(
-            $this->attachDropSummaries($monsters, 'accessory', $keyword)
-        );
-    }
-
-    return response()->json([]);
-}
 
     public function show($id)
     {
@@ -284,6 +289,7 @@ class MonsterController extends Controller
                 monsters.name,
                 monsters.system_type,
                 monsters.source_url,
+                monsters.image_path,
                 monsters.is_reincarnated,
                 monsters.reincarnation_parent_id,
                 parents.name as reincarnation_parent_name,
@@ -483,6 +489,7 @@ class MonsterController extends Controller
             'name' => $monster->name,
             'system_type' => $monster->system_type,
             'source_url' => $monster->source_url,
+            'image_path' => $monster->image_path,
             'is_reincarnated' => (bool) $monster->is_reincarnated,
             'reincarnation_parent_id' => $monster->reincarnation_parent_id ? (int) $monster->reincarnation_parent_id : null,
             'reincarnation_parent_name' => $monster->reincarnation_parent_name,
@@ -542,7 +549,15 @@ class MonsterController extends Controller
                 'source_url' => $validated['source_url'] ?? null,
                 'is_reincarnated' => !empty($parentId),
                 'reincarnation_parent_id' => $parentId,
+                'image_path' => null,
             ]);
+
+            if (request()->hasFile('image_file')) {
+                $imagePath = $this->storeMonsterImage($monster->id, request());
+                $monster->update([
+                    'image_path' => $imagePath,
+                ]);
+            }
 
             $this->syncMonsterDrops($monster->id, $validated['drops'] ?? []);
 
@@ -557,7 +572,7 @@ class MonsterController extends Controller
         $monster = Monster::findOrFail($id);
         $validated = $this->validateMonsterPayload($request, (int) $id);
 
-        DB::transaction(function () use ($monster, $validated) {
+        DB::transaction(function () use ($monster, $validated, $request) {
             $oldOrder = (int) $monster->display_order;
             $newOrder = max(1, (int) $validated['display_order']);
 
@@ -575,14 +590,28 @@ class MonsterController extends Controller
                 ? (int) $validated['reincarnation_parent_id']
                 : null;
 
-            $monster->update([
+            $payload = [
                 'display_order' => $newOrder,
                 'name' => $validated['name'],
                 'system_type' => $validated['system_type'] ?? null,
                 'source_url' => $validated['source_url'] ?? null,
                 'is_reincarnated' => !empty($parentId),
                 'reincarnation_parent_id' => $parentId,
-            ]);
+            ];
+
+            if ($request->boolean('remove_image')) {
+                $this->deleteMonsterImage($monster->id);
+                $payload['image_path'] = null;
+            }
+
+            $monster->update($payload);
+
+            if ($request->hasFile('image_file')) {
+                $imagePath = $this->storeMonsterImage($monster->id, $request);
+                $monster->update([
+                    'image_path' => $imagePath,
+                ]);
+            }
 
             $this->syncMonsterDrops($monster->id, $validated['drops'] ?? []);
         });
@@ -712,7 +741,7 @@ class MonsterController extends Controller
     ]);
 }
 
-    private function validateMonsterPayload(Request $request, ?int $monsterId = null): array
+ private function validateMonsterPayload(Request $request, ?int $monsterId = null): array
     {
         return $request->validate([
             'display_order' => ['required', 'integer', 'min:0'],
@@ -726,12 +755,21 @@ class MonsterController extends Controller
                 Rule::exists('monsters', 'id'),
                 Rule::notIn(array_filter([$monsterId])),
             ],
+
             'drops' => ['nullable', 'array'],
             'drops.*.id' => ['nullable', 'integer'],
             'drops.*.drop_target_type' => ['required', Rule::in(['item', 'orb', 'equipment', 'accessory'])],
             'drops.*.drop_target_id' => ['nullable', 'integer', 'min:1'],
             'drops.*.drop_type' => ['required', 'string', 'max:50'],
             'drops.*.sort_order' => ['required', 'integer', 'min:1'],
+
+            'image_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:10240'],
+            'remove_image' => ['nullable', 'boolean'],
+
+            'crop_top' => ['nullable', 'integer', 'min:0'],
+            'crop_left' => ['nullable', 'integer', 'min:0'],
+            'crop_right' => ['nullable', 'integer', 'min:0'],
+            'crop_bottom' => ['nullable', 'integer', 'min:0'],
         ]);
     }
 
@@ -1012,5 +1050,61 @@ class MonsterController extends Controller
         }
 
         return $dropType ?? '';
+    }
+    private function storeMonsterImage(int $monsterId, Request $request): string
+    {
+        $file = $request->file('image_file');
+
+        $cropTop = max(0, (int) $request->input('crop_top', 200));
+        $cropLeft = max(0, (int) $request->input('crop_left', 40));
+        $cropRight = max(0, (int) $request->input('crop_right', 500));
+        $cropBottom = max(0, (int) $request->input('crop_bottom', 100));
+
+        $manager = new ImageManager(new Driver());
+        $image = $manager->read($file->getPathname());
+
+        $width = $image->width();
+        $height = $image->height();
+
+        $croppedWidth = $width - $cropLeft - $cropRight;
+        $croppedHeight = $height - $cropTop - $cropBottom;
+
+        if ($croppedWidth <= 0 || $croppedHeight <= 0) {
+            abort(422, '画像の切り取り範囲が不正だ');
+        }
+
+        if ($cropTop > 0 || $cropLeft > 0 || $cropRight > 0 || $cropBottom > 0) {
+            $image->crop($croppedWidth, $croppedHeight, $cropLeft, $cropTop);
+            $image->sharpen(12);
+        }
+
+        // 必要以上に大きいなら縮小
+        $maxWidth = 800;
+        $maxHeight = 800;
+
+        if ($image->width() > $maxWidth || $image->height() > $maxHeight) {
+            $image->scaleDown($maxWidth, $maxHeight);
+        }
+
+        $directory = 'images/monsters';
+        $fileName = $monsterId . '.webp';
+        $storagePath = $directory . '/' . $fileName;
+
+        Storage::disk('public')->makeDirectory($directory);
+
+        $encoded = $image->encode(new WebpEncoder(quality: 78));
+
+        Storage::disk('public')->put($storagePath, (string) $encoded);
+
+        return '/storage/' . $storagePath;
+    }
+
+    private function deleteMonsterImage(int $monsterId): void
+    {
+        $storagePath = 'image/monsters/' . $monsterId . '.webp';
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            Storage::disk('public')->delete($storagePath);
+        }
     }
 }
