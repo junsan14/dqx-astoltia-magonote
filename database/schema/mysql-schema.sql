@@ -359,6 +359,7 @@ CREATE TABLE `monsters` (
   `is_reincarnated` tinyint(1) NOT NULL DEFAULT '0' COMMENT '転生モンスターかどうか',
   `reincarnation_parent_id` bigint unsigned DEFAULT NULL COMMENT '転生元モンスターID',
   `source_url` text COLLATE utf8mb4_unicode_ci,
+  `image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -499,3 +500,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (45,'2026_03_17_181
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_03_18_130243_add_is_admin_to_users_table',12);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (47,'2026_03_18_170404_create_crystal_rules_table',13);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (48,'2026_03_20_165009_update_note_columns_and_add_is_hunting_ground_to_monster_map_spawns_table',14);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (49,'2026_03_25_081634_add_image_path_to_monsters_table',15);
