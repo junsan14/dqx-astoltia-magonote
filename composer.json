@@ -13,7 +13,8 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "symfony/css-selector": "^8.0",
-        "symfony/dom-crawler": "^8.0"
+        "symfony/dom-crawler": "^8.0",
+        "thiagoalessio/tesseract_ocr": "^2.13"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
