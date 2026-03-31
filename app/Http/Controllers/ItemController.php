@@ -16,40 +16,45 @@ use App\Services\MonsterDropSyncService;
 class ItemController extends Controller
 {
     public function __construct(
-    private MonsterDropSyncService $monsterDropSyncService
-) {}
-public function index(Request $request): JsonResponse
-{
-    $query = Item::query();
+        private MonsterDropSyncService $monsterDropSyncService
+    ) {}
 
-    if ($request->filled('ids')) {
-        $ids = collect(explode(',', (string) $request->ids))
-            ->map(fn ($id) => (int) trim($id))
-            ->filter(fn ($id) => $id > 0)
-            ->values();
+    public function index(Request $request): JsonResponse
+    {
+        $query = Item::query();
 
-        if ($ids->isNotEmpty()) {
-            $query->whereIn('id', $ids);
-        } else {
-            $query->whereRaw('1 = 0');
+        if ($request->filled('ids')) {
+            $ids = collect(explode(',', (string) $request->ids))
+                ->map(fn ($id) => (int) trim($id))
+                ->filter(fn ($id) => $id > 0)
+                ->values();
+
+            if ($ids->isNotEmpty()) {
+                $query->whereIn('id', $ids);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
+
+        if ($request->filled('q')) {
+            $q = trim((string) $request->q);
+
+            $query->where(function ($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('name_en', 'like', "%{$q}%");
+            });
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        $rows = $query->orderBy('name')->get();
+
+        return response()->json([
+            'data' => $rows,
+        ]);
     }
-
-    if ($request->filled('q')) {
-        $q = trim((string) $request->q);
-        $query->where('name', 'like', "%{$q}%");
-    }
-
-    if ($request->filled('category')) {
-        $query->where('category', $request->category);
-    }
-
-    $rows = $query->orderBy('name')->get();
-
-    return response()->json([
-        'data' => $rows,
-    ]);
-}
 
     public function show(Item $item): JsonResponse
     {
@@ -59,42 +64,15 @@ public function index(Request $request): JsonResponse
     }
 
     public function store(StoreItemRequest $request): JsonResponse
-{
-    $validated = $request->validated();
-
-    logger()->info('item store validated', $validated);
-
-    $item = DB::transaction(function () use ($validated) {
-        $item = Item::create([
-            'name' => $validated['name'],
-            'buy_price' => $validated['buy_price'] ?? null,
-            'sell_price' => $validated['sell_price'] ?? null,
-            'category' => $validated['category'] ?? null,
-        ]);
-
-        $this->monsterDropSyncService->sync(
-            'item',
-            $item->id,
-            $validated['drop_monsters'] ?? []
-        );
-
-        return $item;
-    });
-
-    return response()->json([
-        'message' => 'アイテムを作成した',
-        'data' => $this->buildItemResponse($item->fresh()),
-    ], 201);
-}
-
-    
-    public function update(UpdateItemRequest $request, Item $item): JsonResponse
     {
         $validated = $request->validated();
-    logger()->info('item update validated', $validated);
-        DB::transaction(function () use ($item, $validated) {
-            $item->update([
+
+        logger()->info('item store validated', $validated);
+
+        $item = DB::transaction(function () use ($validated) {
+            $item = Item::create([
                 'name' => $validated['name'],
+                'name_en' => $validated['name_en'] ?? null,
                 'buy_price' => $validated['buy_price'] ?? null,
                 'sell_price' => $validated['sell_price'] ?? null,
                 'category' => $validated['category'] ?? null,
@@ -105,7 +83,36 @@ public function index(Request $request): JsonResponse
                 $item->id,
                 $validated['drop_monsters'] ?? []
             );
-            
+
+            return $item;
+        });
+
+        return response()->json([
+            'message' => 'アイテムを作成した',
+            'data' => $this->buildItemResponse($item->fresh()),
+        ], 201);
+    }
+
+    public function update(UpdateItemRequest $request, Item $item): JsonResponse
+    {
+        $validated = $request->validated();
+
+        logger()->info('item update validated', $validated);
+
+        DB::transaction(function () use ($item, $validated) {
+            $item->update([
+                'name' => $validated['name'],
+                'name_en' => $validated['name_en'] ?? null,
+                'buy_price' => $validated['buy_price'] ?? null,
+                'sell_price' => $validated['sell_price'] ?? null,
+                'category' => $validated['category'] ?? null,
+            ]);
+
+            $this->monsterDropSyncService->sync(
+                'item',
+                $item->id,
+                $validated['drop_monsters'] ?? []
+            );
         });
 
         return response()->json([
@@ -130,8 +137,6 @@ public function index(Request $request): JsonResponse
         ]);
     }
 
-
-
     private function buildItemResponse(Item $item): array
     {
         $drops = MonsterDrop::query()
@@ -150,6 +155,7 @@ public function index(Request $request): JsonResponse
         return [
             'id' => $item->id,
             'name' => $item->name,
+            'name_en' => $item->name_en,
             'buy_price' => $item->buy_price,
             'sell_price' => $item->sell_price,
             'category' => $item->category,
@@ -165,7 +171,9 @@ public function index(Request $request): JsonResponse
                         'id' => $monster->id,
                         'monster_no' => $monster->monster_no,
                         'name' => $monster->name,
+                        'name_en' => $monster->name_en,
                         'system_type' => $monster->system_type,
+                        'system_type_en' => $monster->system_type_en,
                     ] : null,
                 ];
             })->values(),

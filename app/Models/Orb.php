@@ -8,6 +8,7 @@ class Orb extends Model
 {
     protected $fillable = [
         'name',
+        'name_en',
         'color',
         'effect',
     ];

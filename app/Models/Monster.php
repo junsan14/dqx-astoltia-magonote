@@ -10,7 +10,9 @@ class Monster extends Model
     protected $fillable = [
         'display_order',
         'name',
+        'name_en',
         'system_type',
+         'system_type_en',
         'source_url',
         'is_reincarnated',
         'reincarnation_parent_id',

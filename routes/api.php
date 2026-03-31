@@ -14,7 +14,7 @@ use App\Http\Controllers\GameJobController;
 use App\Http\Controllers\MonsterMapSpawnController;
 use App\Http\Controllers\MapController;
 use App\Http\Controllers\CrystalRuleController;
-
+use App\Http\Controllers\ContinentController;
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
@@ -47,6 +47,9 @@ Route::resource('maps', MapController::class)->only([
     'destroy'
 ]);
 
+
+
+Route::Resource('continents', ContinentController::class);
 // 画像アップロード
 Route::post('/maps/{map}/layers/upload', [MapController::class, 'uploadLayerImage']);
 

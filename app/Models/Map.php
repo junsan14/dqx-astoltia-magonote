@@ -3,21 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Map extends Model
 {
     protected $fillable = [
-        'continent',
+        'continent_id',
         'name',
+        'name_en',
         'map_type',
-        'source_url'
+        'source_url',
     ];
-    public function spawns()
+
+    public function continent(): BelongsTo
     {
-        return $this->hasMany(MonsterMapSpawn::class);
-    }
-    public function layers(): HasMany
-    {
-        return $this->hasMany(MapLayer::class)->orderBy('display_order');
+        return $this->belongsTo(Continent::class);
     }
 }

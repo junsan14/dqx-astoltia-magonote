@@ -12,6 +12,7 @@ class Equipment extends Model
     protected $fillable = [
         'item_id',
         'item_name',
+        'item_name_en',
         'equipment_type_id',
         'job_override_mode',
         'craft_level',

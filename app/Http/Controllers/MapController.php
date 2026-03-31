@@ -17,22 +17,30 @@ class MapController extends Controller
         $keyword = trim((string) $request->get('q', ''));
 
         $query = DB::table('maps')
+            ->leftJoin('continents', 'continents.id', '=', 'maps.continent_id')
             ->select(
-                'id',
-                'continent',
-                'name',
-                'map_type',
-                'source_url',
-                'created_at',
-                'updated_at'
+                'maps.id',
+                'maps.continent_id',
+                'continents.display_order as continent_display_order',
+                'continents.name as continent',
+                'continents.name_en as continent_name_en',
+                'maps.name',
+                'maps.name_en',
+                'maps.map_type',
+                'maps.source_url',
+                'maps.created_at',
+                'maps.updated_at'
             )
-            ->orderBy('id', 'asc');
+            ->orderBy('continents.display_order', 'asc')
+            ->orderBy('maps.id', 'asc');
 
         if ($keyword !== '') {
             $query->where(function ($sub) use ($keyword) {
-                $sub->where('name', 'like', "%{$keyword}%")
-                    ->orWhere('continent', 'like', "%{$keyword}%")
-                    ->orWhere('map_type', 'like', "%{$keyword}%");
+                $sub->where('maps.name', 'like', "%{$keyword}%")
+                    ->orWhere('maps.name_en', 'like', "%{$keyword}%")
+                    ->orWhere('continents.name', 'like', "%{$keyword}%")
+                    ->orWhere('continents.name_en', 'like', "%{$keyword}%")
+                    ->orWhere('maps.map_type', 'like', "%{$keyword}%");
             });
         }
 
@@ -67,9 +75,14 @@ class MapController extends Controller
         $data = $rows->map(function ($row) use ($layersByMapId) {
             return [
                 'id' => $row->id,
+                'continent_id' => $row->continent_id ? (int) $row->continent_id : null,
+                'continent_display_order' => $row->continent_display_order ? (int) $row->continent_display_order : null,
                 'continent' => $row->continent,
+                'continent_name' => $row->continent,
+                'continent_name_en' => $row->continent_name_en,
                 'continent_folder' => null,
                 'name' => $row->name,
+                'name_en' => $row->name_en,
                 'map_type' => $row->map_type,
                 'source_url' => $row->source_url,
                 'created_at' => $row->created_at,
@@ -86,16 +99,21 @@ class MapController extends Controller
     public function show(string $id)
     {
         $row = DB::table('maps')
+            ->leftJoin('continents', 'continents.id', '=', 'maps.continent_id')
             ->select(
-                'id',
-                'continent',
-                'name',
-                'map_type',
-                'source_url',
-                'created_at',
-                'updated_at'
+                'maps.id',
+                'maps.continent_id',
+                'continents.display_order as continent_display_order',
+                'continents.name as continent',
+                'continents.name_en as continent_name_en',
+                'maps.name',
+                'maps.name_en',
+                'maps.map_type',
+                'maps.source_url',
+                'maps.created_at',
+                'maps.updated_at'
             )
-            ->where('id', $id)
+            ->where('maps.id', $id)
             ->first();
 
         if (!$row) {
@@ -109,9 +127,14 @@ class MapController extends Controller
         return response()->json([
             'data' => [
                 'id' => $row->id,
+                'continent_id' => $row->continent_id ? (int) $row->continent_id : null,
+                'continent_display_order' => $row->continent_display_order ? (int) $row->continent_display_order : null,
                 'continent' => $row->continent,
+                'continent_name' => $row->continent,
+                'continent_name_en' => $row->continent_name_en,
                 'continent_folder' => null,
                 'name' => $row->name,
+                'name_en' => $row->name_en,
                 'map_type' => $row->map_type,
                 'source_url' => $row->source_url,
                 'created_at' => $row->created_at,
@@ -128,8 +151,9 @@ class MapController extends Controller
 
         $mapId = DB::transaction(function () use ($request, $data, $layers) {
             $mapId = DB::table('maps')->insertGetId([
-                'continent' => $data['continent'],
+                'continent_id' => $data['continent_id'],
                 'name' => $data['name'],
+                'name_en' => $this->nullableString($data['name_en'] ?? null),
                 'map_type' => $data['map_type'],
                 'source_url' => $this->nullableString($data['source_url'] ?? null),
                 'created_at' => now(),
@@ -149,8 +173,13 @@ class MapController extends Controller
     public function update(Request $request, string $id)
     {
         $row = DB::table('maps')
-            ->select('id', 'continent')
-            ->where('id', $id)
+            ->leftJoin('continents', 'continents.id', '=', 'maps.continent_id')
+            ->select(
+                'maps.id',
+                'maps.continent_id',
+                'continents.name as continent_name'
+            )
+            ->where('maps.id', $id)
             ->first();
 
         if (!$row) {
@@ -167,12 +196,16 @@ class MapController extends Controller
                 'updated_at' => now(),
             ];
 
-            if (array_key_exists('continent', $data)) {
-                $updateData['continent'] = $data['continent'];
+            if (array_key_exists('continent_id', $data)) {
+                $updateData['continent_id'] = $data['continent_id'];
             }
 
             if (array_key_exists('name', $data)) {
                 $updateData['name'] = $data['name'];
+            }
+
+            if (array_key_exists('name_en', $data)) {
+                $updateData['name_en'] = $this->nullableString($data['name_en']);
             }
 
             if (array_key_exists('map_type', $data)) {
@@ -188,8 +221,14 @@ class MapController extends Controller
                 ->update($updateData);
 
             if ($this->requestHasLayers($request)) {
+                $continentFolder = $data['continent_folder'] ?? null;
+
+                if ($continentFolder === null || trim((string) $continentFolder) === '') {
+                    throw new \InvalidArgumentException('layers を更新する場合は continent_folder が必要');
+                }
+
                 $this->syncLayers($request, (int) $id, $layers, [
-                    'continent_folder' => $data['continent_folder'] ?? $this->toContinentFolder($row->continent),
+                    'continent_folder' => $continentFolder,
                 ]);
             }
         });
@@ -228,12 +267,19 @@ class MapController extends Controller
 
     public function options()
     {
-        $continents = DB::table('maps')
-            ->whereNotNull('continent')
-            ->where('continent', '<>', '')
-            ->distinct()
-            ->orderBy('continent', 'asc')
-            ->pluck('continent')
+        $continents = DB::table('continents')
+            ->select('id', 'display_order', 'name', 'name_en')
+            ->orderBy('display_order', 'asc')
+            ->orderBy('id', 'asc')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'id' => (int) $row->id,
+                    'display_order' => (int) $row->display_order,
+                    'name' => $row->name,
+                    'name_en' => $row->name_en,
+                ];
+            })
             ->values();
 
         $mapTypes = DB::table('maps')
@@ -255,15 +301,16 @@ class MapController extends Controller
     private function validateMapRequest(Request $request, bool $isUpdate = false): array
     {
         return $request->validate([
-            'continent' => $isUpdate
-                ? ['sometimes', 'required', 'string', 'max:255']
-                : ['required', 'string', 'max:255'],
+            'continent_id' => $isUpdate
+                ? ['sometimes', 'required', 'integer', 'exists:continents,id']
+                : ['required', 'integer', 'exists:continents,id'],
             'continent_folder' => $isUpdate
                 ? ['sometimes', 'required', 'string', 'max:255']
                 : ['required', 'string', 'max:255'],
             'name' => $isUpdate
                 ? ['sometimes', 'required', 'string', 'max:255']
                 : ['required', 'string', 'max:255'],
+            'name_en' => ['nullable', 'string', 'max:255'],
             'map_type' => $isUpdate
                 ? ['sometimes', 'required', 'string', 'max:255']
                 : ['required', 'string', 'max:255'],
@@ -442,8 +489,8 @@ class MapController extends Controller
         int|string $mapId,
         string $continentFolder,
         string $layerFileName
-        ): string {
-            $continentFolder = $this->sanitizePathSegment($continentFolder);
+    ): string {
+        $continentFolder = $this->sanitizePathSegment($continentFolder);
 
         if ($continentFolder === '') {
             throw new \InvalidArgumentException('continent_folder is required');
@@ -476,11 +523,6 @@ class MapController extends Controller
             $image->crop($cropWidth, $cropHeight, $offsetX, $offsetY);
             $image->sharpen(15);
         } else {
-            /**
-             * クロップできない小さい画像は
-             * そのまま webp 化だけする。
-             * 必要なら軽く縮小して容量も抑える。
-             */
             $maxWidth = 700;
             $maxHeight = 700;
 

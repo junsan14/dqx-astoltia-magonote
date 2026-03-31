@@ -11,6 +11,7 @@ CREATE TABLE `accessories` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `item_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `item_kind` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'accessory',
   `slot` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `accessory_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -49,6 +50,20 @@ CREATE TABLE `cache_locks` (
   `expiration` int NOT NULL,
   PRIMARY KEY (`key`),
   KEY `cache_locks_expiration_index` (`expiration`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `continents`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `continents` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `display_order` int unsigned NOT NULL,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `continents_display_id_unique` (`display_order`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `craft_types`;
@@ -140,6 +155,7 @@ CREATE TABLE `equipments` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `item_id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `item_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `item_name_en` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `equipment_type_id` bigint unsigned DEFAULT NULL,
   `job_override_mode` enum('inherit','add','replace') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'inherit',
   `craft_level` int unsigned DEFAULT NULL,
@@ -201,6 +217,7 @@ DROP TABLE IF EXISTS `items`;
 CREATE TABLE `items` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `buy_price` int DEFAULT NULL,
   `sell_price` int DEFAULT NULL,
   `category` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -267,14 +284,16 @@ DROP TABLE IF EXISTS `maps`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `maps` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `continent` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `continent_id` bigint unsigned NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `map_type` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `source_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `maps_continent_name_unique` (`continent`,`name`)
+  UNIQUE KEY `maps_continent_id_name_unique` (`continent_id`,`name`),
+  CONSTRAINT `maps_continent_id_foreign` FOREIGN KEY (`continent_id`) REFERENCES `continents` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `migrations`;
@@ -355,7 +374,9 @@ CREATE TABLE `monsters` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `display_order` int unsigned NOT NULL,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `system_type` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `system_type_en` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_reincarnated` tinyint(1) NOT NULL DEFAULT '0' COMMENT '転生モンスターかどうか',
   `reincarnation_parent_id` bigint unsigned DEFAULT NULL COMMENT '転生元モンスターID',
   `source_url` text COLLATE utf8mb4_unicode_ci,
@@ -375,6 +396,7 @@ DROP TABLE IF EXISTS `orbs`;
 CREATE TABLE `orbs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name_en` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `color` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `effect` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
@@ -501,3 +523,10 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (46,'2026_03_18_130
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (47,'2026_03_18_170404_create_crystal_rules_table',13);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (48,'2026_03_20_165009_update_note_columns_and_add_is_hunting_ground_to_monster_map_spawns_table',14);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (49,'2026_03_25_081634_add_image_path_to_monsters_table',15);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (50,'2026_03_31_070057_add_english_name_columns_to_equipments_and_monsters_tables',16);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (51,'2026_03_31_071813_add_english_name_columns_to_items_accessories_and_orbs_tables',17);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (52,'2026_03_31_085343_add_system_type_en_to_monsters_table',18);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (53,'2026_03_31_090007_add_name_en_to_maps_table',19);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (54,'2026_03_31_100640_create_continents_table',20);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (55,'2026_03_31_100641_add_continent_id_to_maps_table',21);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (56,'2026_03_31_125804_change_col_display_continents',22);

@@ -9,6 +9,7 @@ class Accessory extends Model
     protected $fillable = [
         'item_id',
         'name',
+        'name_en',
         'item_kind',
         'slot',
         'accessory_type',

@@ -24,6 +24,7 @@ class EquipmentController extends Controller
 
             $query->where(function ($sub) use ($escaped) {
                 $sub->where('item_name', 'like', "%{$escaped}%")
+                    ->orWhere('item_name_en', 'like', "%{$escaped}%")
                     ->orWhere('item_id', 'like', "%{$escaped}%")
                     ->orWhere('group_name', 'like', "%{$escaped}%")
                     ->orWhere('recipe_book', 'like', "%{$escaped}%");
@@ -32,13 +33,15 @@ class EquipmentController extends Controller
                 "
                 CASE
                     WHEN item_name = ? THEN 0
+                    WHEN item_name_en = ? THEN 0
                     WHEN item_name LIKE ? THEN 1
+                    WHEN item_name_en LIKE ? THEN 1
                     ELSE 2
                 END
                 ",
-                [$q, $escaped . '%']
+                [$q, $q, $escaped . '%', $escaped . '%']
             )
-            ->orderByRaw('LENGTH(item_name) ASC');
+            ->orderByRaw('LENGTH(COALESCE(item_name_en, item_name)) ASC');
         }
 
         if ($request->filled('equipment_type_id')) {
@@ -201,6 +204,7 @@ class EquipmentController extends Controller
         $validated = $request->validate([
             'item_id' => ['nullable', 'string', 'max:255'],
             'item_name' => ['required', 'string', 'max:255'],
+            'item_name_en' => ['nullable', 'string', 'max:255'],
             'equipment_type_id' => ['nullable', 'integer', 'exists:equipment_types,id'],
             'job_override_mode' => ['nullable', Rule::in(['inherit', 'add', 'replace'])],
             'override_jobs_json' => ['nullable', 'array'],
