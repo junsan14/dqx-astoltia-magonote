@@ -381,6 +381,8 @@ CREATE TABLE `monsters` (
   `reincarnation_parent_id` bigint unsigned DEFAULT NULL COMMENT '転生元モンスターID',
   `source_url` text COLLATE utf8mb4_unicode_ci,
   `image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `trivia_1` text COLLATE utf8mb4_unicode_ci,
+  `trivia_2` text COLLATE utf8mb4_unicode_ci,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -530,3 +532,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (53,'2026_03_31_090
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (54,'2026_03_31_100640_create_continents_table',20);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (55,'2026_03_31_100641_add_continent_id_to_maps_table',21);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (56,'2026_03_31_125804_change_col_display_continents',22);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (57,'2026_04_02_095806_add_trivia_columns_to_monsters_table',23);
