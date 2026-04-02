@@ -31,6 +31,8 @@ class MonsterController extends Controller
                     monsters.system_type,
                     monsters.system_type_en,
                     monsters.source_url,
+                    monsters.trivia_1,
+                    monsters.trivia_2,
                     monsters.image_path,
                     monsters.is_reincarnated,
                     monsters.reincarnation_parent_id,
@@ -99,6 +101,8 @@ class MonsterController extends Controller
                     monsters.system_type,
                     monsters.system_type_en,
                     monsters.source_url,
+                    monsters.trivia_1,
+                    monsters.trivia_2,
                     monsters.image_path,
                     monsters.is_reincarnated,
                     monsters.reincarnation_parent_id,
@@ -159,6 +163,8 @@ class MonsterController extends Controller
                     monsters.system_type,
                     monsters.system_type_en,
                     monsters.source_url,
+                    monsters.trivia_1,
+                    monsters.trivia_2,
                     monsters.image_path,
                     monsters.is_reincarnated,
                     monsters.reincarnation_parent_id,
@@ -167,7 +173,6 @@ class MonsterController extends Controller
                     orbs.name as matched_name,
                     orbs.name_en as matched_name_en,
                     orbs.color as matched_color
-                    
                 ')
                 ->join('monster_drops', function ($join) {
                     $join->on('monster_drops.monster_id', '=', 'monsters.id')
@@ -221,6 +226,8 @@ class MonsterController extends Controller
                     monsters.system_type,
                     monsters.system_type_en,
                     monsters.source_url,
+                    monsters.trivia_1,
+                    monsters.trivia_2,
                     monsters.image_path,
                     monsters.is_reincarnated,
                     monsters.reincarnation_parent_id,
@@ -281,6 +288,8 @@ class MonsterController extends Controller
                     monsters.system_type,
                     monsters.system_type_en,
                     monsters.source_url,
+                    monsters.trivia_1,
+                    monsters.trivia_2,
                     monsters.image_path,
                     monsters.is_reincarnated,
                     monsters.reincarnation_parent_id,
@@ -345,6 +354,8 @@ class MonsterController extends Controller
                 monsters.system_type,
                 monsters.system_type_en,
                 monsters.source_url,
+                monsters.trivia_1,
+                monsters.trivia_2,
                 monsters.image_path,
                 monsters.is_reincarnated,
                 monsters.reincarnation_parent_id,
@@ -403,21 +414,17 @@ class MonsterController extends Controller
                 'orbs.name as orb_name',
                 'orbs.name_en as orb_name_en',
                 'orbs.color as orb_color',
-                //'orbs.color_en as orb_color_en',
                 'orbs.effect as orb_effect',
-                //'orbs.effect_en as orb_effect_en',
 
                 'equipments.item_name as equipment_name',
                 'equipments.item_name_en as equipment_name_en',
                 'equipments.slot as equipment_slot',
                 'equipment_types.name as equipment_type_name',
-                //'equipment_types.name_en as equipment_type_name_en',
 
                 'accessories.name as accessory_name',
                 'accessories.name_en as accessory_name_en',
                 'accessories.slot as accessory_slot',
                 'accessories.accessory_type as accessory_type',
-                //'accessories.accessory_type_en as accessory_type_en',
             ])
             ->map(function ($drop) {
                 $name = null;
@@ -437,9 +444,7 @@ class MonsterController extends Controller
                     $category = 'orb';
                     $extra = [
                         'color' => $drop->orb_color,
-                        //'color_en' => $drop->orb_color_en,
                         'effect' => $drop->orb_effect,
-                        //'effect_en' => $drop->orb_effect_en,
                     ];
                 }
 
@@ -450,7 +455,6 @@ class MonsterController extends Controller
                     $extra = [
                         'slot' => $drop->equipment_slot,
                         'equipment_type_name' => $drop->equipment_type_name,
-                        //'equipment_type_name_en' => $drop->equipment_type_name_en,
                     ];
                 }
 
@@ -461,7 +465,6 @@ class MonsterController extends Controller
                     $extra = [
                         'slot' => $drop->accessory_slot,
                         'accessory_type' => $drop->accessory_type,
-                        //'accessory_type_en' => $drop->accessory_type_en,
                     ];
                 }
 
@@ -485,100 +488,99 @@ class MonsterController extends Controller
             ->values();
 
         $maps = DB::table('monster_map_spawns')
-                ->join('maps', 'maps.id', '=', 'monster_map_spawns.map_id')
-                ->leftJoin('continents', 'continents.id', '=', 'maps.continent_id')
-                ->leftJoin('map_layers', 'map_layers.id', '=', 'monster_map_spawns.map_layer_id')
-                ->where('monster_map_spawns.monster_id', $monster->id)
-                ->orderBy('continents.display_order')
-                ->orderBy('maps.name')
-                ->orderBy('map_layers.display_order')
-                ->orderBy('map_layers.floor_no')
-                ->orderBy('monster_map_spawns.id')
-                ->get([
-                    'monster_map_spawns.id',
-                    'monster_map_spawns.map_id',
-                    'monster_map_spawns.map_layer_id',
-                    'monster_map_spawns.area',
-                    'monster_map_spawns.spawn_time',
-                    'monster_map_spawns.spawn_count',
-                    'monster_map_spawns.symbol_count',
-                    'monster_map_spawns.note',
-                    'monster_map_spawns.is_hunting_ground',
+            ->join('maps', 'maps.id', '=', 'monster_map_spawns.map_id')
+            ->leftJoin('continents', 'continents.id', '=', 'maps.continent_id')
+            ->leftJoin('map_layers', 'map_layers.id', '=', 'monster_map_spawns.map_layer_id')
+            ->where('monster_map_spawns.monster_id', $monster->id)
+            ->orderBy('continents.display_order')
+            ->orderBy('maps.name')
+            ->orderBy('map_layers.display_order')
+            ->orderBy('map_layers.floor_no')
+            ->orderBy('monster_map_spawns.id')
+            ->get([
+                'monster_map_spawns.id',
+                'monster_map_spawns.map_id',
+                'monster_map_spawns.map_layer_id',
+                'monster_map_spawns.area',
+                'monster_map_spawns.spawn_time',
+                'monster_map_spawns.spawn_count',
+                'monster_map_spawns.symbol_count',
+                'monster_map_spawns.note',
+                'monster_map_spawns.is_hunting_ground',
 
-                    'maps.name as map_name',
-                    'maps.name_en as map_name_en',
-                    'maps.continent_id as continent_id',
+                'maps.name as map_name',
+                'maps.name_en as map_name_en',
+                'maps.continent_id as continent_id',
 
-                    'continents.display_order as continent_display_order',
-                    'continents.name as continent_name',
-                    'continents.name_en as continent_name_en',
+                'continents.display_order as continent_display_order',
+                'continents.name as continent_name',
+                'continents.name_en as continent_name_en',
 
-                    'map_layers.layer_name as map_layer_name',
-                    //'map_layers.layer_name_en as map_layer_name_en',
-                    'map_layers.floor_no as map_layer_floor_no',
-                    'map_layers.image_path as map_layer_image_path',
-                ])
-                ->groupBy('map_id')
-                ->map(function ($rows, $mapId) {
-                    $first = $rows->first();
+                'map_layers.layer_name as map_layer_name',
+                'map_layers.floor_no as map_layer_floor_no',
+                'map_layers.image_path as map_layer_image_path',
+            ])
+            ->groupBy('map_id')
+            ->map(function ($rows, $mapId) {
+                $first = $rows->first();
 
-                    $mapImagePath = collect($rows)
-                        ->pluck('map_layer_image_path')
-                        ->filter(fn ($path) => !empty($path))
-                        ->first();
+                $mapImagePath = collect($rows)
+                    ->pluck('map_layer_image_path')
+                    ->filter(fn ($path) => !empty($path))
+                    ->first();
 
-                    return [
-                        'id' => (int) $mapId,
-                        'name' => $first->map_name,
-                        'name_en' => $first->map_name_en,
-                        'map_name' => $first->map_name,
-                        'map_name_en' => $first->map_name_en,
+                return [
+                    'id' => (int) $mapId,
+                    'name' => $first->map_name,
+                    'name_en' => $first->map_name_en,
+                    'map_name' => $first->map_name,
+                    'map_name_en' => $first->map_name_en,
 
-                        'continent_id' => $first->continent_id ? (int) $first->continent_id : null,
-                        'continent_display_order' => $first->continent_display_order ? (int) $first->continent_display_order : null,
-                        'continent' => $first->continent_name,
-                        'continent_name' => $first->continent_name,
-                        'continent_name_en' => $first->continent_name_en,
+                    'continent_id' => $first->continent_id ? (int) $first->continent_id : null,
+                    'continent_display_order' => $first->continent_display_order ? (int) $first->continent_display_order : null,
+                    'continent' => $first->continent_name,
+                    'continent_name' => $first->continent_name,
+                    'continent_name_en' => $first->continent_name_en,
 
-                        'image_path' => $mapImagePath,
-                        'spawns' => $rows->map(function ($row) use ($mapImagePath) {
-                            $layerName = trim((string) ($row->map_layer_name ?? ''));
-                            $layerNameEn = trim((string) ($row->map_layer_name_en ?? ''));
+                    'image_path' => $mapImagePath,
+                    'spawns' => $rows->map(function ($row) use ($mapImagePath) {
+                        $layerName = trim((string) ($row->map_layer_name ?? ''));
+                        $layerNameEn = trim((string) ($row->map_layer_name_en ?? ''));
 
-                            if ($layerName === '' && $row->map_layer_floor_no !== null) {
-                                $floorNo = (int) $row->map_layer_floor_no;
+                        if ($layerName === '' && $row->map_layer_floor_no !== null) {
+                            $floorNo = (int) $row->map_layer_floor_no;
 
-                                if ($floorNo === 0) {
-                                    $layerName = '地上';
-                                    $layerNameEn = $layerNameEn !== '' ? $layerNameEn : 'Ground';
-                                } elseif ($floorNo < 0) {
-                                    $layerName = '地下' . abs($floorNo) . '階';
-                                    $layerNameEn = $layerNameEn !== '' ? $layerNameEn : 'B' . abs($floorNo);
-                                } else {
-                                    $layerName = $floorNo . '階';
-                                    $layerNameEn = $layerNameEn !== '' ? $layerNameEn : 'Floor ' . $floorNo;
-                                }
+                            if ($floorNo === 0) {
+                                $layerName = '地上';
+                                $layerNameEn = $layerNameEn !== '' ? $layerNameEn : 'Ground';
+                            } elseif ($floorNo < 0) {
+                                $layerName = '地下' . abs($floorNo) . '階';
+                                $layerNameEn = $layerNameEn !== '' ? $layerNameEn : 'B' . abs($floorNo);
+                            } else {
+                                $layerName = $floorNo . '階';
+                                $layerNameEn = $layerNameEn !== '' ? $layerNameEn : 'Floor ' . $floorNo;
                             }
+                        }
 
-                            return [
-                                'id' => $row->id,
-                                'map_id' => $row->map_id,
-                                'map_layer_id' => $row->map_layer_id,
-                                'area' => $this->parseArea($row->area),
-                                'spawn_time' => $row->spawn_time,
-                                'spawn_count' => $row->spawn_count,
-                                'symbol_count' => $row->symbol_count,
-                                'note' => $this->parseNote($row->note),
-                                'is_hunting_ground' => (bool) $row->is_hunting_ground,
-                                'map_layer_name' => $layerName,
-                                'map_layer_name_en' => $layerNameEn,
-                                'map_layer_floor_no' => $row->map_layer_floor_no,
-                                'map_image_path' => $row->map_layer_image_path ?: $mapImagePath,
-                            ];
-                        })->values(),
-                    ];
-                })
-                ->values();
+                        return [
+                            'id' => $row->id,
+                            'map_id' => $row->map_id,
+                            'map_layer_id' => $row->map_layer_id,
+                            'area' => $this->parseArea($row->area),
+                            'spawn_time' => $row->spawn_time,
+                            'spawn_count' => $row->spawn_count,
+                            'symbol_count' => $row->symbol_count,
+                            'note' => $this->parseNote($row->note),
+                            'is_hunting_ground' => (bool) $row->is_hunting_ground,
+                            'map_layer_name' => $layerName,
+                            'map_layer_name_en' => $layerNameEn,
+                            'map_layer_floor_no' => $row->map_layer_floor_no,
+                            'map_image_path' => $row->map_layer_image_path ?: $mapImagePath,
+                        ];
+                    })->values(),
+                ];
+            })
+            ->values();
 
         return response()->json([
             'id' => $monster->id,
@@ -589,6 +591,8 @@ class MonsterController extends Controller
             'system_type' => $monster->system_type,
             'system_type_en' => $monster->system_type_en,
             'source_url' => $monster->source_url,
+            'trivia_1' => $monster->trivia_1,
+            'trivia_2' => $monster->trivia_2,
             'image_path' => $monster->image_path,
             'is_reincarnated' => (bool) $monster->is_reincarnated,
             'reincarnation_parent_id' => $monster->reincarnation_parent_id ? (int) $monster->reincarnation_parent_id : null,
@@ -599,31 +603,12 @@ class MonsterController extends Controller
 
             'drops' => $drops,
 
-            'normal_drops' => $drops
-                ->where('drop_target_type', 'item')
-                ->where('drop_type', 'normal')
-                ->values(),
-
-            'rare_drops' => $drops
-                ->where('drop_target_type', 'item')
-                ->where('drop_type', 'rare')
-                ->values(),
-
-            'white_box_drops' => $drops
-                ->where('drop_type', 'white_box')
-                ->values(),
-
-            'orb_drops' => $drops
-                ->where('drop_target_type', 'orb')
-                ->values(),
-
-            'equipment_drops' => $drops
-                ->where('drop_target_type', 'equipment')
-                ->values(),
-
-            'accessory_drops' => $drops
-                ->where('drop_target_type', 'accessory')
-                ->values(),
+            'normal_drops' => $drops->where('drop_target_type', 'item')->where('drop_type', 'normal')->values(),
+            'rare_drops' => $drops->where('drop_target_type', 'item')->where('drop_type', 'rare')->values(),
+            'white_box_drops' => $drops->where('drop_type', 'white_box')->values(),
+            'orb_drops' => $drops->where('drop_target_type', 'orb')->values(),
+            'equipment_drops' => $drops->where('drop_target_type', 'equipment')->values(),
+            'accessory_drops' => $drops->where('drop_target_type', 'accessory')->values(),
 
             'maps' => $maps,
         ]);
@@ -650,6 +635,8 @@ class MonsterController extends Controller
                 'system_type' => $validated['system_type'] ?? null,
                 'system_type_en' => $validated['system_type_en'] ?? null,
                 'source_url' => $validated['source_url'] ?? null,
+                'trivia_1' => $validated['trivia_1'] ?? null,
+                'trivia_2' => $validated['trivia_2'] ?? null,
                 'is_reincarnated' => !empty($parentId),
                 'reincarnation_parent_id' => $parentId,
                 'image_path' => null,
@@ -700,6 +687,8 @@ class MonsterController extends Controller
                 'system_type' => $validated['system_type'] ?? null,
                 'system_type_en' => $validated['system_type_en'] ?? null,
                 'source_url' => $validated['source_url'] ?? null,
+                'trivia_1' => $validated['trivia_1'] ?? null,
+                'trivia_2' => $validated['trivia_2'] ?? null,
                 'is_reincarnated' => !empty($parentId),
                 'reincarnation_parent_id' => $parentId,
             ];
@@ -782,6 +771,9 @@ class MonsterController extends Controller
                 'name_en',
                 'system_type',
                 'system_type_en',
+                'source_url',
+                'trivia_1',
+                'trivia_2',
                 'image_path',
             ])
             ->whereBetween('display_order', [
@@ -816,6 +808,8 @@ class MonsterController extends Controller
                 monsters.system_type,
                 monsters.system_type_en,
                 monsters.source_url,
+                monsters.trivia_1,
+                monsters.trivia_2,
                 monsters.image_path,
                 monsters.is_reincarnated,
                 monsters.reincarnation_parent_id,
@@ -845,6 +839,8 @@ class MonsterController extends Controller
                 'system_type' => $monster->system_type,
                 'system_type_en' => $monster->system_type_en,
                 'source_url' => $monster->source_url ?? null,
+                'trivia_1' => $monster->trivia_1 ?? null,
+                'trivia_2' => $monster->trivia_2 ?? null,
                 'image_path' => $monster->image_path ?? null,
                 'is_reincarnated' => (bool) ($monster->is_reincarnated ?? false),
                 'reincarnation_parent_id' => !empty($monster->reincarnation_parent_id)
@@ -873,6 +869,8 @@ class MonsterController extends Controller
             'system_type' => ['nullable', 'string', 'max:255'],
             'system_type_en' => ['nullable', 'string', 'max:255'],
             'source_url' => ['nullable', 'string'],
+            'trivia_1' => ['nullable', 'string'],
+            'trivia_2' => ['nullable', 'string'],
             'reincarnation_parent_id' => [
                 'nullable',
                 'integer',
@@ -940,73 +938,25 @@ class MonsterController extends Controller
             $keepIds[] = $newId;
         }
 
-        $deleteQuery = DB::table('monster_drops')->where('monster_id', $monsterId);
-
-        if (!empty($keepIds)) {
-            $deleteQuery->whereNotIn('id', $keepIds);
-        }
-
-        $deleteQuery->delete();
+        DB::table('monster_drops')
+            ->where('monster_id', $monsterId)
+            ->when(!empty($keepIds), function ($query) use ($keepIds) {
+                $query->whereNotIn('id', $keepIds);
+            }, function ($query) {
+                $query->whereRaw('1 = 1');
+            })
+            ->delete();
     }
 
-    private function parseArea($area): array
+    private function attachDropSummaries(Collection $monsters, string $searchType, string $keyword): Collection
     {
-        if (empty($area)) {
-            return [];
-        }
-
-        if (is_array($area)) {
-            return array_values(array_filter($area));
-        }
-
-        if (is_string($area)) {
-            $decoded = json_decode($area, true);
-
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return array_values(array_filter($decoded));
-            }
-
-            return array_values(array_filter(
-                array_map('trim', explode(',', $area))
-            ));
-        }
-
-        return [];
-    }
-
-    private function parseNote($note): array
-    {
-        if (empty($note)) {
-            return [];
-        }
-
-        if (is_array($note)) {
-            return array_values(array_filter(array_map('trim', $note)));
-        }
-
-        if (is_string($note)) {
-            $decoded = json_decode($note, true);
-
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return array_values(array_filter(array_map('trim', $decoded)));
-            }
-
-            $parts = preg_split('/\r\n|\r|\n|,/', $note);
-            return array_values(array_filter(array_map('trim', $parts)));
-        }
-
-        return [];
-    }
-
-    private function attachDropSummaries(Collection $monsters, string $searchType, string $keyword = ''): Collection
-    {
-        $monsterIds = $monsters->pluck('id')->unique()->values();
-
-        if ($monsterIds->isEmpty()) {
+        if ($monsters->isEmpty()) {
             return collect();
         }
 
-        $drops = DB::table('monster_drops')
+        $monsterIds = $monsters->pluck('id')->filter()->values();
+
+        $dropRows = DB::table('monster_drops')
             ->leftJoin('items', function ($join) {
                 $join->on('items.id', '=', 'monster_drops.drop_target_id')
                     ->where('monster_drops.drop_target_type', '=', 'item');
@@ -1019,326 +969,199 @@ class MonsterController extends Controller
                 $join->on('equipments.id', '=', 'monster_drops.drop_target_id')
                     ->where('monster_drops.drop_target_type', '=', 'equipment');
             })
-            ->leftJoin('equipment_types', 'equipment_types.id', '=', 'equipments.equipment_type_id')
             ->leftJoin('accessories', function ($join) {
                 $join->on('accessories.id', '=', 'monster_drops.drop_target_id')
                     ->where('monster_drops.drop_target_type', '=', 'accessory');
             })
             ->whereIn('monster_drops.monster_id', $monsterIds)
-            ->orderByRaw("
-                CASE
-                    WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'normal' THEN 1
-                    WHEN monster_drops.drop_target_type = 'item' AND monster_drops.drop_type = 'rare' THEN 2
-                    WHEN monster_drops.drop_type = 'white_box' THEN 3
-                    WHEN monster_drops.drop_target_type = 'orb' THEN 4
-                    WHEN monster_drops.drop_target_type = 'equipment' THEN 5
-                    WHEN monster_drops.drop_target_type = 'accessory' THEN 6
-                    ELSE 99
-                END
-            ")
             ->orderBy('monster_drops.sort_order')
             ->orderBy('monster_drops.id')
             ->get([
                 'monster_drops.monster_id',
                 'monster_drops.drop_target_type',
                 'monster_drops.drop_type',
-                'monster_drops.sort_order',
-
                 'items.name as item_name',
                 'items.name_en as item_name_en',
-
                 'orbs.name as orb_name',
                 'orbs.name_en as orb_name_en',
                 'orbs.color as orb_color',
-               // 'orbs.color_en as orb_color_en',
-
                 'equipments.item_name as equipment_name',
                 'equipments.item_name_en as equipment_name_en',
-                'equipments.slot as equipment_slot',
-                'equipment_types.name as equipment_type_name',
-                //'equipment_types.name_en as equipment_type_name_en',
-
                 'accessories.name as accessory_name',
                 'accessories.name_en as accessory_name_en',
             ])
             ->groupBy('monster_id');
 
-        return $monsters->map(function ($monster) use ($drops, $searchType, $keyword) {
-            $monsterDrops = collect($drops[$monster->id] ?? []);
+        return $monsters->map(function ($monster) use ($dropRows) {
+            $rows = collect($dropRows->get($monster->id, []));
 
-            $normalDrops = $monsterDrops
+            $normalDrops = $rows
                 ->where('drop_target_type', 'item')
                 ->where('drop_type', 'normal')
-                ->map(fn ($drop) => [
-                    'name' => $drop->item_name,
-                    'name_en' => $drop->item_name_en,
+                ->map(fn ($row) => [
+                    'name' => $row->item_name,
+                    'name_en' => $row->item_name_en,
                 ])
-                ->filter(fn ($item) => !empty($item['name']) || !empty($item['name_en']))
-                ->unique(fn ($item) => $item['name'] . '|' . $item['name_en'])
+                ->unique(fn ($row) => ($row['name'] ?? '') . '|' . ($row['name_en'] ?? ''))
                 ->values();
 
-            $rareDrops = $monsterDrops
+            $rareDrops = $rows
                 ->where('drop_target_type', 'item')
                 ->where('drop_type', 'rare')
-                ->map(fn ($drop) => [
-                    'name' => $drop->item_name,
-                    'name_en' => $drop->item_name_en,
+                ->map(fn ($row) => [
+                    'name' => $row->item_name,
+                    'name_en' => $row->item_name_en,
                 ])
-                ->filter(fn ($item) => !empty($item['name']) || !empty($item['name_en']))
-                ->unique(fn ($item) => $item['name'] . '|' . $item['name_en'])
+                ->unique(fn ($row) => ($row['name'] ?? '') . '|' . ($row['name_en'] ?? ''))
                 ->values();
 
-            $whiteBoxDrops = $monsterDrops
-                ->where('drop_type', 'white_box')
-                ->map(function ($drop) {
-                    if ($drop->drop_target_type === 'item') {
-                        return [
-                            'name' => $drop->item_name,
-                            'name_en' => $drop->item_name_en,
-                            'slot' => null,
-                            'equipment_type_name' => null,
-                           // 'equipment_type_name_en' => null,
-                        ];
-                    }
-
-                    if ($drop->drop_target_type === 'equipment') {
-                        return [
-                            'name' => $drop->equipment_name,
-                            'name_en' => $drop->equipment_name_en,
-                            'slot' => $drop->equipment_slot,
-                            'equipment_type_name' => $drop->equipment_type_name,
-                           // 'equipment_type_name_en' => $drop->equipment_type_name_en,
-                        ];
-                    }
-
-                    if ($drop->drop_target_type === 'orb') {
-                        return [
-                            'name' => $drop->orb_name,
-                            'name_en' => $drop->orb_name_en,
-                            'color' => $drop->orb_color,
-                            //'color_en' => $drop->orb_color_en,
-                        ];
-                    }
-
-                    if ($drop->drop_target_type === 'accessory') {
-                        return [
-                            'name' => $drop->accessory_name,
-                            'name_en' => $drop->accessory_name_en,
-                        ];
-                    }
-
-                    return null;
-                })
-                ->filter()
-                ->unique(fn ($drop) => json_encode($drop, JSON_UNESCAPED_UNICODE))
-                ->values();
-
-            $orbDrops = $monsterDrops
+            $orbDrops = $rows
                 ->where('drop_target_type', 'orb')
-                ->map(function ($drop) {
-                    return [
-                        'name' => $drop->orb_name,
-                        'name_en' => $drop->orb_name_en,
-                        'color' => $drop->orb_color,
-                        //'color_en' => $drop->orb_color_en,
-                    ];
-                })
-                ->filter(fn ($orb) => !empty($orb['name']) || !empty($orb['name_en']))
-                ->unique(fn ($orb) => ($orb['name'] ?? '') . '|' . ($orb['name_en'] ?? ''))
-                ->values();
-
-            $equipmentDrops = $monsterDrops
-                ->where('drop_target_type', 'equipment')
-                ->map(function ($drop) {
-                    return [
-                        'name' => $drop->equipment_name,
-                        'name_en' => $drop->equipment_name_en,
-                        'slot' => $drop->equipment_slot,
-                        'equipment_type_name' => $drop->equipment_type_name,
-                        //'equipment_type_name_en' => $drop->equipment_type_name_en,
-                    ];
-                })
-                ->filter(fn ($equipment) => !empty($equipment['name']) || !empty($equipment['name_en']))
-                ->unique(fn ($equipment) => ($equipment['name'] ?? '') . '|' . ($equipment['name_en'] ?? ''))
-                ->values();
-
-            $accessoryDrops = $monsterDrops
-                ->where('drop_target_type', 'accessory')
-                ->map(fn ($drop) => [
-                    'name' => $drop->accessory_name,
-                    'name_en' => $drop->accessory_name_en,
+                ->map(fn ($row) => [
+                    'name' => $row->orb_name,
+                    'name_en' => $row->orb_name_en,
+                    'color' => $row->orb_color,
                 ])
-                ->filter(fn ($item) => !empty($item['name']) || !empty($item['name_en']))
-                ->unique(fn ($item) => $item['name'] . '|' . $item['name_en'])
+                ->unique(fn ($row) => ($row['name'] ?? '') . '|' . ($row['name_en'] ?? ''))
                 ->values();
 
-            $matchedName = $monster->matched_name ?? null;
-            $matchedNameEn = $monster->matched_name_en ?? null;
+            $equipmentDrops = $rows
+                ->where('drop_target_type', 'equipment')
+                ->map(fn ($row) => [
+                    'name' => $row->equipment_name,
+                    'name_en' => $row->equipment_name_en,
+                ])
+                ->unique(fn ($row) => ($row['name'] ?? '') . '|' . ($row['name_en'] ?? ''))
+                ->values();
 
-            if ($searchType === 'item' && $keyword !== '') {
-                $matched = $normalDrops
-                    ->merge($rareDrops)
-                    ->first(function ($item) use ($keyword) {
-                        return $item['name'] === $keyword || $item['name_en'] === $keyword;
-                    });
-
-                if ($matched) {
-                    $matchedName = $matched['name'];
-                    $matchedNameEn = $matched['name_en'];
-                }
-            }
-
-            if ($searchType === 'orb' && $keyword !== '') {
-                $matched = $orbDrops
-                    ->first(function ($item) use ($keyword) {
-                        return $item['name'] === $keyword || $item['name_en'] === $keyword;
-                    });
-
-                if ($matched) {
-                    $matchedName = $matched['name'];
-                    $matchedNameEn = $matched['name_en'];
-                }
-            }
-
-            if ($searchType === 'equipment' && $keyword !== '') {
-                $matched = $equipmentDrops
-                    ->first(function ($item) use ($keyword) {
-                        return $item['name'] === $keyword || $item['name_en'] === $keyword;
-                    });
-
-                if ($matched) {
-                    $matchedName = $matched['name'];
-                    $matchedNameEn = $matched['name_en'];
-                }
-            }
-
-            if ($searchType === 'accessory' && $keyword !== '') {
-                $matched = $accessoryDrops
-                    ->first(function ($item) use ($keyword) {
-                        return $item['name'] === $keyword || $item['name_en'] === $keyword;
-                    });
-
-                if ($matched) {
-                    $matchedName = $matched['name'];
-                    $matchedNameEn = $matched['name_en'];
-                }
-            }
+            $accessoryDrops = $rows
+                ->where('drop_target_type', 'accessory')
+                ->map(fn ($row) => [
+                    'name' => $row->accessory_name,
+                    'name_en' => $row->accessory_name_en,
+                ])
+                ->unique(fn ($row) => ($row['name'] ?? '') . '|' . ($row['name_en'] ?? ''))
+                ->values();
 
             return [
                 'id' => $monster->id,
                 'monster_no' => $monster->monster_no,
                 'display_order' => $monster->display_order,
                 'name' => $monster->name,
-                'name_en' => $monster->name_en ?? null,
+                'name_en' => $monster->name_en,
                 'system_type' => $monster->system_type,
-                'system_type_en' => $monster->system_type_en ?? null,
+                'system_type_en' => $monster->system_type_en,
                 'source_url' => $monster->source_url,
-                'image_path' => $monster->image_path ?? null,
+                'trivia_1' => $monster->trivia_1 ?? null,
+                'trivia_2' => $monster->trivia_2 ?? null,
+                'image_path' => $monster->image_path,
                 'is_reincarnated' => (bool) ($monster->is_reincarnated ?? false),
                 'reincarnation_parent_id' => !empty($monster->reincarnation_parent_id)
                     ? (int) $monster->reincarnation_parent_id
                     : null,
                 'reincarnation_parent_name' => $monster->reincarnation_parent_name ?? null,
                 'reincarnation_parent_name_en' => $monster->reincarnation_parent_name_en ?? null,
-
-                'matched_name' => $matchedName,
-                'matched_name_en' => $matchedNameEn,
+                'matched_name' => $monster->matched_name ?? null,
+                'matched_name_en' => $monster->matched_name_en ?? null,
                 'matched_color' => $monster->matched_color ?? null,
-                'matched_color_en' => $monster->matched_color_en ?? null,
-
                 'normal_drops' => $normalDrops,
                 'rare_drops' => $rareDrops,
-                'white_box_drops' => $whiteBoxDrops,
                 'orb_drops' => $orbDrops,
                 'equipment_drops' => $equipmentDrops,
                 'accessory_drops' => $accessoryDrops,
-
-                'normal_drops_count' => $normalDrops->count(),
-                'rare_drops_count' => $rareDrops->count(),
-                'orb_drops_count' => $orbDrops->count(),
-                'equipment_drops_count' => $equipmentDrops->count(),
-                'accessory_drops_count' => $accessoryDrops->count(),
             ];
         })->values();
     }
 
     private function dropTypeLabel(?string $dropType, ?string $targetType = null): string
     {
-        if ($dropType === 'normal') {
-            return '通常ドロップ';
-        }
-
-        if ($dropType === 'rare') {
-            return 'レアドロップ';
-        }
-
-        if ($dropType === 'white_box') {
-            return '白宝箱';
-        }
-
-        if ($targetType === 'orb') {
-            return '宝珠';
-        }
-
-        if ($targetType === 'equipment') {
-            return '装備';
-        }
-
-        if ($targetType === 'accessory') {
-            return 'アクセサリー';
-        }
-
-        return (string) $dropType;
+        return match ($dropType) {
+            'normal' => '通常',
+            'rare' => 'レア',
+            'white_box' => '白箱',
+            'steal' => 'ぬすむ',
+            'orb' => '宝珠',
+            'equipment' => '装備',
+            default => $targetType === 'orb'
+                ? '宝珠'
+                : ($targetType === 'equipment'
+                    ? '装備'
+                    : ($targetType === 'accessory' ? 'アクセサリー' : 'その他')),
+        };
     }
 
-    private function storeMonsterImage(int $monsterId, Request $request): string
+    private function parseArea($area): array
     {
-        $file = $request->file('image_file');
-
-        if (!$file) {
-            throw new \RuntimeException('image_file is required');
+        if (is_array($area)) {
+            return array_values(array_filter($area, fn ($value) => $value !== null && $value !== ''));
         }
 
-        $directory = 'images/monsters';
-        $fileName = $monsterId . '.webp';
-        $storagePath = $directory . '/' . $fileName;
-
-        $manager = new ImageManager(new Driver());
-        $image = $manager->read($file->getPathname());
-
-        $cropTop = max(0, (int) $request->input('crop_top', 0));
-        $cropLeft = max(0, (int) $request->input('crop_left', 0));
-        $cropRight = max(0, (int) $request->input('crop_right', 0));
-        $cropBottom = max(0, (int) $request->input('crop_bottom', 0));
-
-        $width = $image->width();
-        $height = $image->height();
-
-        $targetX = $cropLeft;
-        $targetY = $cropTop;
-        $targetWidth = max(1, $width - $cropLeft - $cropRight);
-        $targetHeight = max(1, $height - $cropTop - $cropBottom);
-
-        $targetWidth = min($targetWidth, $width - $targetX);
-        $targetHeight = min($targetHeight, $height - $targetY);
-
-        if ($targetWidth > 0 && $targetHeight > 0 && ($cropTop || $cropLeft || $cropRight || $cropBottom)) {
-            $image->crop($targetWidth, $targetHeight, $targetX, $targetY);
+        if ($area === null || $area === '') {
+            return [];
         }
 
-        $encoded = $image->encode(new WebpEncoder(quality: 90));
+        if (is_string($area)) {
+            $decoded = json_decode($area, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return array_values(array_filter($decoded, fn ($value) => $value !== null && $value !== ''));
+            }
 
-        Storage::disk('public')->put($storagePath, (string) $encoded);
+            return array_values(array_filter(
+                preg_split('/[\s,、]+/u', $area) ?: [],
+                fn ($value) => $value !== null && $value !== ''
+            ));
+        }
 
-        return '/storage/' . $storagePath;
+        return [];
     }
+
+    private function parseNote($note)
+    {
+        if (is_array($note)) {
+            return $note;
+        }
+
+        if ($note === null || $note === '') {
+            return [];
+        }
+
+        if (is_string($note)) {
+            $decoded = json_decode($note, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $decoded;
+            }
+        }
+
+        return $note;
+    }
+
+private function storeMonsterImage(int $monsterId, Request $request): ?string
+{
+    if (!$request->hasFile('image_file')) {
+        return null;
+    }
+
+    $file = $request->file('image_file');
+
+    $manager = new ImageManager(new Driver());
+    $image = $manager->read($file->getRealPath());
+
+    $path = "images/monsters/{$monsterId}.webp";
+
+    Storage::disk('public')->put(
+        $path,
+        $image->encode(new WebpEncoder(quality: 85))
+    );
+
+    return "/storage/{$path}";
+}
 
     private function deleteMonsterImage(int $monsterId): void
     {
-        $storagePath = 'images/monsters/' . $monsterId . '.webp';
+        $path = "monsters/{$monsterId}.webp";
 
-        if (Storage::disk('public')->exists($storagePath)) {
-            Storage::disk('public')->delete($storagePath);
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
         }
     }
 }
