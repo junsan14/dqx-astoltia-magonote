@@ -30,6 +30,7 @@ class Equipment extends Model
         'slot_grid_json',
         'source_url',
         'detail_url',
+         'default_price',
         'effects_json',
     ];
 
