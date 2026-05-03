@@ -1,7 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
-
+namespace App\Http\Controllers\Api;
 use App\Http\Requests\StoreAccessoryRequest;
 use App\Http\Requests\UpdateAccessoryRequest;
 use App\Models\Accessory;

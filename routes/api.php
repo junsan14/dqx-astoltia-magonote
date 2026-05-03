@@ -3,18 +3,20 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\MonsterController;
-use App\Http\Controllers\EquipmentController;
-use App\Http\Controllers\OrbController;
-use App\Http\Controllers\ItemController;
-use App\Http\Controllers\MonsterLookupController;
-use App\Http\Controllers\AccessoryController;
-use App\Http\Controllers\EquipmentTypeController;
-use App\Http\Controllers\GameJobController;
-use App\Http\Controllers\MonsterMapSpawnController;
-use App\Http\Controllers\MapController;
-use App\Http\Controllers\CrystalRuleController;
-use App\Http\Controllers\ContinentController;
+use App\Http\Controllers\Api\MonsterController;
+use App\Http\Controllers\Api\EquipmentController;
+use App\Http\Controllers\Api\OrbController;
+use App\Http\Controllers\Api\ItemController;
+use App\Http\Controllers\Api\MonsterLookupController;
+use App\Http\Controllers\Api\AccessoryController;
+use App\Http\Controllers\Api\EquipmentTypeController;
+use App\Http\Controllers\Api\GameJobController;
+use App\Http\Controllers\Api\MonsterMapSpawnController;
+use App\Http\Controllers\Api\MapController;
+use App\Http\Controllers\Api\CrystalRuleController;
+use App\Http\Controllers\Api\ContinentController;
+use App\Http\Controllers\Api\KishojuReportController;
+use App\Http\Controllers\Api\KishojuRoomController;
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
@@ -23,6 +25,20 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 
 
 
+
+
+Route::prefix('kishoju')->group(function () {
+    Route::post('/rooms', [KishojuRoomController::class, 'store']);
+    Route::get('/rooms/{publicId}', [KishojuRoomController::class, 'show']);
+    Route::post('/rooms/{publicId}/join', [KishojuRoomController::class, 'join']);
+
+    Route::get('/rooms/{publicId}/reports', [KishojuReportController::class, 'index']);
+    Route::post('/rooms/{publicId}/reports', [KishojuReportController::class, 'store']);
+    Route::delete('/rooms/{publicId}/reports/{reportId}', [KishojuReportController::class, 'destroy']);
+});
+
+Route::get('/admin/kishoju/rooms', [KishojuRoomController::class, 'adminIndex']);
+Route::get('/admin/kishoju/near-rainbow', [KishojuRoomController::class, 'adminNearRainbow']);
 Route::Resource('/monster-map-spawns', MonsterMapSpawnController::class);
 
 

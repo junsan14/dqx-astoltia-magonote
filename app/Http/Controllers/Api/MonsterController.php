@@ -1,6 +1,7 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
+
 
 use App\Models\Monster;
 use Illuminate\Http\Request;
@@ -214,67 +215,83 @@ class MonsterController extends Controller
             );
         }
 
-        if ($searchType === 'equipment') {
-            $monsters = Monster::query()
-                ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
-                ->selectRaw('
-                    monsters.id,
-                    monsters.display_order as monster_no,
-                    monsters.display_order,
-                    monsters.name,
-                    monsters.name_en,
-                    monsters.system_type,
-                    monsters.system_type_en,
-                    monsters.source_url,
-                    monsters.trivia_1,
-                    monsters.trivia_2,
-                    monsters.image_path,
-                    monsters.is_reincarnated,
-                    monsters.reincarnation_parent_id,
-                    parents.name as reincarnation_parent_name,
-                    parents.name_en as reincarnation_parent_name_en,
-                    equipments.item_name as matched_name,
-                    equipments.item_name_en as matched_name_en
-                ')
-                ->join('monster_drops', function ($join) {
-                    $join->on('monster_drops.monster_id', '=', 'monsters.id')
-                        ->where('monster_drops.drop_target_type', '=', 'equipment');
-                })
-                ->join('equipments', 'equipments.id', '=', 'monster_drops.drop_target_id')
-                ->when($keyword !== '', function ($query) use ($keyword) {
-                    $escapedKeyword = addcslashes($keyword, '\\%_');
+if ($searchType === 'equipment') {
+    $monsters = Monster::query()
+        ->leftJoin('monsters as parents', 'parents.id', '=', 'monsters.reincarnation_parent_id')
+        ->selectRaw('
+            monsters.id,
+            monsters.display_order as monster_no,
+            monsters.display_order,
+            monsters.name,
+            monsters.name_en,
+            monsters.system_type,
+            monsters.system_type_en,
+            monsters.source_url,
+            monsters.trivia_1,
+            monsters.trivia_2,
+            monsters.image_path,
+            monsters.is_reincarnated,
+            monsters.reincarnation_parent_id,
+            parents.name as reincarnation_parent_name,
+            parents.name_en as reincarnation_parent_name_en,
+            MIN(equipments.item_name) as matched_name,
+            MIN(equipments.item_name_en) as matched_name_en
+        ')
+        ->join('monster_drops', function ($join) {
+            $join->on('monster_drops.monster_id', '=', 'monsters.id')
+                ->where('monster_drops.drop_target_type', '=', 'equipment');
+        })
+        ->join('equipments', 'equipments.id', '=', 'monster_drops.drop_target_id')
+        ->when($keyword !== '', function ($query) use ($keyword) {
+            $escapedKeyword = addcslashes($keyword, '\\%_');
 
-                    $query->where(function ($q) use ($escapedKeyword) {
-                        $q->where('equipments.item_name', 'like', '%' . $escapedKeyword . '%')
-                          ->orWhere('equipments.item_name_en', 'like', '%' . $escapedKeyword . '%');
-                    })
-                    ->orderByRaw(
-                        "
-                        CASE
-                            WHEN equipments.item_name = ? THEN 0
-                            WHEN equipments.item_name_en = ? THEN 0
-                            WHEN equipments.item_name LIKE ? THEN 1
-                            WHEN equipments.item_name_en LIKE ? THEN 1
-                            ELSE 2
-                        END
-                        ",
-                        [$keyword, $keyword, $escapedKeyword . '%', $escapedKeyword . '%']
-                    )
-                    ->orderByRaw('LENGTH(COALESCE(equipments.item_name_en, equipments.item_name)) ASC')
-                    ->orderBy('equipments.item_name')
-                    ->orderBy('monsters.display_order');
-                }, function ($query) {
-                    $query->orderBy('monsters.display_order');
-                })
-                ->limit(200)
-                ->get()
-                ->unique('id')
-                ->values();
+            $query->where(function ($q) use ($escapedKeyword) {
+                $q->where('equipments.item_name', 'like', '%' . $escapedKeyword . '%')
+                  ->orWhere('equipments.item_name_en', 'like', '%' . $escapedKeyword . '%');
+            })
+            ->orderByRaw(
+                "
+                MIN(
+                    CASE
+                        WHEN equipments.item_name = ? THEN 0
+                        WHEN equipments.item_name_en = ? THEN 0
+                        WHEN equipments.item_name LIKE ? THEN 1
+                        WHEN equipments.item_name_en LIKE ? THEN 1
+                        ELSE 2
+                    END
+                ) ASC
+                ",
+                [$keyword, $keyword, $escapedKeyword . '%', $escapedKeyword . '%']
+            )
+            ->orderByRaw('MIN(LENGTH(COALESCE(equipments.item_name_en, equipments.item_name))) ASC')
+            ->orderBy('monsters.display_order');
+        }, function ($query) {
+            $query->orderBy('monsters.display_order');
+        })
+        ->groupBy(
+            'monsters.id',
+            'monsters.display_order',
+            'monsters.name',
+            'monsters.name_en',
+            'monsters.system_type',
+            'monsters.system_type_en',
+            'monsters.source_url',
+            'monsters.trivia_1',
+            'monsters.trivia_2',
+            'monsters.image_path',
+            'monsters.is_reincarnated',
+            'monsters.reincarnation_parent_id',
+            'parents.name',
+            'parents.name_en'
+        )
+        ->limit(500)
+        ->get()
+        ->values();
 
-            return response()->json(
-                $this->attachDropSummaries($monsters, 'equipment', $keyword)->values()
-            );
-        }
+    return response()->json(
+        $this->attachDropSummaries($monsters, 'equipment', $keyword)->values()
+    );
+}
 
         if ($searchType === 'accessory') {
             $monsters = Monster::query()
