@@ -122,12 +122,11 @@ class EquipmentController extends Controller
             );
         }
 
-        if (empty($validated['group_id'])) {
-            $validated['group_id'] = $validated['item_id'];
-        }
-
-        if (empty($validated['group_name'])) {
-            $validated['group_name'] = $validated['item_name'];
+        // 単体装備の場合は group 関連を null にする
+        if (empty($validated['group_kind'])) {
+            $validated['group_kind'] = null;
+            $validated['group_id'] = null;
+            $validated['group_name'] = null;
         }
 
         $equipment = Equipment::create($validated);
@@ -170,18 +169,14 @@ class EquipmentController extends Controller
             );
         }
 
+        // 単体装備の場合は group 関連を null にする
         if (
-            array_key_exists('group_id', $validated)
-            && ($validated['group_id'] === null || $validated['group_id'] === '')
+            array_key_exists('group_kind', $validated)
+            && empty($validated['group_kind'])
         ) {
-            $validated['group_id'] = $validated['item_id'] ?? $equipment->item_id;
-        }
-
-        if (
-            array_key_exists('group_name', $validated)
-            && ($validated['group_name'] === null || $validated['group_name'] === '')
-        ) {
-            $validated['group_name'] = $validated['item_name'] ?? $equipment->item_name;
+            $validated['group_kind'] = null;
+            $validated['group_id'] = null;
+            $validated['group_name'] = null;
         }
 
         $equipment->update($validated);
