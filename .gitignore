@@ -23,4 +23,11 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-storage/app/db/
+# DB files are private
+/storage/app/db/
+/storage/app/private/
+/storage/app/public/
+
+# Export CSV files are allowed
+!/storage/app/exports/
+!/storage/app/exports/**
