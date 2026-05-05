@@ -12,9 +12,10 @@ class ExportTableCsv extends Command
         {table : Export target table name}
         {--path=exports : Output directory under storage/app}
         {--no-header : Export CSV without header row}
-        {--exclude-id : Exclude id column}';
+        {--exclude-id : Exclude id column}
+        {--keep-old : Do not delete old export files for this table}';
 
-    protected $description = 'Export any table to CSV';
+    protected $description = 'Export any table to CSV with timestamp';
 
     public function handle(): int
     {
@@ -22,6 +23,7 @@ class ExportTableCsv extends Command
         $directory = trim($this->option('path'), '/');
         $withHeader = ! $this->option('no-header');
         $excludeId = (bool) $this->option('exclude-id');
+        $keepOld = (bool) $this->option('keep-old');
 
         if (! Schema::hasTable($table)) {
             $this->error("Table not found: {$table}");
@@ -41,6 +43,12 @@ class ExportTableCsv extends Command
             mkdir($outputDir, 0755, true);
         }
 
+        if (! $keepOld) {
+            $this->deleteOldExportFiles($outputDir, $table);
+        }
+
+        $timestamp = now()->format('Ymd_His');
+
         $fileNameParts = [$table];
 
         if (! $withHeader) {
@@ -50,6 +58,8 @@ class ExportTableCsv extends Command
         if ($excludeId) {
             $fileNameParts[] = 'no_id';
         }
+
+        $fileNameParts[] = $timestamp;
 
         $fileName = implode('_', $fileNameParts) . '.csv';
         $path = "{$outputDir}/{$fileName}";
@@ -93,5 +103,28 @@ class ExportTableCsv extends Command
         $this->info("Exported to: {$path}");
 
         return self::SUCCESS;
+    }
+
+    private function deleteOldExportFiles(string $outputDir, string $table): void
+    {
+        $patterns = [
+            "{$outputDir}/{$table}.csv",
+            "{$outputDir}/{$table}_*.csv",
+        ];
+
+        $deleted = 0;
+
+        foreach ($patterns as $pattern) {
+            foreach (glob($pattern) ?: [] as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                    $deleted++;
+                }
+            }
+        }
+
+        if ($deleted > 0) {
+            $this->warn("Deleted old export files for {$table}: {$deleted}");
+        }
     }
 }
