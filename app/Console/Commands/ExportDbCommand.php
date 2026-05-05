@@ -6,20 +6,28 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-class ExportTableCsv extends Command
+class ExportDbCommand extends Command
 {
-    protected $signature = 'db:export 
+    protected $signature = 'export
+        {type : Use "db"}
         {table : Export target table name}
         {--path=exports : Output directory under storage/app}
         {--no-header : Export CSV without header row}
         {--exclude-id : Exclude id column}
         {--keep-old : Do not delete old export files for this table}';
 
-    protected $description = 'Export any table to CSV with timestamp';
+    protected $description = 'Export table data to CSV. Example: php artisan export db accessories';
 
     public function handle(): int
     {
+        $type = $this->argument('type');
         $table = $this->argument('table');
+
+        if ($type !== 'db') {
+            $this->error('Invalid type. Use: php artisan export db {table}');
+            return self::FAILURE;
+        }
+
         $directory = trim($this->option('path'), '/');
         $withHeader = ! $this->option('no-header');
         $excludeId = (bool) $this->option('exclude-id');
@@ -49,17 +57,7 @@ class ExportTableCsv extends Command
 
         $timestamp = now()->format('Ymd_His');
 
-        $fileNameParts = [$table];
-
-        if (! $withHeader) {
-            $fileNameParts[] = 'no_header';
-        }
-
-        if ($excludeId) {
-            $fileNameParts[] = 'no_id';
-        }
-
-        $fileNameParts[] = $timestamp;
+        $fileNameParts = [$table, $timestamp];
 
         $fileName = implode('_', $fileNameParts) . '.csv';
         $path = "{$outputDir}/{$fileName}";
@@ -86,7 +84,6 @@ class ExportTableCsv extends Command
 
         foreach ($rows as $row) {
             $rowArray = (array) $row;
-
             $line = [];
 
             foreach ($columns as $column) {
@@ -99,8 +96,9 @@ class ExportTableCsv extends Command
         fclose($fp);
 
         $this->info("Exported {$rows->count()} rows.");
-        $this->info("Columns: " . implode(', ', $columns));
-        $this->info("Exported to: {$path}");
+        $this->info("Table: {$table}");
+        $this->info("File: storage/app/{$directory}/{$fileName}");
+        $this->info("Full path: {$path}");
 
         return self::SUCCESS;
     }
