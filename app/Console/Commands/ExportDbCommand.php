@@ -8,25 +8,18 @@ use Illuminate\Support\Facades\Schema;
 
 class ExportDbCommand extends Command
 {
-    protected $signature = 'export
-        {type : Use "db"}
+    protected $signature = 'export:db
         {table : Export target table name}
         {--path=exports : Output directory under storage/app}
         {--no-header : Export CSV without header row}
         {--exclude-id : Exclude id column}
         {--keep-old : Do not delete old export files for this table}';
 
-    protected $description = 'Export table data to CSV. Example: php artisan export db accessories';
+    protected $description = 'Export table data to CSV. Example: php artisan export:db accessories';
 
     public function handle(): int
     {
-        $type = $this->argument('type');
         $table = $this->argument('table');
-
-        if ($type !== 'db') {
-            $this->error('Invalid type. Use: php artisan export db {table}');
-            return self::FAILURE;
-        }
 
         $directory = trim($this->option('path'), '/');
         $withHeader = ! $this->option('no-header');
@@ -57,9 +50,8 @@ class ExportDbCommand extends Command
 
         $timestamp = now()->format('Ymd_His');
 
-        $fileNameParts = [$table, $timestamp];
-
-        $fileName = implode('_', $fileNameParts) . '.csv';
+        // ファイル名は accessories_20260505_093754.csv 形式
+        $fileName = "{$table}_{$timestamp}.csv";
         $path = "{$outputDir}/{$fileName}";
 
         $fp = fopen($path, 'w');
