@@ -164,4 +164,65 @@ class GameJobController extends Controller
             'message' => '職業を削除した',
         ]);
     }
+    public function updateEquipableTypes(Request $request, $id)
+{
+    $job = DB::table('game_jobs')->where('id', $id)->first();
+
+    if (!$job) {
+        return response()->json([
+            'message' => '職業が見つからない',
+        ], 404);
+    }
+
+    $validated = $request->validate([
+        'equipment_type_ids' => [
+            'nullable',
+            'array',
+        ],
+        'equipment_type_ids.*' => [
+            'integer',
+            'exists:equipment_types,id',
+        ],
+    ], [
+        'equipment_type_ids.array' => 'equipment_type_ids は配列で指定してください',
+        'equipment_type_ids.*.integer' => '装備タイプIDは整数で指定してください',
+        'equipment_type_ids.*.exists' => '存在しない装備タイプIDが含まれています',
+    ]);
+
+    $equipmentTypeIds = collect($validated['equipment_type_ids'] ?? [])
+        ->map(fn ($id) => (int) $id)
+        ->filter(fn ($id) => $id > 0)
+        ->unique()
+        ->values()
+        ->all();
+
+    DB::transaction(function () use ($id, $equipmentTypeIds) {
+        DB::table('equipable_types')
+            ->where('game_job_id', $id)
+            ->delete();
+
+        $now = now();
+
+        $rows = collect($equipmentTypeIds)->map(function ($equipmentTypeId) use ($id, $now) {
+            return [
+                'game_job_id' => $id,
+                'equipment_type_id' => $equipmentTypeId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        })->all();
+
+        if (!empty($rows)) {
+            DB::table('equipable_types')->insert($rows);
+        }
+    });
+
+    return response()->json([
+        'message' => '装備可能タイプを更新した',
+        'data' => [
+            'game_job_id' => (int) $id,
+            'equipment_type_ids' => $equipmentTypeIds,
+        ],
+    ]);
+}
 }

@@ -119,65 +119,78 @@ class KishojuRoomController extends Controller
             'member' => $member,
         ], 201);
     }
+    public function destroyMember(string $publicId, int $memberId)
+    {
+        $room = KishojuRoom::where('public_id', $publicId)->firstOrFail();
 
+        $member = KishojuMember::where('kishoju_room_id', $room->id)
+            ->where('id', $memberId)
+            ->firstOrFail();
+
+        $member->delete();
+
+        return response()->json([
+            'message' => 'ユーザーを削除しました',
+        ]);
+    }
     private function generatePublicId(): string
-{
-    $words = [
-        'sora',
-        'kaze',
-        'niji',
-        'hoshi',
-        'tsuki',
-        'yuki',
-        'hana',
-        'mori',
-        'umi',
-        'tori',
-        'kumo',
-        'hikari',
-        'asahi',
-        'yoru',
-        'ame',
-        'ao',
-        'aka',
-        'gin',
-        'kin',
-        'ruri',
-        'ren',
-        'suzu',
-        'hayate',
-        'kohaku',
-        'hotaru',
-        'komorebi',
-        'shizuku',
-        'akatsuki',
-        'kirameki',
-        'yamabuki',
-        'aoba',
-        'mizuki',
-        'kasumi',
-        'hibiki',
-        'nagisa',
-        'kanata',
-        'ibuki',
-        'subaru',
-        'tsubasa',
-        'hotori',
-        'minato',
-    ];
-
-    do {
-        $firstWord = $words[array_rand($words)];
+    {
+        $words = [
+            'sora',
+            'kaze',
+            'niji',
+            'hoshi',
+            'tsuki',
+            'yuki',
+            'hana',
+            'mori',
+            'umi',
+            'tori',
+            'kumo',
+            'hikari',
+            'asahi',
+            'yoru',
+            'ame',
+            'ao',
+            'aka',
+            'gin',
+            'kin',
+            'ruri',
+            'ren',
+            'suzu',
+            'hayate',
+            'kohaku',
+            'hotaru',
+            'komorebi',
+            'shizuku',
+            'akatsuki',
+            'kirameki',
+            'yamabuki',
+            'aoba',
+            'mizuki',
+            'kasumi',
+            'hibiki',
+            'nagisa',
+            'kanata',
+            'ibuki',
+            'subaru',
+            'tsubasa',
+            'hotori',
+            'minato',
+        ];
 
         do {
-            $secondWord = $words[array_rand($words)];
-        } while ($secondWord === $firstWord);
+            $firstWord = $words[array_rand($words)];
 
-        $number = str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
+            do {
+                $secondWord = $words[array_rand($words)];
+            } while ($secondWord === $firstWord);
 
-        $publicId = "{$firstWord}-{$secondWord}-{$number}";
-    } while (KishojuRoom::where('public_id', $publicId)->exists());
+            $number = str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
 
-    return $publicId;
-}
+            $publicId = "{$firstWord}-{$secondWord}-{$number}";
+        } while (KishojuRoom::where('public_id', $publicId)->exists());
+
+        return $publicId;
+    }
 }

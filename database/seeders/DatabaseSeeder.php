@@ -27,7 +27,8 @@ class DatabaseSeeder extends Seeder
         //CraftTypeSeeder::class,
             //EquipmentTypeSeeder::class,
                 //EquipableTypeSeeder::class,
-                CraftToolSeeder::class,
+                //CraftToolSeeder::class,
+                BossPushWeightSeeder::class,
         ]);
     }
 }

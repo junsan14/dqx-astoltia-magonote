@@ -17,10 +17,22 @@ use App\Http\Controllers\Api\CrystalRuleController;
 use App\Http\Controllers\Api\ContinentController;
 use App\Http\Controllers\Api\KishojuReportController;
 use App\Http\Controllers\Api\KishojuRoomController;
+use App\Http\Controllers\Api\BossController;
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
+
+
+
+Route::apiResource('bosses', BossController::class);
+
+Route::prefix('tools/weight-checker')->group(function () {
+    Route::get('/bosses', [BossController::class, 'weightCheckerBosses']);
+});
+
 
 
 
@@ -31,6 +43,8 @@ Route::prefix('kishoju')->group(function () {
     Route::post('/rooms', [KishojuRoomController::class, 'store']);
     Route::get('/rooms/{publicId}', [KishojuRoomController::class, 'show']);
     Route::post('/rooms/{publicId}/join', [KishojuRoomController::class, 'join']);
+
+    Route::delete('/rooms/{publicId}/members/{memberId}', [KishojuRoomController::class, 'destroyMember']);
 
     Route::get('/rooms/{publicId}/reports', [KishojuReportController::class, 'index']);
     Route::post('/rooms/{publicId}/reports', [KishojuReportController::class, 'store']);
@@ -45,6 +59,7 @@ Route::Resource('/monster-map-spawns', MonsterMapSpawnController::class);
 Route::get('/equipment-types', [EquipmentTypeController::class, 'index']);
 Route::Resource('/game-jobs', GameJobController::class);
 
+Route::put('/game-jobs/{gameJob}/equipable-types', [GameJobController::class, 'updateEquipableTypes']);
 
 
 Route::Resource('crystal-rules', CrystalRuleController::class)

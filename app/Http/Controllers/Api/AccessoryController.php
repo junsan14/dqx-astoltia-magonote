@@ -50,7 +50,9 @@ class AccessoryController extends Controller
     }
 
     return response()->json([
-        'data' => $query->get(),
+        'data' => $query->get()
+            ->map(fn ($accessory) => $this->buildAccessoryResponse($accessory))
+            ->values(),
     ]);
 }
 
@@ -71,10 +73,23 @@ class AccessoryController extends Controller
             $accessory = Accessory::create([
                 'item_id' => $validated['item_id'],
                 'name' => $validated['name'],
+                'name_en' => $validated['name_en'] ?? null,
                 'item_kind' => $validated['item_kind'] ?? 'accessory',
                 'slot' => $validated['slot'] ?? null,
                 'accessory_type' => $validated['accessory_type'] ?? null,
                 'equip_level' => $validated['equip_level'] ?? null,
+
+                'weight' => $validated['weight'] ?? null,
+                'attack' => $validated['attack'] ?? null,
+                'defense' => $validated['defense'] ?? null,
+                'max_hp' => $validated['max_hp'] ?? null,
+                'max_mp' => $validated['max_mp'] ?? null,
+                'charm' => $validated['charm'] ?? null,
+                'agility' => $validated['agility'] ?? null,
+                'dexterity' => $validated['dexterity'] ?? null,
+                'magic_attack' => $validated['magic_attack'] ?? null,
+                'healing_power' => $validated['healing_power'] ?? null,
+
                 'description' => $validated['description'] ?? null,
                 'effects_json' => $validated['effects_json'] ?? [],
                 'synthesis_effects_json' => $validated['synthesis_effects_json'] ?? [],
@@ -109,10 +124,23 @@ class AccessoryController extends Controller
             $accessory->update([
                 'item_id' => $validated['item_id'],
                 'name' => $validated['name'],
+                'name_en' => $validated['name_en'] ?? null,
                 'item_kind' => $validated['item_kind'] ?? 'accessory',
                 'slot' => $validated['slot'] ?? null,
                 'accessory_type' => $validated['accessory_type'] ?? null,
                 'equip_level' => $validated['equip_level'] ?? null,
+
+                'weight' => $validated['weight'] ?? null,
+                'attack' => $validated['attack'] ?? null,
+                'defense' => $validated['defense'] ?? null,
+                'max_hp' => $validated['max_hp'] ?? null,
+                'max_mp' => $validated['max_mp'] ?? null,
+                'charm' => $validated['charm'] ?? null,
+                'agility' => $validated['agility'] ?? null,
+                'dexterity' => $validated['dexterity'] ?? null,
+                'magic_attack' => $validated['magic_attack'] ?? null,
+                'healing_power' => $validated['healing_power'] ?? null,
+
                 'description' => $validated['description'] ?? null,
                 'effects_json' => $validated['effects_json'] ?? [],
                 'synthesis_effects_json' => $validated['synthesis_effects_json'] ?? [],
@@ -170,10 +198,23 @@ class AccessoryController extends Controller
             'id' => $accessory->id,
             'item_id' => $accessory->item_id,
             'name' => $accessory->name,
+            'name_en' => $accessory->name_en,
             'item_kind' => $accessory->item_kind,
             'slot' => $accessory->slot,
             'accessory_type' => $accessory->accessory_type,
             'equip_level' => $accessory->equip_level,
+
+            'weight' => $accessory->weight,
+            'attack' => $accessory->attack,
+            'defense' => $accessory->defense,
+            'max_hp' => $accessory->max_hp,
+            'max_mp' => $accessory->max_mp,
+            'charm' => $accessory->charm,
+            'agility' => $accessory->agility,
+            'dexterity' => $accessory->dexterity,
+            'magic_attack' => $accessory->magic_attack,
+            'healing_power' => $accessory->healing_power,
+
             'description' => $accessory->description,
             'effects_json' => $this->normalizeJsonOutput($accessory->effects_json),
             'synthesis_effects_json' => $this->normalizeJsonOutput($accessory->synthesis_effects_json),
@@ -181,6 +222,7 @@ class AccessoryController extends Controller
             'image_url' => $accessory->image_url,
             'source_url' => $accessory->source_url,
             'detail_url' => $accessory->detail_url,
+
             'drop_monsters' => $drops->map(function ($drop) use ($monstersById) {
                 $monster = $monstersById->get($drop->monster_id);
 

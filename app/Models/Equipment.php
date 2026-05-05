@@ -4,45 +4,76 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Equipment extends Model
 {
     protected $table = 'equipments';
 
     protected $fillable = [
+        'attack',
+        'defense',
+        'max_hp',
+        'max_mp',
+        'charm',
+        'agility',
+        'dexterity',
+        'magic_attack',
+        'healing_power',
+
         'item_id',
         'item_name',
         'item_name_en',
+
         'equipment_type_id',
         'job_override_mode',
+
         'craft_level',
         'equip_level',
         'recipe_book',
         'recipe_place',
         'description',
+
         'slot',
         'slot_grid_type',
         'slot_grid_cols',
+
         'group_kind',
         'group_id',
         'group_name',
+
         'materials_json',
         'slot_grid_json',
+
         'source_url',
         'detail_url',
-         'default_price',
         'effects_json',
+
+        'default_price',
+        'weight',
     ];
 
     protected $casts = [
+        'attack' => 'integer',
+        'defense' => 'integer',
+        'max_hp' => 'integer',
+        'max_mp' => 'integer',
+        'charm' => 'integer',
+        'agility' => 'integer',
+        'dexterity' => 'integer',
+        'magic_attack' => 'integer',
+        'healing_power' => 'integer',
+
         'equipment_type_id' => 'integer',
         'craft_level' => 'integer',
         'equip_level' => 'integer',
         'slot_grid_cols' => 'integer',
+        'default_price' => 'integer',
+        'weight' => 'integer',
+
         'materials_json' => 'array',
         'slot_grid_json' => 'array',
         'effects_json' => 'array',
-        'override_jobs_json' => 'array',
     ];
 
     protected $attributes = [
@@ -54,8 +85,8 @@ class Equipment extends Model
         return $this->belongsTo(EquipmentType::class, 'equipment_type_id');
     }
 
-    public function craftType()
+    public function jobOverrides(): HasMany
     {
-        return $this->belongsTo(CraftType::class, 'craft_type_id');
+        return $this->hasMany(EquipmentJobOverride::class, 'equipment_id');
     }
 }
