@@ -1,14 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  ensureGridSize,
-  getGridPreset,
-  normalizeGrid,
-  safeJsonParse,
-
-} from "./equipmentFormHelpers";
-import { buildEquipmentPayload } from "@/lib/equipments";
+import { useMemo, useState } from "react";
 
 export default function EquipmentDetailsPanel({
   row,
@@ -22,41 +14,7 @@ export default function EquipmentDetailsPanel({
   onUpdateEffect,
   onDeleteEffect,
 }) {
-  const [... setGridRows] = useState(1);
-  const [... setGridCols] = useState(1);
-  const [... setGrid2d] = useState([[""]]);
   const [keyword, setKeyword] = useState("");
-
-  const parsed = useMemo(() => {
-    if (!row) {
-      return {
-        nextRows: 1,
-        nextCols: 1,
-        nextGrid: [[""]],
-      };
-    }
-
-    const preset = getGridPreset(row.slotGridType);
-    const colsHint = preset?.cols ?? Number(row.slotGridCols ?? 0) ?? 0;
-    const gridLike = safeJsonParse(row.slotGridJson, null);
-    const norm = normalizeGrid(gridLike, colsHint);
-
-    const nextRows = preset?.rows ?? (norm.rows > 0 ? norm.rows : 1);
-    const nextCols = preset?.cols ?? (norm.cols > 0 ? norm.cols : 1);
-    const nextGrid = ensureGridSize(norm.grid, nextRows, nextCols);
-
-    return {
-      nextRows,
-      nextCols,
-      nextGrid,
-    };
-  }, [row?.__key, row?.slotGridType, row?.slotGridJson, row?.slotGridCols]);
-
-  useEffect(() => {
-    setGridRows(parsed.nextRows);
-    setGridCols(parsed.nextCols);
-    setGrid2d(parsed.nextGrid);
-  }, [parsed]);
 
   const filteredItems = useMemo(() => {
     const q = keyword.trim().toLowerCase();
@@ -71,21 +29,25 @@ export default function EquipmentDetailsPanel({
     return null;
   }
 
-
-
   function getMaterialItemId(mat) {
     return mat?.item_id ?? mat?.itemId ?? "";
   }
 
   function findItemNameById(itemId) {
     if (itemId == null || itemId === "") return "";
+
     const found = allItems.find((item) => String(item.id) === String(itemId));
+
     return found?.name ?? "";
   }
 
   function getDisplayMaterialName(mat) {
     const rawName = mat?.name ?? mat?.item_name ?? mat?.itemName ?? "";
-    if (String(rawName).trim()) return rawName;
+
+    if (String(rawName).trim()) {
+      return rawName;
+    }
+
     return findItemNameById(getMaterialItemId(mat));
   }
 
@@ -100,10 +62,8 @@ export default function EquipmentDetailsPanel({
     setKeyword("");
   }
 
-const payload = buildEquipmentPayload(row);
   return (
     <div style={styles.stack}>
-
       <section style={styles.card}>
         <div style={styles.sectionHead}>
           <div style={styles.sectionTitle}>素材</div>
@@ -145,6 +105,7 @@ const payload = buildEquipmentPayload(row);
             <div style={styles.materialTableHead}>
               <div style={styles.materialCellName}>素材</div>
               <div style={styles.materialCellCount}>個数</div>
+              <div style={styles.materialCellAction}>操作</div>
             </div>
 
             <div style={styles.materialTableBody}>
@@ -154,7 +115,9 @@ const payload = buildEquipmentPayload(row);
                     <input
                       style={styles.inputCompact}
                       value={getDisplayMaterialName(mat)}
-                      onChange={(e) => onUpdateMaterial(index, "name", e.target.value)}
+                      onChange={(e) =>
+                        onUpdateMaterial(index, "name", e.target.value)
+                      }
                       placeholder="素材名"
                     />
                   </div>
@@ -164,7 +127,9 @@ const payload = buildEquipmentPayload(row);
                       type="number"
                       style={styles.inputCompactXs}
                       value={mat?.count ?? 1}
-                      onChange={(e) => onUpdateMaterial(index, "count", e.target.value)}
+                      onChange={(e) =>
+                        onUpdateMaterial(index, "count", e.target.value)
+                      }
                     />
                   </div>
 
@@ -187,38 +152,45 @@ const payload = buildEquipmentPayload(row);
       <section style={styles.card}>
         <div style={styles.sectionHead}>
           <div style={styles.sectionTitle}>効果</div>
-          <button type="button" style={secondaryButtonStyle()} onClick={onAddEffect}>
+          <button
+            type="button"
+            style={secondaryButtonStyle()}
+            onClick={onAddEffect}
+          >
             効果追加
           </button>
         </div>
 
         <div style={styles.stackSmall}>
-          {effects.map((effect, i) => (
-            <div key={i} style={styles.materialRow}>
-              <div style={styles.materialNameWrap}>
-                <input
-                  value={typeof effect === "string" ? effect : JSON.stringify(effect)}
-                  onChange={(e) => onUpdateEffect(i, e.target.value)}
-                  placeholder="効果"
-                  style={styles.input}
-                />
+          {effects.length ? (
+            effects.map((effect, i) => (
+              <div key={i} style={styles.materialRow}>
+                <div style={styles.materialNameWrap}>
+                  <input
+                    value={
+                      typeof effect === "string"
+                        ? effect
+                        : JSON.stringify(effect)
+                    }
+                    onChange={(e) => onUpdateEffect(i, e.target.value)}
+                    placeholder="効果"
+                    style={styles.input}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  style={dangerButtonStyle()}
+                  onClick={() => onDeleteEffect(i)}
+                >
+                  削除
+                </button>
               </div>
-
-              <button
-                type="button"
-                style={dangerButtonStyle()}
-                onClick={() => onDeleteEffect(i)}
-              >
-                削除
-              </button>
-            </div>
-          ))}
+            ))
+          ) : (
+            <div style={styles.mutedText}>効果なし</div>
+          )}
         </div>
-      </section>
-
-      <section style={styles.card}>
-        <div style={styles.sectionTitle}>JSON確認用</div>
-        <pre style={styles.pre}>{JSON.stringify(payload, null, 2)}</pre>
       </section>
     </div>
   );
@@ -262,47 +234,6 @@ const styles = {
     fontSize: 18,
     fontWeight: 700,
     color: "var(--text-title)",
-  },
-
-  sectionMeta: {
-    color: "var(--text-muted)",
-    fontSize: 13,
-  },
-
-  gridControlRow: {
-    display: "flex",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-
-  miniField: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-  },
-
-  miniInput: {
-    width: 90,
-    border: "1px solid var(--input-border)",
-    background: "var(--input-bg)",
-    color: "var(--input-text)",
-    borderRadius: 10,
-    padding: "8px 10px",
-  },
-
-  label: {
-    fontSize: 12,
-    color: "var(--text-muted)",
-    fontWeight: 700,
-  },
-
-  gridOuter: {
-    overflowX: "auto",
-  },
-
-  gridPlain: {
-    display: "grid",
-    gap: 8,
   },
 
   materialSearchBox: {
@@ -436,20 +367,7 @@ const styles = {
     flex: 1,
     minWidth: 0,
   },
-
-  pre: {
-    margin: 0,
-    padding: 12,
-    borderRadius: 10,
-    background: "var(--soft-bg)",
-    border: "1px solid var(--soft-border)",
-    color: "var(--text-main)",
-    overflowX: "auto",
-    fontSize: 12,
-    lineHeight: 1.5,
-  },
 };
-
 
 const secondaryButtonStyle = () => ({
   border: "1px solid var(--soft-border)",
