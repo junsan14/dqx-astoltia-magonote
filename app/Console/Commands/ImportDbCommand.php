@@ -289,20 +289,20 @@ class ImportDbCommand extends Command
         }
     }
 
-    private function initializeTable(string $table): void
-    {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+private function initializeTable(string $table): void
+{
+    DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
-        try {
-            DB::table($table)->delete();
+    try {
+        DB::table($table)->delete();
 
-            if ($this->isMysql()) {
-                DB::statement("ALTER TABLE `{$table}` AUTO_INCREMENT = 1");
-            }
-        } finally {
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
-        }
+        // 注意:
+        // ALTER TABLE ... AUTO_INCREMENT = 1 は MySQL で暗黙的に transaction を終了する。
+        // そのため fresh import の transaction 中では実行しない。
+    } finally {
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
+}
 
     private function isMysql(): bool
     {
