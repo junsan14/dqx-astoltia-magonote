@@ -1,0 +1,327 @@
+.page {
+  padding: 48px 0 80px;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.kicker {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--text-title);
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  line-height: 1.1;
+}
+
+.lead {
+  max-width: 760px;
+  margin: 14px 0 0;
+  color: var(--text-sub);
+  line-height: 1.9;
+}
+
+.reloadButton {
+  border: 1px solid var(--primary-border);
+  border-radius: 999px;
+  padding: 13px 20px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reloadButton:hover {
+  opacity: 0.86;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.summaryCard {
+  border: 1px solid var(--card-border);
+  border-radius: 22px;
+  background: var(--card-bg);
+  padding: 20px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+}
+
+.summaryCard span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.summaryCard strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--text-title);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.smallValue {
+  font-size: 1.25rem !important;
+  line-height: 1.25 !important;
+}
+
+.board {
+  display: grid;
+  gap: 14px;
+}
+
+.watchCard {
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  background: var(--card-bg);
+  padding: 18px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+}
+
+.watchCard.red {
+  border-color: var(--danger-border);
+  background: linear-gradient(135deg, var(--soft-danger-bg), var(--card-bg) 58%);
+}
+
+.watchCard.yellow {
+  border-color: var(--warning-border);
+  background: linear-gradient(135deg, var(--warning-bg), var(--card-bg) 58%);
+}
+
+.cardMain {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.serverBox {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 auto;
+  border-radius: 22px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
+}
+
+.serverBox span {
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.cardBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.cardTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.mainInfo {
+  min-width: 0;
+}
+
+.mapName {
+  display: block;
+  color: var(--text-title);
+  font-size: clamp(1.15rem, 3vw, 1.6rem);
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.roomName {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--tag-border);
+  border-radius: 999px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  padding: 7px 11px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeText {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cardMeta span {
+  border: 1px solid var(--tag-border);
+  border-radius: 999px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.gaugeBadge {
+  border-color: var(--primary-border) !important;
+  background: var(--primary-bg) !important;
+  color: var(--primary-text) !important;
+}
+
+.watchCard.red .gaugeBadge {
+  border-color: var(--danger-border) !important;
+  background: var(--danger-bg) !important;
+  color: var(--danger-text) !important;
+}
+
+.watchCard.yellow .gaugeBadge {
+  border-color: var(--warning-border) !important;
+  background: var(--warning-bg) !important;
+  color: var(--warning-text) !important;
+}
+
+.memo {
+  margin: 12px 0 0;
+  border-left: 3px solid var(--soft-border);
+  padding-left: 10px;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.emptyBox,
+.errorBox {
+  border-radius: 20px;
+  padding: 20px;
+  line-height: 1.8;
+}
+
+.emptyBox {
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-muted);
+}
+
+.errorBox {
+  border: 1px solid var(--danger-border);
+  background: var(--soft-danger-bg);
+  color: var(--danger-text);
+  font-weight: 800;
+}
+
+@media (max-width: 1100px) {
+  .summaryGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .header {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .reloadButton {
+    width: 100%;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cardTop {
+    grid-template-columns: 1fr;
+  }
+
+  .timeText {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 32px 0 64px;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryCard {
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .summaryCard strong {
+    font-size: 1.7rem;
+  }
+
+  .watchCard {
+    border-radius: 20px;
+    padding: 14px;
+  }
+
+  .cardMain {
+    gap: 12px;
+  }
+
+  .serverBox {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+  }
+
+  .serverBox span {
+    font-size: 1.05rem;
+  }
+
+  .mapName {
+    font-size: 1.08rem;
+  }
+
+  .roomName {
+    font-size: 0.72rem;
+    padding: 6px 9px;
+  }
+
+  .cardMeta {
+    gap: 6px;
+  }
+
+  .cardMeta span {
+    font-size: 0.72rem;
+    padding: 5px 8px;
+  }
+}

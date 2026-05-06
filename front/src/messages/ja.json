@@ -1,0 +1,492 @@
+{
+  "HomePage": {
+    "meta": {
+      "title": "DQX Tools",
+      "description": "ドラクエ10向け便利ツール集"
+    },
+    "hero": {
+      "titleLine1": "ドラゴンクエスト10を",
+      "titleHighlight": "もっと便利に",
+      "description": "職人の利益確認、モンスター逆引き検索、モンスター図鑑、マップ別モンスター検索までまとめて使える便利ツール集。"
+    },
+    "pains": {
+      "heading": "こういった悩み、ありませんか？",
+      "items": {
+        "equipmentStats": {
+          "title": "装備の数値を見たい",
+          "text": "最新の装備の職人数値をすぐ確認したい。"
+        },
+        "costCheck": {
+          "title": "原価を知りたい",
+          "text": "素材費や原価を見ながら、装備づくりの判断をしたい。"
+        },
+        "reverseLookup": {
+          "title": "逆引きして探したい",
+          "text": "宝珠・装備・レアドロップから、モンスターがどのマップのどの位置に出現するか調べたい。"
+        }
+      }
+    },
+    "tools": {
+      "heading": "使えるツール",
+      "open": "ツールを開く",
+      "items": {
+        "craftProfit": {
+          "badge": "職人向け",
+          "title": "Craft Profit",
+          "description": "装備の素材費、原価、売値を見ながら利益を確認できる職人向けツール。"
+        },
+        "monsterSearch": {
+          "badge": "検索ツール",
+          "title": "モンスター検索",
+          "description": "宝珠・装備・レアドロップから、出現場所やマップ位置まで調べられる検索ツール。"
+        },
+        "monsterZukan": {
+          "badge": "図鑑",
+          "title": "モンスター図鑑",
+          "description": "モンスターの基本情報、ドロップ、出現マップなどを一覧で確認できる図鑑ツール。"
+        },
+        "mapMonsterBrowser": {
+          "badge": "マップ検索",
+          "title": "MAP別モンスター検索",
+          "description": "マップごとに出現モンスターを確認し、どこにいるかを視覚的に探せるツール。"
+        }
+      }
+    }
+  },
+  "Header": {
+    "logout": "ログアウト",
+    "openMenu": "メニューを開く",
+    "closeMenu": "メニューを閉じる",
+    "menuTitle": "Menu",
+    "adminTitle": "Admin",
+    "menus": {
+      "public": {
+        "craftProfit": "職人あれこれ",
+        "monsterSearch": "モンスター検索",
+        "monsterZukan": "モンスター図鑑",
+        "mapMonsterBrowser": "MAP別モンスター検索",
+        "kishoju": "輝晶獣分散"
+      },
+      "admin": {
+        "monsters": "モンスター管理",
+        "maps": "マップ管理",
+        "items": "アイテム管理",
+        "accessories": "アクセ管理",
+        "equipments": "装備管理",
+        "orbs": "宝珠管理",
+        "continents": "大陸管理",
+        "crystals": "結晶管理"
+      }
+    }
+  },
+  "Footer": {
+    "sections": {
+      "tools": "Tools",
+      "info": "Info",
+      "admin": "Admin"
+    },
+    "links": {
+      "craftProfit": "Craft Profit",
+      "monsterSearch": "モンスター検索",
+      "monsterZukan": "モンスター図鑑",
+      "mapMonsterBrowser": "MAP別モンスター検索",
+      "kishoju": "輝晶獣分散",
+      "about": "このサイトについて / ご利用にあたって"
+    },
+    "unofficialFanSite": "非公式ファンサイト",
+    "adminLogin": "管理者ログイン",
+    "loggedIn": "ログイン中",
+    "copyrightNotice": "本サイトはドラゴンクエストXの非公式ファンサイトです。株式会社スクウェア・エニックスとは関係ありません。"
+  },
+  "AboutPage": {
+    "metadata": {
+      "title": "このサイトについて",
+      "description": "DQX Tools の利用上の注意、著作権表記、掲載情報の取り扱いについてまとめたページ。"
+    },
+    "hero": {
+      "kicker": "TERMS OF USE",
+      "title": "ご利用にあたって"
+    },
+    "sections": {
+      "usage": {
+        "title": "ご利用上の注意",
+        "text": "このサイトに掲載している情報は、できるだけ見やすく整理した上で提供しています。ただし、ゲーム内アップデート、仕様変更、個別条件、記載ミスなどにより、実際の内容と差が出る場合があります。",
+        "list": {
+          "item1": "掲載内容の正確性や完全性を常に保証するものではありません。",
+          "item2": "閲覧や利用は利用者自身の判断と責任で行って頂きたいです。",
+          "item3": "掲載情報は予告なく修正、追加、削除する場合があります。"
+        },
+        "note": "このサイトの情報を参考にしたことによって生じた不利益、損害、トラブルなどについて、管理者は責任を負わないものと致します。"
+      },
+      "repost": {
+        "title": "画像・文章の無断転載について",
+        "text": "このサイトに掲載している画像、文章、レイアウト、独自に整理したデータ表現などのうち、当サイト管理者が作成したものについては、無断での転載、再配布、複製、スクリーンショットの大量転載、まとめサイト等への流用はお控え下さい。引用を行う場合は、管理者へお知らせ下さい。"
+      },
+      "copyright": {
+        "title": "著作権について",
+        "text": "ドラゴンクエストX、およびその関連名称、ゲーム内名称、画像、設定、世界観その他の権利は、各権利者に帰属しております。このサイトはファンによる非公式の情報整理サイトであり、権利を主張するものでありません。"
+      },
+      "unofficial": {
+        "title": "非公式サイトであることについて",
+        "text": "このサイトは、ドラゴンクエストX に関する情報を見やすくまとめることを目的とした非公式サイトです。公式運営とは関係はございません。"
+      }
+    },
+    "footer": "DQX Tools / About & Notice"
+  },
+  "CraftProfit": {
+    "common": {
+      "noResults": "該当なし"
+    },
+    "header": {
+      "equipmentSet": "アイテム名",
+      "searchPlaceholder": "アイテム名 or 装備レベルで検索",
+      "craftType": "職種",
+      "requiredLevel": "必要Lv {level}",
+      "toolUsage": "使用する道具（30回）",
+      "toolPriceTitle": "道具価格（変更可能）"
+    },
+    "equipment": {
+      "title": "装備情報",
+      "equipLevel": "装備Lv：",
+      "setContents": "セット内容",
+      "jobs": "装備可能職業",
+      "noJobs": "（装備可能職が未設定）",
+      "crystals": "結晶",
+      "crystalPattern": "なし: {plus0}個 ★: {plus1}個 ★★: {plus2}個 ★★★: {plus3}個",
+      "noCrystalInfo": "equipLevel が無いので表示できない"
+    },
+    "materials": {
+      "title": "職人情報",
+      "baseValues": "基準値",
+      "material": "素材",
+      "materialName": "素材名",
+      "required": "必要",
+      "unitPrice": "単価",
+      "amount": "金額",
+      "total": "合計",
+      "tool": "道具",
+      "noMaterials": "この項目で使う素材はない。",
+      "averagePerSlot":"平均コスト"
+    },
+    "salePrice": {
+      "title": "適正売値",
+      "fee": "手数料",
+      "star0": "星なし",
+      "star1": "★",
+      "star2": "★★",
+      "star3": "★★★",
+      "recommendTitle": "結晶装備おすすめ率",
+      "recommendHelp": "おすすめ率が高いほど黒字にしやすい",
+      "requiredRate": "必要率",
+      "remaining": "残り"
+    }
+  },
+  "MonsterSearchPage": {
+    "title": "モンスター検索",
+    "search": "検索",
+    "searchTypes": {
+      "monster": "モンスター",
+      "orb": "宝珠",
+      "item": "アイテム",
+      "equipment": "装備",
+      "accessory": "アクセサリー"
+    },
+    "searchPlaceholder": "{target}で検索",
+    "suggestions": "候補",
+    "loading": "検索中...",
+    "count": "{count}件",
+    "emptyTitle": "見つからなかった",
+    "emptyText": "キーワードを変えて試してください",
+    "errors": {
+      "detailFetchFailed": "モンスター詳細を取得できなかった"
+    }
+  },
+  "MonsterDropSection": {
+    "unknown": "不明",
+    "noData": "データなし",
+    "normal": "通常",
+    "rare": "レア",
+    "tabs": {
+      "drops": "ドロップ",
+      "equipment": "白宝箱",
+      "orb": "宝珠"
+    },
+    "slots": {
+      "head": "頭",
+      "bodyUpper": "体上",
+      "bodyLower": "体下",
+      "arm": "腕",
+      "foot": "足",
+      "shield": "盾"
+    },
+    "orbColors": {
+      "炎": "炎",
+      "水": "水",
+      "風": "風",
+      "雷": "雷",
+      "土": "土",
+      "光": "光",
+      "闇": "闇"
+    }
+  },
+  "MonsterMapOverlay": {
+    "noImage": "画像なし",
+    "loading": "読み込み中...",
+    "mapAlt": "map",
+    "huntingGround": "狩場",
+    "symbolCount": "シンボル数",
+    "spawnCount": "出現数",
+    "timeZone": "時間帯",
+    "memo": "メモ",
+    "close": "閉じる",
+    "bubbleAriaLabel": "{area} の詳細を見る"
+  },
+
+  "MonsterZukan": {
+    "title": "モンスター図鑑",
+    "empty": "モンスターがいない",
+    "reincarnated": "転生",
+    "summary": {
+      "total": "全{total}件"
+    },
+    "sort": {
+      "no": "NO順",
+      "kana": "50音順",
+      "comingSoon": "調整中",
+      "kanaSoonTitle": "50音順は現在調整中"
+    },
+    "pagination": {
+      "go": "移動",
+      "pages": "ページ"
+    }
+  },
+
+  "MapMonsterBrowser": {
+    "title": "マップ別モンスター検索",
+    "continent": "大陸",
+    "loadingContinentData": "大陸データを読み込んでいます...",
+    "continentPlaceholder": "大陸を入力",
+    "mapSearch": "地名検索",
+    "mapPlaceholder": "地名を入力",
+    "selectContinentFirst": "大陸を選択して下さい",
+    "displayLayer": "表示階層",
+    "all": "すべて",
+    "countShown": "{count} 件表示",
+    "systemType": "系統",
+    "noSystemType": "系統なし",
+    "monster": "モンスター",
+    "noMonster": "モンスターなし",
+    "reincarnated": "転生",
+    "detail": "詳細",
+    "spawnCount": "出現数",
+    "symbolCount": "シンボル数",
+    "spawnTime": "時間帯",
+    "memo": "メモ",
+    "noAreaInfo": "エリア情報なし",
+    "habitatArea": "生息エリア",
+    "showAll": "すべて見る",
+    "close": "閉じる",
+    "noCandidates": "候補なし",
+    "unknownMonster": "不明なモンスター",
+    "floorLabel": "階層 {floor}",
+    "loadFailed": "データ取得に失敗",
+    "emptyGuide": "大陸と地名を選ぶと、出現モンスターを確認できる",
+    "selectMap": "地名を選択して下さい",
+    "noMatchedMonster": "この条件に一致するモンスターはいない"
+  },
+
+  "MonsterDetailPage": {
+    "fetchError": "モンスター詳細を取得できなかった",
+    "notFound": "データが見つからなかった",
+    "backToSearch": "検索へ戻る",
+    "details": "モンスター詳細",
+    "drops": "ドロップ",
+    "normalDrops": "アイテム",
+    "whiteBoxDrops": "白宝箱",
+    "orbDrops": "宝珠",
+    "habitats": "生息地",
+    "noImage": "画像なし",
+    "noTrivia": "豆知識はまだ登録されていない",
+    "noNormalDrops": "登録なし",
+    "noWhiteBoxDrops": "登録なし",
+    "noOrbDrops": "登録なし"
+
+  },
+  "KishojuHome": {
+    "defaultRoomName": "輝晶獣 分散ルーム",
+    "hero": {
+      "kicker": "Crystal Beast Split Room",
+      "title": "輝晶獣分散ルーム",
+      "lead": "サーバー・マップ・ゲージ色を共有して、分散中の情報をひとつのルームにまとめられます。仲間と同じURLを開くだけで、現在の探索状況を確認できます。",
+      "features": {
+        "roomSharing": "ルーム共有",
+        "serverReports": "サーバー報告",
+        "redRainbowCheck": "赤・虹チェック"
+      }
+    },
+    "section": {
+      "kicker": "Start / Join",
+      "title": "分散をはじめる",
+      "lead": "新しくルームを作るか、共有されたコードを入力して既存ルームに入れます。"
+    },
+    "create": {
+      "kicker": "Create",
+      "title": "新しくルームを作る",
+      "lead": "自分が分散を開始する場合はこちら。作成後、共有できるルームページへ移動します。",
+      "roomNameLabel": "ルーム名",
+      "roomNamePlaceholder": "例: 5/2 夜分散",
+      "button": "ルームを作る",
+      "loading": "作成中..."
+    },
+    "join": {
+      "kicker": "Join",
+      "title": "作成済みルームに入る",
+      "lead": "共有されたルームコードを入力すると、その分散ルームへアクセスできます。",
+      "roomCodeLabel": "ルームコード",
+      "roomCodePlaceholder": "例: kaze-niji-482",
+      "button": "ルームに入る",
+      "loading": "移動中..."
+    },
+    "errors": {
+      "roomIdFailed": "ルームIDの取得に失敗しました",
+      "roomCodeRequired": "ルームコードを入力してください",
+      "common": "エラーが発生しました"
+    },
+    "notice": {
+    "roomNotFoundKicker": "Room Not Found",
+    "roomNotFoundTitle": "ルームが作成されていません",
+    "roomNotFoundText": "入力されたルームURLは存在しないか、すでに削除された可能性があります。新しくルームを作成するか、共有されたルームコードを確認してください。",
+    "ok": "OK",
+    "close": "閉じる"
+  }
+  },
+  "KishojuRoom": {
+    "maps": {
+      "geruhena": "ゲルヘナ幻野",
+      "gudaderu": "グラデル台地",
+      "beruvain": "ベルヴァインの森",
+      "bardia": "バルディア山岳地帯",
+      "jarim": "ジャリムバハ砂漠",
+      "oldNecrodea": "旧ネクロデア領"
+    },
+    "colors": {
+      "yellow": "黄",
+      "red": "赤"
+    },
+    "header": {
+      "kicker": "Crystal Beast Split Room",
+      "defaultTitle": "輝晶獣 分散ルーム",
+      "roomId": "Room ID: {roomId}",
+      "copyUrl": "共有URLをコピー"
+    },
+    "toast": {
+      "schedule": "虹化予定"
+    },
+    "drawer": {
+      "kicker": "Rainbow Schedule",
+      "title": "虹化予定",
+      "closeLabel": "虹化予定を閉じる"
+    },
+    "important": {
+      "title": "重要情報",
+      "caption": "赤登録から45分以上経過",
+      "empty": "まだ重要情報はありません。赤登録から45分以上経過するとここに表示されます。"
+    },
+    "side": {
+      "mapsTitle": "探査場所",
+      "registerTitle": "プレイヤー名登録",
+      "scheduleTitle": "虹化予定",
+      "scheduleCaption": "時間が来たら自動削除"
+    },
+    "form": {
+      "name": "名前",
+      "namePlaceholder": "例: Yoshi",
+      "serverFrom": "担当From",
+      "serverTo": "担当To",
+      "submit": "登録する",
+      "submitting": "登録中..."
+    },
+    "quick": {
+      "title": "クイック登録",
+      "caption": "ユーザーを選択して担当サーバーだけ表示",
+      "noMember": "ユーザー登録後、ここからユーザーを選択してください。",
+      "noMap": "左の「表示する場所」から、少なくとも1つ選択してください。",
+      "server": "Server",
+      "empty": "未",
+      "deleteReportLabel": "この報告を取り消す",
+      "deleteMemberLabel": "{name}を削除"
+    },
+    "log": {
+      "title": "報告ログ",
+      "caption": "5秒ごとに自動更新",
+      "empty": "まだ報告はありません。",
+      "undoLabel": "報告を取り消す",
+      "registeredAt": "{name} が {time} に登録",
+      "remaining": "あと{minutes}分"
+    },
+    "schedule": {
+      "empty": "赤の報告はまだありません。",
+      "until": "{time}まで",
+      "remaining": "あと{minutes}分",
+      "deleteLabel": "この虹化予定を削除"
+    },
+    "confirm": {
+      "cancel": "キャンセル",
+      "processing": "処理中...",
+      "defaultDelete": "削除する",
+      "deleteMemberTitle": "{name} を削除しますか？",
+      "deleteMemberDescription": "このユーザー登録を削除します。必要であれば、あとから同じ名前で再登録できます。",
+      "deleteMemberConfirm": "ユーザーを削除",
+      "deleteReportTitle": "この登録を削除しますか？",
+      "deleteReportDescription": "黄色・赤の登録を取り消します。",
+      "deleteReportConfirm": "削除する"
+    },
+    "messages": {
+      "joined": "参加登録しました",
+      "memberDeleted": "ユーザーを削除しました",
+      "reportDeleted": "最新の報告を取り消しました",
+      "urlCopied": "共有URLをコピーしました"
+    },
+    "errors": {
+      "common": "エラーが発生しました",
+      "nameRequired": "名前を入力してね",
+      "serverRequired": "担当サーバー From / To は必須です",
+      "serverOrder": "担当Fromは担当To以下にしてね",
+      "serverRange": "サーバー番号は1〜40で入力してね",
+      "memberRequired": "先にユーザーを選択してね"
+    },
+    "tutorial": {
+      "badge": "Tutorial",
+      "promptTitle": "チュートリアルを聞きますか？",
+      "promptText": "輝晶獣の分散ルームで、場所選択・プレイヤー登録・クイック登録の流れを案内します。",
+      "start": "はい、見る",
+      "skip": "いいえ、表示しない",
+      "prev": "戻る",
+      "next": "次へ",
+      "finish": "完了",
+      "closeAria": "チュートリアルを閉じる",
+      "stepCounter": "Step {current} / {total}",
+      "steps": {
+        "maps": {
+          "title": "1. 探索する場所を選択",
+          "description": "まずは左側の場所選択から、表示したい探索場所を選んでください。選んだ場所だけがクイック登録の表に表示されます。"
+        },
+        "register": {
+          "title": "2. プレイヤー名を登録",
+          "description": "次にプレイヤー名と担当サーバー範囲を入力して、ルームに参加します。一度登録するとブラウザに名前とサーバー範囲が保存されます。"
+        },
+        "quick": {
+          "title": "3. クイック登録で探索開始",
+          "description": "登録後は、担当サーバーと場所の交差するマスで黄・赤を押すだけです。赤は虹予定として自動的に重要通知へ反映されます。"
+        }
+      }
+    }
+}
+
+
+
+
+
+
+
+}

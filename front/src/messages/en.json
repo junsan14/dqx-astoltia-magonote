@@ -1,0 +1,479 @@
+{
+  "HomePage": {
+    "meta": {
+      "title": "DQX Tools",
+      "description": "Useful tools for Dragon Quest X"
+    },
+    "hero": {
+      "titleLine1": "Make Dragon Quest X",
+      "titleHighlight": "more convenient",
+      "description": "A collection of useful tools for checking crafting profit, reverse monster lookup, monster encyclopedia, and map-based monster search."
+    },
+    "pains": {
+      "heading": "Do you have these problems?",
+      "items": {
+        "equipmentStats": {
+          "title": "Want to check equipment stats",
+          "text": "I want to quickly check the latest crafting values for equipment."
+        },
+        "costCheck": {
+          "title": "Want to know the cost",
+          "text": "I want to judge whether to craft while checking material costs and total cost."
+        },
+        "reverseLookup": {
+          "title": "Want to search by reverse lookup",
+          "text": "I want to find which monsters appear on which map and where, starting from jewels, equipment, or rare drops."
+        }
+      }
+    },
+    "tools": {
+      "heading": "Available Tools",
+      "open": "Open tool",
+      "items": {
+        "craftProfit": {
+          "badge": "For Crafters",
+          "title": "Craft Profit",
+          "description": "A tool for crafters to check profit while viewing material cost, total cost, and selling price."
+        },
+        "monsterSearch": {
+          "badge": "Search Tool",
+          "title": "Monster Search",
+          "description": "Search monsters by jewels, equipment, or rare drops, and check their locations and map positions."
+        },
+        "monsterZukan": {
+          "badge": "Encyclopedia",
+          "title": "Monster Encyclopedia",
+          "description": "A monster encyclopedia tool where you can browse monster info, drops, and appearance maps."
+        },
+        "mapMonsterBrowser": {
+          "badge": "Map Search",
+          "title": "Map Monster Search",
+          "description": "A tool to explore monsters by map and visually check where they appear."
+        }
+      }
+    }
+  },
+  "Header": {
+    "logout": "Log out",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menuTitle": "Menu",
+    "adminTitle": "Admin",
+    "menus": {
+      "public": {
+        "craftProfit": "Craft Profit",
+        "monsterSearch": "Monster Search",
+        "monsterZukan": "Monster Encyclopedia",
+        "mapMonsterBrowser": "Map Monster Search",
+        "kishoju": "Crystal Beast Split Room"
+      },
+      "admin": {
+        "monsters": "Monster Manager",
+        "maps": "Map Manager",
+        "items": "Item Manager",
+        "accessories": "Accessory Manager",
+        "equipments": "Equipment Manager",
+        "orbs": "Orb Manager",
+        "continents": "Continent Manager",
+        "crystals": "Crystal Manager"
+      }
+    }
+  },
+  "Footer": {
+    "sections": {
+      "tools": "Tools",
+      "info": "Info",
+      "admin": "Admin"
+    },
+    "links": {
+      "craftProfit": "Craft Profit",
+      "monsterSearch": "Monster Search",
+      "monsterZukan": "Monster Encyclopedia",
+      "mapMonsterBrowser": "Map Monster Search",
+      "kishoju": "Crystal Beast Split Room",
+      "about": "About This Site / Terms of Use"
+    },
+    "unofficialFanSite": "Unofficial fan site",
+    "adminLogin": "Admin Login",
+    "loggedIn": "Logged in",
+    "copyrightNotice": "This site is an unofficial fan site for Dragon Quest X and is not affiliated with SQUARE ENIX CO., LTD."
+  },
+  "AboutPage": {
+    "metadata": {
+      "title": "About This Site",
+      "description": "A page summarizing the usage notes, copyright notice, and handling of published information for DQX Tools."
+    },
+    "hero": {
+      "kicker": "TERMS OF USE",
+      "title": "Before You Use This Site"
+    },
+    "sections": {
+      "usage": {
+        "title": "Usage Notes",
+        "text": "The information on this site is organized to be as clear and easy to read as possible. However, actual in-game content may differ due to updates, specification changes, individual conditions, or simple errors in the posted information.",
+        "list": {
+          "item1": "The accuracy and completeness of the posted content are not guaranteed at all times.",
+          "item2": "Please use this site at your own discretion and responsibility.",
+          "item3": "The posted information may be revised, added to, or removed without prior notice."
+        },
+        "note": "The site administrator shall not be held responsible for any disadvantage, damage, or trouble resulting from the use of information published on this site."
+      },
+      "repost": {
+        "title": "Unauthorized Reproduction of Images and Text",
+        "text": "Please refrain from unauthorized reposting, redistribution, copying, mass screenshot reposting, or reuse on summary sites of any images, text, layouts, or uniquely organized data representations created by this site's administrator. If you wish to quote content, please notify the administrator."
+      },
+      "copyright": {
+        "title": "Copyright",
+        "text": "Dragon Quest X and all related names, in-game terms, images, settings, worldbuilding elements, and other associated rights belong to their respective rights holders. This site is an unofficial fan-made information site and does not claim any ownership of those rights."
+      },
+      "unofficial": {
+        "title": "About This Unofficial Site",
+        "text": "This site is an unofficial website created to present Dragon Quest X information in a more accessible and easy-to-read format. It is not affiliated with the official operators."
+      }
+    },
+    "footer": "DQX Tools / About & Notice"
+  },
+  "CraftProfit": {
+    "common": {
+      "noResults": "No results"
+    },
+    "header": {
+      "equipmentSet": "Equipment Set",
+      "searchPlaceholder": "Search by equipment name or level",
+      "craftType": "Craft Type",
+      "requiredLevel": "Required Lv {level}",
+      "toolUsage": "Tool to Use (30 crafts)",
+      "toolPriceTitle": "Tool price (editable)"
+    },
+    "equipment": {
+      "title": "Equipment Info",
+      "equipLevel": "Equip Lv: ",
+      "setContents": "Set Contents",
+      "jobs": "Usable Jobs",
+      "noJobs": "(No equipable jobs set)",
+      "crystals": "Crystals",
+      "crystalPattern": "None: {plus0}  ★: {plus1}  ★★: {plus2}  ★★★: {plus3}",
+      "noCrystalInfo": "Cannot display because equipLevel is missing"
+    },
+    "materials": {
+      "title": "Craft Info",
+      "baseValues": "Base Values",
+      "material": "Material",
+      "materialName": "Material",
+      "required": "Qty",
+      "unitPrice": "Unit Price",
+      "amount": "Amount",
+      "total": "Total",
+      "tool": "Tool",
+      "noMaterials": "No materials are used in this part."
+    },
+    "salePrice": {
+      "title": "Suggested Sale Price",
+      "fee": "Fee",
+      "star0": "No Star",
+      "star1": "★",
+      "star2": "★★",
+      "star3": "★★★",
+      "recommendTitle": "Recommended Crystal Gear Rate",
+      "recommendHelp": "A higher recommended rate makes it easier to stay profitable",
+      "requiredRate": "Required",
+      "remaining": "Remaining"
+    }
+  },
+  "MonsterSearchPage": {
+    "title": "Monster Search",
+    "search": "Search",
+    "searchTypes": {
+      "monster": "MONSTER",
+      "orb": "ORB",
+      "item": "ITEM",
+      "equipment": "EQUIPMENT",
+      "accessory": "ACCESSORY"
+    },
+    "searchPlaceholder": "Search by {target}",
+    "suggestions": "Suggestions",
+    "loading": "Searching...",
+    "count": "{count} results",
+    "emptyTitle": "No results found",
+    "emptyText": "Try a different keyword.",
+    "errors": {
+      "detailFetchFailed": "Failed to fetch monster details."
+    }
+  },
+  "MonsterDropSection": {
+    "unknown": "Unknown",
+    "noData": "No data",
+    "normal": "Normal",
+    "rare": "Rare",
+    "tabs": {
+      "drops": "Drops",
+      "equipment": "White Box",
+      "orb": "Orbs"
+    },
+    "slots": {
+      "head": "Head",
+      "bodyUpper": "Upper",
+      "bodyLower": "Lower",
+      "arm": "Arms",
+      "foot": "Feet",
+      "shield": "Shield"
+    },
+    "orbColors": {
+      "炎": "Flame",
+      "水": "Water",
+      "風": "Wind",
+      "雷": "Lightning",
+      "土": "Earth",
+      "光": "Light",
+      "闇": "Dark"
+    }
+  },
+  "MonsterMapOverlay": {
+    "noImage": "No image",
+    "loading": "Loading...",
+    "mapAlt": "map",
+    "huntingGround": "Farming spot",
+    "symbolCount": "Symbols",
+    "spawnCount": "Spawns",
+    "timeZone": "Time",
+    "memo": "Notes",
+    "close": "Close",
+    "bubbleAriaLabel": "View details for {area}"
+  },
+
+  "MonsterZukan": {
+    "title": "Monster Zukan",
+    "empty": "No monsters found",
+    "reincarnated": "Reborn",
+    "summary": {
+      "total": "{total} total"
+    },
+    "sort": {
+      "no": "By No.",
+      "kana": "Kana Order",
+      "comingSoon": "Soon",
+      "kanaSoonTitle": "Kana order is currently being prepared"
+    },
+    "pagination": {
+      "go": "Go",
+      "pages": "pages"
+    }
+  },
+  
+
+  "MapMonsterBrowser": {
+    "title": "Map Monster Browser",
+    "continent": "Continent",
+    "loadingContinentData": "Loading continent data...",
+    "continentPlaceholder": "Type a continent",
+    "mapSearch": "Map Search",
+    "mapPlaceholder": "Type a map name",
+    "selectContinentFirst": "Please select a continent first",
+    "displayLayer": "Layer",
+    "all": "All",
+    "countShown": "{count} shown",
+    "systemType": "System Type",
+    "noSystemType": "No system type",
+    "monster": "Monster",
+    "noMonster": "No monsters",
+    "reincarnated": "Reincarnated",
+    "detail": "Detail",
+    "spawnCount": "Spawn Count",
+    "symbolCount": "Symbol Count",
+    "spawnTime": "Time",
+    "memo": "Memo",
+    "noAreaInfo": "No area info",
+    "habitatArea": "Habitat Area",
+    "showAll": "Show all",
+    "close": "Close",
+    "noCandidates": "No candidates",
+    "unknownMonster": "Unknown monster",
+    "floorLabel": "Floor {floor}",
+    "loadFailed": "Failed to load data",
+    "emptyGuide": "Select a continent and map to view monsters",
+    "selectMap": "Please select a map",
+    "noMatchedMonster": "No monsters match this condition"
+  },
+  "MonsterDetailPage": {
+    "fetchError": "Failed to load monster details",
+    "notFound": "Data not found",
+    "backToSearch": "Back to search"
+  },
+  "KishojuHome": {
+    "defaultRoomName": "Crystal Beast Split Room",
+    "hero": {
+      "kicker": "Crystal Beast Split Room",
+      "title": "Crystal Beast Split Room",
+      "lead": "Share server, map, and gauge color reports in one room. Open the same URL with your party members to check the current search status in real time.",
+      "features": {
+        "roomSharing": "Room sharing",
+        "serverReports": "Server reports",
+        "redRainbowCheck": "Red / Rainbow check"
+      }
+    },
+    "section": {
+      "kicker": "Start / Join",
+      "title": "Start a split search",
+      "lead": "Create a new room or enter a shared room code to join an existing room."
+    },
+    "create": {
+      "kicker": "Create",
+      "title": "Create a new room",
+      "lead": "Use this when you are starting a new split search. After creating a room, you will move to a shareable room page.",
+      "roomNameLabel": "Room name",
+      "roomNamePlaceholder": "Example: May 2 night search",
+      "button": "Create room",
+      "loading": "Creating..."
+    },
+    "join": {
+      "kicker": "Join",
+      "title": "Join an existing room",
+      "lead": "Enter a shared room code to access the split search room.",
+      "roomCodeLabel": "Room code",
+      "roomCodePlaceholder": "Example: kaze-niji-482",
+      "button": "Join room",
+      "loading": "Joining..."
+    },
+    "errors": {
+      "roomIdFailed": "Failed to get the room ID",
+      "roomCodeRequired": "Please enter a room code",
+      "common": "Something went wrong"
+    },
+    "notice": {
+      "roomNotFoundKicker": "Room Not Found",
+      "roomNotFoundTitle": "This room has not been created",
+      "roomNotFoundText": "The room URL you entered does not exist or may have already been deleted. Please create a new room or check the shared room code.",
+      "ok": "OK",
+      "close": "Close"
+    }
+  },
+  "KishojuRoom": {
+    "maps": {
+      "geruhena": "Geruhena Field",
+      "gudaderu": "Gudaderu Plateau",
+      "beruvain": "Bervain Forest",
+      "bardia": "Bardia Mountains",
+      "jarim": "Jarim Desert",
+      "oldNecrodea": "Old Necrodea"
+    },
+
+    "colors": {
+      "yellow": "Yellow",
+      "red": "Red"
+    },
+    "header": {
+      "kicker": "Crystal Beast Split Room",
+      "defaultTitle": "Crystal Beast Split Room",
+      "roomId": "Room ID: {roomId}",
+      "copyUrl": "Copy share URL"
+    },
+    "toast": {
+      "schedule": "Rainbow schedule"
+    },
+    "drawer": {
+      "kicker": "Rainbow Schedule",
+      "title": "Rainbow Schedule",
+      "closeLabel": "Close rainbow schedule"
+    },
+    "important": {
+      "title": "Important Reports",
+      "caption": "More than 45 minutes after red report",
+      "empty": "No important reports yet. Reports will appear here after 45 minutes have passed since a red report."
+    },
+    "side": {
+      "mapsTitle": "Display maps",
+      "registerTitle": "User registration",
+      "scheduleTitle": "Rainbow Schedule",
+      "scheduleCaption": "Deleted automatically when time is up"
+    },
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "Example: Yoshi",
+      "serverFrom": "Server From",
+      "serverTo": "Server To",
+      "submit": "Register",
+      "submitting": "Registering..."
+    },
+    "quick": {
+      "title": "Quick Report",
+      "caption": "Select a user and show only assigned servers",
+      "noMember": "After registering a user, select the user here.",
+      "noMap": "Please select at least one map from “Display maps”.",
+      "server": "Server",
+      "empty": "None",
+      "deleteReportLabel": "Remove this report",
+      "deleteMemberLabel": "Delete {name}"
+    },
+    "log": {
+      "title": "Report Log",
+      "caption": "Auto refreshes every 5 seconds",
+      "empty": "No reports yet.",
+      "undoLabel": "Remove report",
+      "registeredAt": "{name} registered at {time}",
+      "remaining": "{minutes} min left"
+    },
+    "schedule": {
+      "empty": "No red reports yet.",
+      "until": "Until {time}",
+      "remaining": "{minutes} min left",
+      "deleteLabel": "Delete this rainbow schedule"
+    },
+    "confirm": {
+      "cancel": "Cancel",
+      "processing": "Processing...",
+      "defaultDelete": "Delete",
+      "deleteMemberTitle": "Delete {name}?",
+      "deleteMemberDescription": "This user registration will be deleted. You can register again later with the same name if needed.",
+      "deleteMemberConfirm": "Delete user",
+      "deleteReportTitle": "Delete this report?",
+      "deleteReportDescription": "This will remove the yellow / red report.",
+      "deleteReportConfirm": "Delete"
+    },
+    "messages": {
+      "joined": "Registered successfully",
+      "memberDeleted": "User deleted",
+      "reportDeleted": "Latest report removed",
+      "urlCopied": "Share URL copied"
+    },
+    "errors": {
+      "common": "Something went wrong",
+      "nameRequired": "Please enter your name",
+      "serverRequired": "Server From / To is required",
+      "serverOrder": "Server From must be less than or equal to Server To",
+      "serverRange": "Server number must be between 1 and 40",
+      "memberRequired": "Please select a user first"
+    },
+    "tutorial": {
+      "badge": "Tutorial",
+      "promptTitle": "Would you like to view the tutorial?",
+      "promptText": "This guide will show you how to select display maps, register a player, and start reporting with Quick Report.",
+      "start": "Yes, show me",
+      "skip": "No, do not show again",
+      "prev": "Back",
+      "next": "Next",
+      "finish": "Finish",
+      "closeAria": "Close tutorial",
+      "stepCounter": "Step {current} / {total}",
+      "steps": {
+        "maps": {
+          "title": "1. Select maps to display",
+          "description": "First, choose the maps you want to display from the map selector on the left. Only selected maps will appear in the Quick Report table."
+        },
+        "register": {
+          "title": "2. Register your player name",
+          "description": "Next, enter your player name and assigned server range, then join the room. Your name and server range will be saved in this browser."
+        },
+        "quick": {
+          "title": "3. Start with Quick Report",
+          "description": "After registering, select your player and press Yellow or Red for each server and map. Red reports are automatically used for rainbow schedule notifications."
+        }
+      }
+    }
+}
+
+
+
+
+
+
+}
