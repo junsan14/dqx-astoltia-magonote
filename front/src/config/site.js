@@ -19,6 +19,6 @@ export const siteConfig = {
   },
 
   ogp: {
-    top: "/ogp/top-ogp.png",
+    top: "/ogp/top-ogp.webp",
   },
 };

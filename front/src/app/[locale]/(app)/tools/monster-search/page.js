@@ -16,7 +16,7 @@ export async function generateMetadata({ params }) {
     title,
     description,
     path: `/${locale}/tools/monster-search`,
-    image: "/ogp/monster-search.png",
+    image: "/ogp/monster-search.webp",
   });
 }
 

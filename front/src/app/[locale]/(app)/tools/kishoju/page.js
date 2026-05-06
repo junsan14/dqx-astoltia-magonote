@@ -16,7 +16,7 @@ export async function generateMetadata({ params }) {
     title,
     description,
     path: `/${locale}/tools/kishoju`,
-    image: "/ogp/kishouju.png",
+    image: "/ogp/kishouju.webp",
   });
 }
 

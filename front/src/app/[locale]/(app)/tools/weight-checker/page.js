@@ -16,6 +16,7 @@ export async function generateMetadata({ params }) {
     title,
     description,
     path: `/${locale}/tools/weight-checker`,
+    image: "/ogp/weight-checker.webp",
   });
 }
 
