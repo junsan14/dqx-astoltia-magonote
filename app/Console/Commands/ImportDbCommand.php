@@ -14,6 +14,8 @@ class ImportDbCommand extends Command
         {--key= : Upsert key column. Example: item_id, boss_id, name}
         {--csv-excludes-id : Use this when CSV does not contain id column}
         {--keep-id : Insert/update id from CSV. Usually not recommended}
+        {--fresh : Delete all rows from the target table before importing}
+        {--yes : Skip confirmation prompts}
         {--dry-run : Check only, do not write}';
 
     protected $description = 'Import latest table CSV into database. Example: php artisan import:db accessories';
@@ -24,6 +26,8 @@ class ImportDbCommand extends Command
         $dryRun = (bool) $this->option('dry-run');
         $keepId = (bool) $this->option('keep-id');
         $csvExcludesId = (bool) $this->option('csv-excludes-id');
+        $fresh = (bool) $this->option('fresh');
+        $yes = (bool) $this->option('yes');
 
         $file = $this->option('file');
         $table = null;
@@ -129,14 +133,40 @@ class ImportDbCommand extends Command
             return self::FAILURE;
         }
 
+        $totalCsvRows = $this->countCsvRows($path, $hasHeader);
+
         $this->info("Table: {$table}");
         $this->info("File: storage/app/{$file}");
         $this->info("Key: {$key}");
         $this->info('CSV columns: ' . implode(', ', $csvColumns));
+        $this->info("CSV rows: {$totalCsvRows}");
 
         if (! $keepId && in_array('id', $csvColumns, true)) {
             $this->warn('id column exists in CSV, but it will be ignored.');
             $this->warn('Use --keep-id only if you really want to import id.');
+        }
+
+        if ($fresh) {
+            $currentCount = DB::table($table)->count();
+
+            $this->warn("Fresh import mode is enabled.");
+            $this->warn("Target table will be initialized before import: {$table}");
+            $this->warn("Current rows in {$table}: {$currentCount}");
+
+            if ($dryRun) {
+                $this->warn('Dry run mode. Table will NOT be initialized.');
+            } elseif (! $yes) {
+                $confirmed = $this->confirm(
+                    "該当テーブル「{$table}」を初期化してインポートしますか？",
+                    false
+                );
+
+                if (! $confirmed) {
+                    fclose($handle);
+                    $this->warn('Cancelled.');
+                    return self::SUCCESS;
+                }
+            }
         }
 
         if ($dryRun) {
@@ -151,6 +181,10 @@ class ImportDbCommand extends Command
         DB::beginTransaction();
 
         try {
+            if ($fresh && ! $dryRun) {
+                $this->initializeTable($table);
+            }
+
             while (($values = fgetcsv($handle)) !== false) {
                 $lineNumber++;
 
@@ -194,6 +228,16 @@ class ImportDbCommand extends Command
                     $data['created_at'] = now();
                 }
 
+                if ($fresh) {
+                    $created++;
+
+                    if (! $dryRun) {
+                        DB::table($table)->insert($data);
+                    }
+
+                    continue;
+                }
+
                 $exists = DB::table($table)
                     ->where($key, $row[$key])
                     ->exists();
@@ -227,6 +271,10 @@ class ImportDbCommand extends Command
             $this->info("Updated: {$updated}");
             $this->info("Skipped: {$skipped}");
 
+            if ($fresh && ! $dryRun) {
+                $this->info("Table initialized and imported: {$table}");
+            }
+
             return self::SUCCESS;
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -239,6 +287,56 @@ class ImportDbCommand extends Command
 
             return self::FAILURE;
         }
+    }
+
+    private function initializeTable(string $table): void
+    {
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+
+        try {
+            DB::table($table)->delete();
+
+            if ($this->isMysql()) {
+                DB::statement("ALTER TABLE `{$table}` AUTO_INCREMENT = 1");
+            }
+        } finally {
+            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        }
+    }
+
+    private function isMysql(): bool
+    {
+        return DB::connection()->getDriverName() === 'mysql';
+    }
+
+    private function countCsvRows(string $path, bool $hasHeader): int
+    {
+        $handle = fopen($path, 'r');
+
+        if (! $handle) {
+            return 0;
+        }
+
+        $count = 0;
+        $line = 0;
+
+        while (($values = fgetcsv($handle)) !== false) {
+            $line++;
+
+            if ($hasHeader && $line === 1) {
+                continue;
+            }
+
+            if ($this->isEmptyCsvRow($values)) {
+                continue;
+            }
+
+            $count++;
+        }
+
+        fclose($handle);
+
+        return $count;
     }
 
     private function findLatestCsvForTable(string $table): ?string
@@ -277,6 +375,8 @@ class ImportDbCommand extends Command
     {
         $candidates = [
             'item_id',
+            'equipment_id',
+            'game_job_id',
             'boss_id',
             'monster_id',
             'map_id',
