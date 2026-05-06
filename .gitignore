@@ -31,3 +31,7 @@ Thumbs.db
 # Export CSV files are allowed
 !/storage/app/exports/
 !/storage/app/exports/**
+
+
+# Heavy frontend public assets
+/front/public/fonts
