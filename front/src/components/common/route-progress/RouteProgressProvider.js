@@ -12,7 +12,7 @@ import {
 const RouteProgressContext = createContext(null);
 
 const MIN_VISIBLE_MS = 300;
-const MAX_VISIBLE_MS = 5000;
+const MAX_VISIBLE_MS = 10000;
 
 export function RouteProgressProvider({ children }) {
   const [visible, setVisible] = useState(false);

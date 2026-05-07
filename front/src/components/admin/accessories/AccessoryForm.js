@@ -150,17 +150,60 @@ export default function AccessoryForm({
       </Section>
 
       <Section title="基礎効果">
-        <div style={gridStyle(isMobile)}>
-          {ACCESSORY_BASE_EFFECT_FIELDS.map((field) => (
-            <Field key={field.key} label={field.label}>
-              <input
-                type="number"
-                value={form[field.key]}
-                onChange={(e) => updateField(field.key, e.target.value)}
-                style={inputStyle}
-              />
-            </Field>
-          ))}
+        <div style={effectTwoColumnsStyle(isMobile)}>
+          <div style={effectColumnStyle}>
+            {[
+              "attack",
+              "defense",
+              "max_hp",
+              "max_mp",
+              "charm",
+            ].map((key) => {
+              const field = ACCESSORY_BASE_EFFECT_FIELDS.find(
+                (item) => item.key === key
+              );
+
+              if (!field) return null;
+
+              return (
+                <Field key={field.key} label={field.label}>
+                  <input
+                    type="number"
+                    value={form[field.key] ?? ""}
+                    onChange={(e) => updateField(field.key, e.target.value)}
+                    style={inputStyle}
+                  />
+                </Field>
+              );
+            })}
+          </div>
+
+          <div style={effectColumnStyle}>
+            {[
+              "agility",
+              "dexterity",
+              "magic_attack",
+              "healing_power",
+              "weight",
+            ].map((key) => {
+              const field = ACCESSORY_BASE_EFFECT_FIELDS.find(
+                (item) => item.key === key
+              );
+
+              if (!field) return null;
+
+              return (
+                <Field key={field.key} label={field.label}>
+                  <input
+                    type="number"
+                    value={form[field.key] ?? ""}
+                    onChange={(e) => updateField(field.key, e.target.value)}
+                    style={inputStyle}
+                  />
+                </Field>
+              );
+            })}
+          </div>
         </div>
       </Section>
       <JsonTabsEditor
@@ -393,6 +436,20 @@ const sectionStyle = {
   border: "1px solid var(--border-main, #ddd)",
   borderRadius: 12,
   background: "var(--card-bg, transparent)",
+};
+const effectTwoColumnsStyle = (isMobile) => ({
+  display: "grid",
+  gridTemplateColumns: isMobile
+    ? "minmax(0, 1fr)"
+    : "repeat(2, minmax(0, 1fr))",
+  gap: 14,
+});
+
+const effectColumnStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+  minWidth: 0,
 };
 
 const sectionTitleStyle = {

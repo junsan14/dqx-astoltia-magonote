@@ -755,17 +755,60 @@ export default function EquipmentEditorPanel({
             </div>
           </div>
 
-          <div style={styles.effectGrid}>
-            {EQUIPMENT_BASE_EFFECT_FIELDS.map((field) => (
-              <LabeledField key={field.key} label={field.label}>
-                <input
-                  type="number"
-                  style={styles.input}
-                  value={row[field.key] ?? ""}
-                  onChange={(e) => patchGroupAware(field.key, e.target.value)}
-                />
-              </LabeledField>
-            ))}
+          <div style={styles.effectTwoColumns}>
+            <div style={styles.effectColumn}>
+              {[
+                "attack",
+                "defense",
+                "maxHp",
+                "maxMp",
+                "charm",
+              ].map((key) => {
+                const field = EQUIPMENT_BASE_EFFECT_FIELDS.find(
+                  (item) => item.key === key
+                );
+
+                if (!field) return null;
+
+                return (
+                  <LabeledField key={field.key} label={field.label}>
+                    <input
+                      type="number"
+                      style={styles.input}
+                      value={row[field.key] ?? ""}
+                      onChange={(e) => patchGroupAware(field.key, e.target.value)}
+                    />
+                  </LabeledField>
+                );
+              })}
+            </div>
+
+            <div style={styles.effectColumn}>
+              {[
+                "agility",
+                "dexterity",
+                "magicAttack",
+                "healingPower",
+                "weight",
+              ].map((key) => {
+                const field = EQUIPMENT_BASE_EFFECT_FIELDS.find(
+                  (item) => item.key === key
+                );
+
+                if (!field) return null;
+
+                return (
+                  <LabeledField key={field.key} label={field.label}>
+                    <input
+                      type="number"
+                      style={styles.input}
+                      value={row[field.key] ?? ""}
+                      onChange={(e) => patchGroupAware(field.key, e.target.value)}
+                    />
+                  </LabeledField>
+                );
+              })}
+            </div>
           </div>
         </section>
       </div>
@@ -1062,11 +1105,18 @@ const styles = {
     minWidth: 0,
   },
 
-  effectGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: 12,
-  },
+effectTwoColumns: {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 14,
+},
+
+effectColumn: {
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+  minWidth: 0,
+},
 
   jobSection: {
     display: "flex",

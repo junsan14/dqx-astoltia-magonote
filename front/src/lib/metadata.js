@@ -20,33 +20,59 @@ export function getOgLocale(locale = "ja") {
   return locale === "en" ? "en_US" : "ja_JP";
 }
 
+function normalizePath(path = "/") {
+  if (!path || path === "/ja") return "/";
+  return path.replace(/^\/ja(?=\/|$)/, "") || "/";
+}
+
+function getJapanesePath(path = "/") {
+  const normalized = normalizePath(path);
+
+  if (normalized === "/en") return "/";
+  if (normalized.startsWith("/en/")) {
+    return normalized.replace(/^\/en/, "") || "/";
+  }
+
+  return normalized;
+}
+
+function getEnglishPath(path = "/") {
+  const jaPath = getJapanesePath(path);
+
+  if (jaPath === "/") return "/en";
+  return `/en${jaPath}`;
+}
+
 export function createBaseMetadata({
   locale = "ja",
   title,
   description,
-  path,
+  path = "/",
   image = siteConfig.ogp.top,
   withSiteName = true,
 }) {
   const siteName = getSiteName(locale);
   const fullTitle = withSiteName ? `${title} | ${siteName}` : title;
 
+  const canonicalPath = locale === "en" ? getEnglishPath(path) : getJapanesePath(path);
+
   return {
     title: fullTitle,
     description,
 
     alternates: {
-      canonical: path,
+      canonical: canonicalPath,
       languages: {
-        ja: path.replace(/^\/en/, "/ja"),
-        en: path.replace(/^\/ja/, "/en"),
+        ja: getJapanesePath(path),
+        en: getEnglishPath(path),
+        "x-default": getJapanesePath(path),
       },
     },
 
     openGraph: {
       title: fullTitle,
       description,
-      url: path,
+      url: canonicalPath,
       siteName,
       locale: getOgLocale(locale),
       type: "website",

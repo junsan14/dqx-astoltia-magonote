@@ -4,7 +4,6 @@ import NextLink from "next/link";
 import { Link as I18nLink } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/auth";
-import Link from "next/link";
 
 function FooterNavLink({
   href,
@@ -53,11 +52,11 @@ export default function Footer() {
       label: t("links.mapMonsterBrowser"),
       localized: true,
     },
-      {
-        href: "/tools/kishoju",
-        label:  t("links.kishoju"),
-        localized: true,
-      },
+    {
+      href: "/tools/kishoju",
+      label: t("links.kishoju"),
+      localized: true,
+    },
   ];
 
   return (
@@ -101,7 +100,9 @@ export default function Footer() {
               </li>
 
               <li>
-                <span className="text-slate-500">{t("unofficialFanSite")}</span>
+                <span className="text-slate-500">
+                  {t("unofficialFanSite")}
+                </span>
               </li>
             </ul>
           </div>
@@ -124,7 +125,16 @@ export default function Footer() {
                 </li>
               )}
 
-              {user && <Link href="/admin">ADMIN</Link>}
+              {user && (
+                <li>
+                  <NextLink
+                    href="/admin"
+                    className="inline-flex items-center rounded-full border border-slate-700 px-4 py-1.5 text-xs transition hover:bg-slate-800 hover:text-white"
+                  >
+                    ADMIN
+                  </NextLink>
+                </li>
+              )}
             </ul>
           </div>
         </div>

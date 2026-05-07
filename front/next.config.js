@@ -20,15 +20,6 @@ const nextConfig = {
     ],
   },
 
-  async redirects() {
-    return [
-      {
-        source: "/tools/:path*",
-        destination: "/ja/tools/:path*",
-        permanent: true,
-      },
-    ];
-  },
 };
 
 module.exports = withNextIntl(nextConfig);

@@ -37,6 +37,10 @@
 .heroText {
   min-width: 0;
 }
+.text{
+  text-align: right;
+  font-size: 10px;
+}
 
 .lead {
   max-width: 760px;

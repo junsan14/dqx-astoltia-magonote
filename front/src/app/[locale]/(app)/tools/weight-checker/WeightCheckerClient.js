@@ -1115,7 +1115,7 @@ export default function WeightCheckerClient() {
               </label>
 
               <label className={styles.fieldLabel}>
-                ごはん
+                ごはん(ヘビチャ対象外)
                 <select
                   value={foodWeight}
                   onChange={(e) => setFoodWeight(Number(e.target.value))}
@@ -1159,7 +1159,7 @@ export default function WeightCheckerClient() {
           </div>
 
           <div className={styles.formSection}>
-            <h3>宝珠</h3>
+            <h3>宝珠(ヘビチャ対象外)</h3>
 
             <div className={styles.inputGrid}>
               <NumberField
@@ -1252,13 +1252,6 @@ export default function WeightCheckerClient() {
                 )}
               </select>
             </label>
-
-            {selectedGameJobId && (
-              <p>
-                職業で装備候補を絞り込み中。バトルマスター・踊り子は二刀流、
-                その他の職業は右手武器に応じて盾可否を判定します。
-              </p>
-            )}
           </div>
 
           <div className={styles.setSearchBox}>
@@ -1334,7 +1327,7 @@ export default function WeightCheckerClient() {
                 </div>
               )}
           </div>
-
+           <p className={styles.text}>錬金、合成の重さはヘビチャ対象外</p>
           {isLoading ? (
             <div className={styles.loadingBox}>装備データを読み込み中...</div>
           ) : (

@@ -18,7 +18,7 @@ export default function MonsterImageCard({
   }, [monster?.image_path]);
 
   const hasImage = !!imageUrl && !hasError;
-
+console.log(imageUrl)
   return (
     <div
       style={{
