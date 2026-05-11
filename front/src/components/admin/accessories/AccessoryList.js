@@ -2,7 +2,6 @@
 
 export default function AccessoryList({
   accessories = [],
-  allAccessories = [],
   loading = false,
   selectedId = null,
   onSelect,

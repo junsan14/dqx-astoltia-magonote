@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Suspense } from "react";
 import { mochiy, kosugi } from "@/app/fonts";
 import { GoogleTagManager } from "@next/third-parties/google";
 import { RouteProgressProvider } from "@/components/common/route-progress/RouteProgressProvider";
@@ -8,10 +9,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ja">
       <body className={`antialiased ${kosugi.className} ${mochiy.variable}`}>
-        <RouteProgressProvider>
-          <RouteProgressBar />
-          {children}
-        </RouteProgressProvider>
+        <Suspense fallback={null}>
+          <RouteProgressProvider>
+            <RouteProgressBar />
+            {children}
+          </RouteProgressProvider>
+        </Suspense>
       </body>
 
       {process.env.NODE_ENV === "production" && (

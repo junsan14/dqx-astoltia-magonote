@@ -45,9 +45,7 @@ function getInheritanceChain(item) {
   return item ? [item] : [];
 }
 
-function getGenerationLabel(item) {
-  return item?.inheritance_type || "世代未設定";
-}
+
 
 function getChainKeyFromItem(item) {
   const chain = getInheritanceChain(item);
@@ -413,7 +411,7 @@ function getImageSrc(src = "") {
 
   return src;
 }
-function AccessoryGuideCard({ item, chain }) {
+function AccessoryGuideCard({ item }) {
   const obtainPlaces = getObtainPlaces(item);
   const effects = getBaseEffects(item);
   const normalEffects = normalizeTextRows(item.effects_json);

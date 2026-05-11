@@ -424,7 +424,7 @@ function calculateBakuRule({ limit = 30, instantCount = 1 }) {
   };
 }
 
-function calculateBakuChildWinFromState({ remaining, actor, limit = 30, instantCount = 1 }) {
+function calculateBakuChildWinFromState({ remaining, actor, instantCount = 1 }) {
   const memoChild = new Map();
   const memoParent = new Map();
   const rolls = Array.from({ length: 100 }, (_, index) => index + 1);
@@ -656,7 +656,6 @@ const [bakuTool, setBakuTool] = useState({
 
 
 const bakuRollNumber = Number(bakuTool.roll);
-const bakuDigits = getBakuChoiceDigits(bakuRollNumber);
 
 
 const bakuEvaluations = useMemo(() => {
