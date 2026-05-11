@@ -31,6 +31,9 @@ class Accessory extends Model
         'image_url',
         'source_url',
         'detail_url',
+        'inheritance_from_accessory_id',
+        'inheritance_type',
+        'inheritance_note',
     ];
 
     protected $casts = [
@@ -49,6 +52,21 @@ class Accessory extends Model
         'magic_attack' => 'integer',
         'healing_power' => 'integer',
     ];
+    public function inheritanceFrom()
+    {
+        return $this->belongsTo(
+            Accessory::class,
+            'inheritance_from_accessory_id'
+        );
+    }
+
+    public function inheritanceTo()
+    {
+        return $this->hasMany(
+            Accessory::class,
+            'inheritance_from_accessory_id'
+        );
+    }
 
 
 }

@@ -28,6 +28,7 @@ export const ACCESSORY_BASE_EFFECT_FIELDS = [
 ];
 
 export const ACCESSORY_NUMBER_FIELDS = [
+  "inheritance_from_accessory_id",
   "equip_level",
   "weight",
   "attack",
@@ -50,6 +51,13 @@ export function createEmptyAccessory() {
     item_kind: "accessory",
     slot: "",
     accessory_type: "",
+
+    inheritance_from_accessory_id: "",
+    inheritance_type: "",
+    inheritance_note: "",
+    inheritance_from: null,
+    inheritance_chain: [],
+
     equip_level: "",
 
     weight: "",
@@ -104,6 +112,32 @@ export function normalizeJsonRows(value) {
   });
 }
 
+function normalizeInheritanceAccessory(row = null) {
+  if (!row || typeof row !== "object") return null;
+
+  return {
+    id: row?.id ?? null,
+    item_id: row?.item_id ?? "",
+    name: row?.name ?? "",
+    name_en: row?.name_en ?? "",
+    slot: row?.slot ?? "",
+    accessory_type: row?.accessory_type ?? "",
+    inheritance_from_accessory_id: normalizeNumberInput(
+      row?.inheritance_from_accessory_id
+    ),
+    inheritance_type: row?.inheritance_type ?? "",
+    image_url: row?.image_url ?? "",
+  };
+}
+
+function normalizeInheritanceChain(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => normalizeInheritanceAccessory(item))
+    .filter(Boolean);
+}
+
 export function normalizeAccessory(row = {}) {
   const empty = createEmptyAccessory();
 
@@ -117,6 +151,15 @@ export function normalizeAccessory(row = {}) {
     item_kind: row?.item_kind ?? "accessory",
     slot: row?.slot ?? "",
     accessory_type: row?.accessory_type ?? "",
+
+    inheritance_from_accessory_id: normalizeNumberInput(
+      row?.inheritance_from_accessory_id
+    ),
+    inheritance_type: row?.inheritance_type ?? "",
+    inheritance_note: row?.inheritance_note ?? "",
+    inheritance_from: normalizeInheritanceAccessory(row?.inheritance_from),
+    inheritance_chain: normalizeInheritanceChain(row?.inheritance_chain),
+
     equip_level: normalizeNumberInput(row?.equip_level),
 
     weight: normalizeNumberInput(row?.weight),
@@ -242,6 +285,9 @@ function cleanAccessoryPayload(data = {}) {
       payload[key] = null;
     }
   });
+
+  delete payload.inheritance_from;
+  delete payload.inheritance_chain;
 
   return payload;
 }

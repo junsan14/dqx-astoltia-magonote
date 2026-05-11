@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MonsterPicker from "@/components/admin/shared/MonsterPicker";
 import {
   ACCESSORY_BASE_EFFECT_FIELDS,
@@ -20,6 +20,8 @@ export default function AccessoryForm({
   onChange,
   slots = [],
   accessoryTypes = [],
+  allAccessories = [],
+  generationOptions = [],
   isMobile = false,
 }) {
   const [form, setForm] = useState(() => createEmptyAccessory());
@@ -33,6 +35,50 @@ export default function AccessoryForm({
     setForm(createEmptyAccessory());
   }, [accessory]);
 
+  const safeGenerationOptions = useMemo(() => {
+    const currentValue = String(form?.inheritance_type ?? "").trim();
+
+    const values = [
+      ...generationOptions.map((item) => String(item ?? "").trim()),
+      currentValue,
+    ].filter(Boolean);
+
+    return [...new Set(values)].sort(
+      (a, b) => getGenerationSortValue(a) - getGenerationSortValue(b)
+    );
+  }, [generationOptions, form?.inheritance_type]);
+
+  const parentCandidateAccessories = useMemo(() => {
+    const blockedIds = new Set([Number(form?.id)]);
+
+    getDescendants(form?.id, allAccessories).forEach((item) => {
+      blockedIds.add(Number(item.id));
+    });
+
+    const previousGeneration = getPreviousGenerationLabel(
+      form?.inheritance_type
+    );
+
+    return allAccessories.filter((item) => {
+      if (!item?.id) return false;
+      if (blockedIds.has(Number(item.id))) return false;
+
+      if (previousGeneration) {
+        return String(item.inheritance_type ?? "").trim() === previousGeneration;
+      }
+
+      return true;
+    });
+  }, [allAccessories, form?.id, form?.inheritance_type]);
+
+  const inheritanceChain = useMemo(() => {
+    if (Array.isArray(form?.inheritance_chain) && form.inheritance_chain.length > 0) {
+      return form.inheritance_chain;
+    }
+
+    return form?.id ? [form] : [];
+  }, [form]);
+
   function updateForm(nextForm) {
     setForm(nextForm);
     onChange?.(nextForm);
@@ -42,6 +88,50 @@ export default function AccessoryForm({
     updateForm({
       ...form,
       [key]: value,
+    });
+  }
+
+  function handleGenerationChange(value) {
+    if (isFirstGeneration(value)) {
+      updateForm({
+        ...form,
+        inheritance_type: value,
+        inheritance_from_accessory_id: "",
+        inheritance_from: null,
+        inheritance_chain: form?.id ? [form] : [],
+      });
+
+      return;
+    }
+
+    updateForm({
+      ...form,
+      inheritance_type: value,
+    });
+  }
+
+  function handleInheritanceFromChange(nextId) {
+    const selected = parentCandidateAccessories.find(
+      (item) => Number(item.id) === Number(nextId)
+    );
+
+    updateForm({
+      ...form,
+      inheritance_from_accessory_id: nextId,
+      inheritance_from: selected
+        ? {
+            id: selected.id,
+            item_id: selected.item_id ?? "",
+            name: selected.name ?? "",
+            name_en: selected.name_en ?? "",
+            slot: selected.slot ?? "",
+            accessory_type: selected.accessory_type ?? "",
+            image_url: selected.image_url ?? "",
+            inheritance_type: selected.inheritance_type ?? "",
+            inheritance_from_accessory_id:
+              selected.inheritance_from_accessory_id ?? "",
+          }
+        : null,
     });
   }
 
@@ -149,16 +239,58 @@ export default function AccessoryForm({
         </div>
       </Section>
 
+      <Section title="伝承情報">
+        <div style={gridStyle(isMobile)}>
+          <Field label="世代">
+            <>
+              <input
+                list="inheritance-type-list"
+                value={form.inheritance_type ?? ""}
+                onChange={(e) => handleGenerationChange(e.target.value)}
+                style={inputStyle}
+                placeholder="例：第一世代 / 第二世代 / 第三世代"
+              />
+              <datalist id="inheritance-type-list">
+                {safeGenerationOptions.map((type) => (
+                  <option key={type} value={type} />
+                ))}
+              </datalist>
+            </>
+          </Field>
+
+          {!isFirstGeneration(form.inheritance_type) && (
+            <Field label="伝承元アクセサリ">
+              <AccessoryInheritancePicker
+                value={form.inheritance_from_accessory_id}
+                options={parentCandidateAccessories}
+                onChange={handleInheritanceFromChange}
+                isMobile={isMobile}
+              />
+            </Field>
+          )}
+        </div>
+
+        {isFirstGeneration(form.inheritance_type) ? (
+          <div style={emptySelectedStyle}>第一世代：伝承元アクセサリは不要</div>
+        ) : (
+          <Field label="伝承メモ">
+            <textarea
+              rows={3}
+              value={form.inheritance_note ?? ""}
+              onChange={(e) => updateField("inheritance_note", e.target.value)}
+              style={textareaStyle}
+              placeholder="例：ひとつ前の世代アクセサリから効果を引き継ぐ。"
+            />
+          </Field>
+        )}
+
+        <InheritanceChainPreview chain={inheritanceChain} currentId={form.id} />
+      </Section>
+
       <Section title="基礎効果">
         <div style={effectTwoColumnsStyle(isMobile)}>
           <div style={effectColumnStyle}>
-            {[
-              "attack",
-              "defense",
-              "max_hp",
-              "max_mp",
-              "charm",
-            ].map((key) => {
+            {["attack", "defense", "max_hp", "max_mp", "charm"].map((key) => {
               const field = ACCESSORY_BASE_EFFECT_FIELDS.find(
                 (item) => item.key === key
               );
@@ -206,6 +338,7 @@ export default function AccessoryForm({
           </div>
         </div>
       </Section>
+
       <JsonTabsEditor
         title="基礎効果JSON"
         rows={form.effects_json}
@@ -240,7 +373,7 @@ export default function AccessoryForm({
       />
 
       <JsonTabsEditor
-        title="補足"
+        title="入手場所"
         rows={form.obtain_methods_json}
         onAdd={(text) => addJsonRow("obtain_methods_json", text)}
         onRemove={(index) => removeJsonRow("obtain_methods_json", index)}
@@ -288,6 +421,261 @@ export default function AccessoryForm({
       </Section>
     </div>
   );
+}
+
+function AccessoryInheritancePicker({
+  value = "",
+  options = [],
+  onChange,
+  isMobile = false,
+}) {
+  const [keyword, setKeyword] = useState("");
+  const [open, setOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const selectedItem = useMemo(() => {
+    return options.find((item) => Number(item.id) === Number(value)) ?? null;
+  }, [options, value]);
+
+  const inputValue = isEditing ? keyword : selectedItem?.name ?? "";
+
+  const filteredOptions = useMemo(() => {
+    const q = keyword.trim().toLowerCase();
+
+    if (!q) {
+      return options.slice(0, 30);
+    }
+
+    return options
+      .filter((item) => {
+        const text = [
+          item.name,
+          item.name_en,
+          item.item_id,
+          item.slot,
+          item.accessory_type,
+          item.inheritance_type,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return text.includes(q);
+      })
+      .slice(0, 40);
+  }, [options, keyword]);
+
+  function handleFocus() {
+    setIsEditing(true);
+    setKeyword("");
+    setOpen(true);
+  }
+
+  function handleSelect(item) {
+    onChange?.(item.id);
+    setKeyword("");
+    setIsEditing(false);
+    setOpen(false);
+  }
+
+  function handleClear() {
+    onChange?.("");
+    setKeyword("");
+    setIsEditing(false);
+    setOpen(false);
+  }
+
+  function handleClose() {
+    setOpen(false);
+    setIsEditing(false);
+    setKeyword("");
+  }
+
+  return (
+    <div style={pickerStyle}>
+      <div style={pickerInputWrapStyle}>
+        <input
+          value={inputValue}
+          onChange={(e) => {
+            setKeyword(e.target.value);
+            setIsEditing(true);
+            setOpen(true);
+          }}
+          onFocus={handleFocus}
+          style={pickerInputStyle}
+          placeholder="伝承元アクセサリを検索"
+        />
+
+        {selectedItem && (
+          <button
+            type="button"
+            onClick={handleClear}
+            style={pickerClearButtonStyle}
+            aria-label="伝承元アクセサリを解除"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div style={pickerPanelStyle(isMobile)}>
+          <div style={pickerPanelHeaderStyle}>
+            <span>候補 {filteredOptions.length} 件</span>
+            <button type="button" onClick={handleClose} style={smallButtonStyle}>
+              閉じる
+            </button>
+          </div>
+
+          {filteredOptions.length === 0 ? (
+            <div style={pickerEmptyStyle}>候補がない</div>
+          ) : (
+            <div style={pickerListStyle}>
+              {filteredOptions.map((item) => {
+                const active = Number(item.id) === Number(value);
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleSelect(item)}
+                    style={{
+                      ...pickerItemStyle,
+                      ...(active ? pickerItemActiveStyle : null),
+                    }}
+                  >
+                    <strong>{item.name}</strong>
+  
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InheritanceChainPreview({ chain = [], currentId = null }) {
+  const safeChain = chain.filter(Boolean);
+  const safeCurrentId = Number(currentId);
+
+  return (
+    <div style={chainPreviewStyle}>
+      <div style={chainPreviewHeaderStyle}>
+        <strong>伝承元チェーン</strong>
+        <span>{safeChain.length > 0 ? `${safeChain.length}世代` : "未設定"}</span>
+      </div>
+
+      {safeChain.length > 0 ? (
+        <div style={chainLineStyle}>
+          {safeChain.map((item, index) => {
+            const isCurrent = Number(item.id) === safeCurrentId;
+
+            return (
+              <div key={`${item.id}-${index}`} style={chainNodeWrapStyle}>
+                {index > 0 && <span style={chainArrowStyle}>→</span>}
+                <span style={chainNodeStyle(isCurrent)}>
+                  {item.name || "名称未設定"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p style={mutedTextStyle}>アクセサリ名を入力するとここに表示される。</p>
+      )}
+    </div>
+  );
+}
+
+function createChildrenMap(allAccessories = []) {
+  const childrenByParentId = new Map();
+
+  allAccessories.forEach((item) => {
+    const parentId = Number(item?.inheritance_from_accessory_id);
+
+    if (!parentId) return;
+
+    if (!childrenByParentId.has(parentId)) {
+      childrenByParentId.set(parentId, []);
+    }
+
+    childrenByParentId.get(parentId).push(item);
+  });
+
+  return childrenByParentId;
+}
+
+function getDescendants(id, allAccessories = []) {
+  const rootId = Number(id);
+  if (!rootId) return [];
+
+  const childrenByParentId = createChildrenMap(allAccessories);
+  const results = [];
+  const visited = new Set();
+
+  function walk(parentId) {
+    const children = childrenByParentId.get(Number(parentId)) ?? [];
+
+    children.forEach((child) => {
+      const childId = Number(child.id);
+
+      if (!childId || visited.has(childId)) return;
+
+      visited.add(childId);
+      results.push(child);
+      walk(childId);
+    });
+  }
+
+  walk(rootId);
+
+  return results;
+}
+
+function isFirstGeneration(value = "") {
+  return String(value).trim() === "第一世代";
+}
+
+function getPreviousGenerationLabel(value = "") {
+  const normalized = String(value).trim();
+
+  const generationMap = {
+    第一世代: null,
+    第二世代: "第一世代",
+    第三世代: "第二世代",
+    第四世代: "第三世代",
+    第五世代: "第四世代",
+    第六世代: "第五世代",
+    第七世代: "第六世代",
+    第八世代: "第七世代",
+    第九世代: "第八世代",
+    第十世代: "第九世代",
+  };
+
+  return generationMap[normalized] ?? null;
+}
+
+function getGenerationSortValue(value = "") {
+  const normalized = String(value).trim();
+
+  const generationMap = {
+    第一世代: 1,
+    第二世代: 2,
+    第三世代: 3,
+    第四世代: 4,
+    第五世代: 5,
+    第六世代: 6,
+    第七世代: 7,
+    第八世代: 8,
+    第九世代: 9,
+    第十世代: 10,
+  };
+
+  return generationMap[normalized] ?? 999;
 }
 
 function Section({ title, children }) {
@@ -399,7 +787,7 @@ function JsonTabsEditor({
                 value={activeRow?.text ?? ""}
                 onChange={(e) => onChange(activeIndex, "text", e.target.value)}
                 style={inputStyle}
-                placeholder="例：さいだいHP +2"
+                placeholder="例：万魔の塔"
               />
             </Field>
           </div>
@@ -408,6 +796,7 @@ function JsonTabsEditor({
     </Section>
   );
 }
+
 const formStyle = {
   display: "grid",
   gap: 16,
@@ -437,20 +826,6 @@ const sectionStyle = {
   borderRadius: 12,
   background: "var(--card-bg, transparent)",
 };
-const effectTwoColumnsStyle = (isMobile) => ({
-  display: "grid",
-  gridTemplateColumns: isMobile
-    ? "minmax(0, 1fr)"
-    : "repeat(2, minmax(0, 1fr))",
-  gap: 14,
-});
-
-const effectColumnStyle = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-  minWidth: 0,
-};
 
 const sectionTitleStyle = {
   margin: 0,
@@ -469,6 +844,21 @@ const gridStyle = (isMobile) => ({
   gap: 12,
 });
 
+const effectTwoColumnsStyle = (isMobile) => ({
+  display: "grid",
+  gridTemplateColumns: isMobile
+    ? "minmax(0, 1fr)"
+    : "repeat(2, minmax(0, 1fr))",
+  gap: 14,
+});
+
+const effectColumnStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+  minWidth: 0,
+};
+
 const fieldStyle = {
   display: "grid",
   gap: 6,
@@ -484,7 +874,8 @@ const labelStyle = {
 const inputStyle = {
   width: "100%",
   minWidth: 0,
-  padding: "10px 12px",
+  height: 40,
+  padding: "0 12px",
   border: "1px solid var(--input-border)",
   borderRadius: 8,
   fontSize: 14,
@@ -504,6 +895,181 @@ const textareaStyle = {
   resize: "vertical",
   background: "var(--input-bg)",
   color: "var(--input-text)",
+};
+
+const emptySelectedStyle = {
+  padding: 10,
+  border: "1px dashed var(--input-border)",
+  borderRadius: 10,
+  color: "var(--text-sub)",
+  background: "var(--soft-bg, transparent)",
+};
+
+const pickerStyle = {
+  position: "relative",
+  display: "grid",
+  gap: 8,
+  minWidth: 0,
+};
+
+const pickerInputWrapStyle = {
+  position: "relative",
+  width: "100%",
+  minWidth: 0,
+};
+
+const pickerInputStyle = {
+  width: "100%",
+  minWidth: 0,
+  height: 40,
+  padding: "0 38px 0 12px",
+  border: "1px solid var(--input-border)",
+  borderRadius: 8,
+  fontSize: 14,
+  boxSizing: "border-box",
+  background: "var(--input-bg)",
+  color: "var(--input-text)",
+};
+
+const pickerClearButtonStyle = {
+  position: "absolute",
+  right: 8,
+  top: "50%",
+  transform: "translateY(-50%)",
+  width: 24,
+  height: 24,
+  border: "1px solid var(--input-border)",
+  borderRadius: 999,
+  background: "var(--input-bg)",
+  color: "var(--input-text)",
+  cursor: "pointer",
+  fontWeight: 700,
+  lineHeight: 1,
+};
+
+const pickerPanelStyle = (isMobile) => ({
+  position: isMobile ? "static" : "absolute",
+  zIndex: 20,
+  top: "calc(100% + 8px)",
+  left: 0,
+  right: 0,
+  display: "grid",
+  gap: 8,
+  padding: 10,
+  border: "1px solid var(--input-border)",
+  borderRadius: 12,
+  background: "var(--panel-bg, var(--card-bg, #fff))",
+  boxShadow: isMobile ? "none" : "0 16px 40px rgba(0, 0, 0, 0.16)",
+  maxHeight: isMobile ? "none" : 320,
+  overflow: "hidden",
+});
+
+const pickerPanelHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 8,
+  color: "var(--text-sub)",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const pickerListStyle = {
+  display: "grid",
+  gap: 6,
+  maxHeight: 260,
+  overflow: "auto",
+};
+
+const pickerItemStyle = {
+  display: "grid",
+  gap: 3,
+  textAlign: "left",
+  width: "100%",
+  padding: 10,
+  border: "1px solid var(--card-border, var(--input-border))",
+  borderRadius: 10,
+  background: "var(--card-bg, transparent)",
+  color: "var(--text-main)",
+  cursor: "pointer",
+};
+
+const pickerItemActiveStyle = {
+  border: "2px solid var(--selected-border)",
+  background: "var(--selected-bg)",
+};
+
+const pickerEmptyStyle = {
+  padding: 12,
+  color: "var(--text-sub)",
+  border: "1px dashed var(--input-border)",
+  borderRadius: 10,
+};
+
+const smallButtonStyle = {
+  border: "1px solid var(--input-border)",
+  borderRadius: 8,
+  padding: "5px 9px",
+  background: "var(--input-bg)",
+  color: "var(--input-text)",
+  cursor: "pointer",
+  fontWeight: 700,
+};
+
+const chainPreviewStyle = {
+  display: "grid",
+  gap: 10,
+  padding: 12,
+  border: "1px dashed var(--input-border)",
+  borderRadius: 10,
+  background: "var(--soft-bg, transparent)",
+};
+
+const chainPreviewHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 8,
+  color: "var(--text-main)",
+};
+
+const chainLineStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: 8,
+};
+
+const chainNodeWrapStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+};
+
+const chainArrowStyle = {
+  color: "var(--text-sub)",
+  fontWeight: 700,
+};
+
+const chainNodeStyle = (isCurrent) => ({
+  display: "inline-flex",
+  alignItems: "center",
+  border: isCurrent
+    ? "2px solid var(--selected-border)"
+    : "1px solid var(--input-border)",
+  borderRadius: 999,
+  padding: "6px 10px",
+  background: isCurrent ? "var(--selected-bg)" : "var(--input-bg)",
+  color: "var(--text-main)",
+  fontWeight: 700,
+  fontSize: 13,
+  boxShadow: isCurrent ? "0 0 0 3px rgba(59, 130, 246, 0.16)" : "none",
+});
+
+const mutedTextStyle = {
+  margin: 0,
+  color: "var(--text-sub)",
+  lineHeight: 1.7,
 };
 
 const jsonEditorStyle = {
@@ -534,8 +1100,6 @@ const tabButtonStyle = (isActive) => ({
   color: isActive ? "var(--bg-main, #fff)" : "var(--input-text)",
   fontWeight: 700,
 });
-
-
 
 const dangerButtonStyle = {
   border: "1px solid #ef4444",

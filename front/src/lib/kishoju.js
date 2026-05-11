@@ -4,7 +4,7 @@ function getApiUrl() {
   const apiUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     process.env.NEXT_PUBLIC_BACKEND_URL ||
-    "http://127.0.0.1:8000/api";
+    "http://127.0.0.1:8000";
 
   return apiUrl.replace(/\/$/, "");
 }
@@ -23,9 +23,12 @@ export function normalizeRoomCode(value = "") {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "")
-    .replace(/[Ａ-Ｚａ-ｚ０-９＿-]/g, (s) =>
+    // 全角英数字と全角アンダースコアだけ半角化する
+    .replace(/[Ａ-Ｚａ-ｚ０-９＿]/g, (s) =>
       String.fromCharCode(s.charCodeAt(0) - 0xfee0)
-    );
+    )
+    // 全角ハイフン系は半角ハイフンに寄せる
+    .replace(/[－ー―‐]/g, "-");
 }
 
 function normalizeKishojuMember(row = {}) {

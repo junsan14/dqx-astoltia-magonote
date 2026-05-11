@@ -1,0 +1,595 @@
+
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.hero h1 {
+  margin: 0;
+  color: var(--text-title);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.hero p {
+  margin: 14px 0 0;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+.heroCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20px;
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  background: var(--card-bg);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.heroCard span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.heroCard strong {
+  margin-top: 6px;
+  color: var(--text-title);
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.heroCard small {
+  margin-top: 4px;
+  color: var(--text-muted);
+}
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 160px 160px auto auto;
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  background: var(--soft-bg);
+  margin-bottom: 16px;
+}
+
+.filters label {
+  display: grid;
+  gap: 6px;
+}
+
+.filters label span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.filters input,
+.filters select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--input-border);
+  border-radius: 14px;
+  padding: 0 12px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  outline: none;
+}
+
+.filters input::placeholder {
+  color: var(--input-placeholder);
+}
+
+.filters input:focus,
+.filters select:focus {
+  border-color: var(--secondary-border);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+.checkLabel {
+  min-height: 42px;
+  display: flex !important;
+  grid-template-columns: auto 1fr;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 8px !important;
+  padding: 0 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 14px;
+  background: var(--input-bg);
+  white-space: nowrap;
+}
+
+.checkLabel input {
+  width: auto;
+  min-height: auto;
+}
+
+.checkLabel span {
+  color: var(--input-text) !important;
+}
+
+.resultBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.resultBar p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.resultBar strong {
+  color: var(--text-title);
+}
+
+.resultBar button {
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.chainRows {
+  display: grid;
+  gap: 24px;
+}
+
+.chainRow {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.chainRowHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+.chainRowLabel {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.chainRowHeader h2 {
+  margin: 0;
+  color: var(--text-title);
+  font-size: clamp(1.05rem, 2vw, 1.5rem);
+  line-height: 1.45;
+}
+
+.chainRowHeader > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--tag-bg);
+  border: 1px solid var(--tag-border);
+  color: var(--tag-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.chainScroller {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(320px, calc((100% - 32px) / 3));
+  gap: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 4px 18px;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+
+.chainScroller::-webkit-scrollbar {
+  height: 10px;
+}
+
+.chainScroller::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--soft-bg);
+}
+
+.chainScroller::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--soft-border);
+}
+
+.accessoryCard {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  min-height: 100%;
+  padding: 18px;
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  background: var(--card-bg);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  scroll-snap-align: start;
+}
+
+.cardTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px;
+  gap: 14px;
+  align-items: start;
+}
+
+.cardTop h3 {
+  margin: 8px 0 0;
+  color: var(--text-title);
+  font-size: clamp(1.1rem, 1.5vw, 1.35rem);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cardMeta span {
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  border: 1px solid var(--tag-border);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.nameEn {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.imageWrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  border: 1px solid var(--card-border);
+  background: var(--soft-bg);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.imageWrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chainBlock,
+.infoBlock {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--card-border);
+  background: var(--soft-bg);
+}
+
+.chainBlock {
+  background: var(--selected-bg);
+  border-color: var(--selected-border);
+}
+
+.chainBlock h4,
+.infoBlock h4 {
+  margin: 0;
+  color: var(--text-title);
+  font-size: 0.92rem;
+}
+
+.inlineChain {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inlineChain::-webkit-scrollbar {
+  height: 6px;
+}
+
+.inlineChain::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: transparent;
+}
+
+.inlineChain::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--soft-border);
+}
+
+.inlineChainItemWrap {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inlineArrow {
+  color: var(--text-muted);
+  font-weight: 800;
+}
+
+.inlineChainItem {
+  display: inline-flex;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 999px;
+  padding: 7px 10px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  color: var(--text-sub);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.inlineChainItemCurrent {
+  border-color: var(--selected-border);
+  background: var(--primary-bg);
+  color: var(--primary-text);
+}
+
+.textList,
+.synthesisList {
+  margin: 0;
+  padding-left: 1.2em;
+  color: var(--text-sub);
+  line-height: 1.7;
+}
+
+.synthesisList {
+  max-height: 150px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.synthesisList::-webkit-scrollbar {
+  width: 7px;
+}
+
+.synthesisList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.synthesisList::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--soft-border);
+}
+
+.detailsBlock {
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  background: var(--card-bg);
+  overflow: hidden;
+}
+
+.detailsBlock summary {
+  cursor: pointer;
+  padding: 12px;
+  color: var(--text-title);
+  font-weight: 800;
+  list-style: none;
+}
+
+.detailsBlock summary::-webkit-details-marker {
+  display: none;
+}
+
+.detailsBlock summary::after {
+  content: "＋";
+  float: right;
+  color: var(--text-muted);
+}
+
+.detailsBlock[open] summary::after {
+  content: "−";
+}
+
+.detailsInner {
+  display: grid;
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+
+.effectList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.effectList span {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.description {
+  margin: 0;
+  line-height: 1.8;
+  color: var(--text-sub);
+}
+
+.muted,
+.status {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.status,
+.error {
+  padding: 24px;
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  background: var(--card-bg);
+}
+
+.error {
+  color: var(--danger-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  .heroCard,
+  .accessoryCard {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  }
+
+  .filters {
+    background: var(--panel-bg);
+  }
+
+  .chainBlock {
+    background: rgba(96, 165, 250, 0.12);
+  }
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .searchBox {
+    grid-column: 1 / -1;
+  }
+
+  .chainScroller {
+    grid-auto-columns: minmax(300px, calc((100% - 16px) / 2));
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    width: min(100% - 24px, 1180px);
+    padding-top: 24px;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .resultBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chainRowHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chainScroller {
+    grid-auto-columns: minmax(0, 100%);
+    gap: 14px;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
+  }
+
+  .accessoryCard {
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .cardTop {
+    grid-template-columns: minmax(0, 1fr) 58px;
+  }
+
+  .imageWrap {
+    width: 58px;
+    height: 58px;
+  }
+}
+
+@media (max-width: 640px) {
+  .chainScroller {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 100%;
+    grid-template-columns: none;
+    gap: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 4px 0 18px;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .accessoryCard {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    scroll-snap-align: start;
+  }
+
+  .cardTop {
+    grid-template-columns: minmax(0, 1fr) 56px;
+  }
+
+  .imageWrap {
+    width: 56px;
+    height: 56px;
+  }
+
+  .inlineChain {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .inlineChainItem {
+    max-width: 170px;
+  }
+}

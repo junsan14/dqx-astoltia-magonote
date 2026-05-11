@@ -12,7 +12,6 @@ import {
 
 import AccessoryList from "./AccessoryList";
 import AccessoryForm from "./AccessoryForm";
-
 import EditorShell from "@/components/admin/shared/editor/EditorShell";
 import EditorSidebar from "@/components/admin/shared/editor/EditorSidebar";
 import EditorHeader from "@/components/admin/shared/editor/EditorHeader";
@@ -22,7 +21,7 @@ import useFloatingToast from "@/components/admin/shared/editor/useFloatingToast"
 
 export default function AccessoriesClient() {
   const [accessories, setAccessories] = useState([]);
-  const [initialAccessories, setInitialAccessories] = useState([]);
+  const [allAccessories, setAllAccessories] = useState([]);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -49,42 +48,64 @@ export default function AccessoriesClient() {
   const slots = useMemo(() => {
     return [
       ...new Set(
-        initialAccessories
+        allAccessories
           .map((item) => (item.slot ?? "").trim())
           .filter(Boolean)
       ),
     ].sort((a, b) => a.localeCompare(b, "ja"));
-  }, [initialAccessories]);
+  }, [allAccessories]);
 
   const accessoryTypes = useMemo(() => {
     return [
       ...new Set(
-        initialAccessories
+        allAccessories
           .map((item) => (item.accessory_type ?? "").trim())
           .filter(Boolean)
       ),
     ].sort((a, b) => a.localeCompare(b, "ja"));
-  }, [initialAccessories]);
+  }, [allAccessories]);
+
+  const generationOptions = useMemo(() => {
+    return [
+      ...new Set(
+        allAccessories
+          .map((item) => (item.inheritance_type ?? "").trim())
+          .filter(Boolean)
+      ),
+    ].sort((a, b) => getGenerationSortValue(a) - getGenerationSortValue(b));
+  }, [allAccessories]);
 
   async function loadAccessories(q = "") {
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const list = await fetchAccessories(q);
-      const safeList = Array.isArray(list) ? list : [];
+  try {
+    const list = await fetchAccessories(q);
+    const safeList = Array.isArray(list) ? list : [];
 
-      setAccessories(safeList);
+    setAccessories(safeList);
 
-      if (!q) {
-        setInitialAccessories(safeList);
-      }
-    } catch (error) {
-      console.error(error);
-      showToast(error.message || "アクセサリ一覧取得失敗", "error");
-    } finally {
-      setLoading(false);
+    if (!q) {
+      setAllAccessories(safeList);
     }
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "アクセサリ一覧取得失敗", "error");
+  } finally {
+    setLoading(false);
   }
+}
+
+  async function loadAllAccessories() {
+  try {
+    const list = await fetchAccessories("");
+    const safeList = Array.isArray(list) ? list : [];
+
+    setAllAccessories(safeList);
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "アクセサリ全件取得失敗", "error");
+  }
+}
 
   async function loadAccessoryDetail(id) {
     if (!id) {
@@ -134,33 +155,33 @@ export default function AccessoriesClient() {
   }, [isMobile]);
 
   async function handleSaved(saved, options = {}) {
-    const { isEdit = false } = options;
+  const { isEdit = false } = options;
 
-    await loadAccessories(keyword);
-    await loadAccessories("");
+  await loadAllAccessories();
+  await loadAccessories(keyword);
 
-    if (saved?.id) {
-      setSelectedId(saved.id);
-      await loadAccessoryDetail(saved.id);
+  if (saved?.id) {
+    setSelectedId(saved.id);
+    await loadAccessoryDetail(saved.id);
 
-      if (isMobile) {
-        setHideSearchList(true);
-        closeSidebar();
-      }
+    if (isMobile) {
+      setHideSearchList(true);
+      closeSidebar();
     }
-
-    const targetName = saved?.name || selectedAccessory?.name || "アクセサリ";
-
-    showToast(
-      isEdit
-        ? `「${targetName}」を更新した`
-        : `「${targetName}」を作成した`
-    );
   }
 
+  const targetName = saved?.name || selectedAccessory?.name || "アクセサリ";
+
+  showToast(
+    isEdit
+      ? `「${targetName}」を更新した`
+      : `「${targetName}」を作成した`
+  );
+}
+
   async function handleDeleted(deletedId, deletedName = "アクセサリ") {
+    await loadAllAccessories();
     await loadAccessories(keyword);
-    await loadAccessories("");
 
     if (selectedId === deletedId) {
       setSelectedId(null);
@@ -256,6 +277,7 @@ export default function AccessoriesClient() {
             onCreateNew={handleClickNew}
             loading={loading}
             accessories={accessories}
+            allAccessories={allAccessories}
             selectedId={selectedId}
             onSelect={handleSelectAccessory}
             hideSearchList={hideSearchList}
@@ -270,6 +292,8 @@ export default function AccessoriesClient() {
           detailLoading={detailLoading}
           slots={slots}
           accessoryTypes={accessoryTypes}
+          allAccessories={allAccessories}
+          generationOptions={generationOptions}
           saving={saving}
           deleting={deleting}
           onSave={handleSave}
@@ -297,6 +321,7 @@ function AccessoriesSidebarSection({
   onCreateNew,
   loading,
   accessories,
+  allAccessories,
   selectedId,
   onSelect,
   hideSearchList,
@@ -313,11 +338,12 @@ function AccessoriesSidebarSection({
       createLabel="新規追加"
       loading={loading}
       title="アクセサリ編集"
-      searchPlaceholder="名前 / 種別 / 部位で検索"
+      searchPlaceholder="名前 / 種別 / 部位 / 伝承元で検索"
     >
       {!hideSearchList ? (
         <AccessoryList
           accessories={accessories}
+          allAccessories={allAccessories}
           loading={loading}
           selectedId={selectedId}
           onSelect={onSelect}
@@ -339,6 +365,8 @@ function AccessoriesWorkspaceSection({
   detailLoading,
   slots,
   accessoryTypes,
+  allAccessories,
+  generationOptions,
   saving,
   deleting,
   onSave,
@@ -370,12 +398,34 @@ function AccessoriesWorkspaceSection({
             onChange={onChange}
             slots={slots}
             accessoryTypes={accessoryTypes}
+            allAccessories={allAccessories}
+            generationOptions={generationOptions}
             isMobile={isMobile}
           />
+          
         </div>
       )}
     </>
   );
+}
+
+function getGenerationSortValue(value = "") {
+  const normalized = String(value).trim();
+
+  const map = {
+    第一世代: 1,
+    第二世代: 2,
+    第三世代: 3,
+    第四世代: 4,
+    第五世代: 5,
+    第六世代: 6,
+    第七世代: 7,
+    第八世代: 8,
+    第九世代: 9,
+    第十世代: 10,
+  };
+
+  return map[normalized] ?? 999;
 }
 
 const styles = {

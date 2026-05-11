@@ -2,6 +2,7 @@
 
 export default function AccessoryList({
   accessories = [],
+  allAccessories = [],
   loading = false,
   selectedId = null,
   onSelect,
@@ -19,6 +20,11 @@ export default function AccessoryList({
     <div style={listStyle(isMobile)}>
       {accessories.map((accessory) => {
         const active = Number(selectedId) === Number(accessory.id);
+        const chain =
+          Array.isArray(accessory.inheritance_chain) &&
+          accessory.inheritance_chain.length > 0
+            ? accessory.inheritance_chain
+            : [accessory];
 
         return (
           <button
@@ -30,12 +36,39 @@ export default function AccessoryList({
               ...(active ? activeItemStyle : null),
             }}
           >
-            <div style={titleStyle}>
-              {accessory.name || "名称未設定"}
-            </div>
+            <div style={titleStyle}>{accessory.name || "名称未設定"}</div>
+
             <div style={metaStyle}>
               {accessory.slot || "-"} / {accessory.accessory_type || "-"}
             </div>
+
+            <div style={generationStyle}>
+              {accessory.inheritance_type || "第一世代"}
+            </div>
+
+            {chain.length > 1 ? (
+              <div style={chainStyle}>
+                {chain.map((item, index) => {
+                  const isCurrent = Number(item.id) === Number(accessory.id);
+
+                  return (
+                    <span key={`${accessory.id}-${item.id}-${index}`}>
+                      {index > 0 && <span style={chainArrowStyle}>→</span>}
+                      <span
+                        style={
+                          isCurrent ? currentChainItemStyle : chainItemStyle
+                        }
+                      >
+                        {item.name || "名称未設定"}
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={rootStyle}>第一世代</div>
+            )}
+
             <div style={subStyle}>{accessory.item_id || "-"}</div>
           </button>
         );
@@ -76,7 +109,61 @@ const titleStyle = {
 const metaStyle = {
   fontSize: 12,
   color: "var(--text-sub)",
-  marginBottom: 4,
+  marginBottom: 6,
+  wordBreak: "break-word",
+};
+
+const generationStyle = {
+  fontSize: 12,
+  color: "var(--text-sub)",
+  marginBottom: 6,
+  padding: "4px 7px",
+  borderRadius: 999,
+  background: "var(--soft-bg, transparent)",
+  border: "1px solid var(--soft-border, transparent)",
+  width: "fit-content",
+  maxWidth: "100%",
+  wordBreak: "break-word",
+};
+
+const chainStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: 4,
+  marginBottom: 6,
+  color: "var(--text-sub)",
+  fontSize: 12,
+  lineHeight: 1.7,
+};
+
+const chainArrowStyle = {
+  margin: "0 4px",
+  color: "var(--text-muted)",
+  fontWeight: 700,
+};
+
+const chainItemStyle = {
+  color: "var(--text-sub)",
+};
+
+const currentChainItemStyle = {
+  color: "var(--text-main)",
+  fontWeight: 700,
+  textDecoration: "underline",
+  textUnderlineOffset: 3,
+};
+
+const rootStyle = {
+  fontSize: 12,
+  color: "var(--text-muted)",
+  marginBottom: 6,
+  padding: "4px 7px",
+  borderRadius: 999,
+  background: "var(--soft-bg, transparent)",
+  border: "1px dashed var(--soft-border, var(--card-border))",
+  width: "fit-content",
+  maxWidth: "100%",
   wordBreak: "break-word",
 };
 

@@ -67,7 +67,7 @@ export function RouteProgressProvider({ children }) {
 
       finishTimerRef.current = setTimeout(() => {
         hardReset();
-      }, 180);
+      }, 80);
     }, remaining);
   }, [clearFinishTimer, clearProgressTimers, hardReset]);
 

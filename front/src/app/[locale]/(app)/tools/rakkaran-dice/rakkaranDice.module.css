@@ -1,0 +1,827 @@
+.page {
+  --bg: #f6f3ec;
+  --bg-soft: #fffaf0;
+  --card: #ffffff;
+  --text: #26231e;
+  --muted: #6f675e;
+  --border: rgba(73, 58, 35, 0.16);
+  --accent: #b97818;
+  --accent-soft: rgba(185, 120, 24, 0.12);
+  --danger: #b74030;
+  --danger-soft: rgba(183, 64, 48, 0.1);
+  --shadow: 0 18px 50px rgba(51, 36, 15, 0.08);
+
+  min-height: 100vh;
+  padding: 40px 0 72px;
+  background:
+    radial-gradient(circle at top left, rgba(185, 120, 24, 0.12), transparent 34rem),
+    var(--bg);
+  color: var(--text);
+}
+
+.hero,
+.tabSection {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.hero {
+  padding: 44px;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 250, 240, 0.72)),
+    var(--bg-soft);
+  box-shadow: var(--shadow);
+}
+
+.kicker {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 4.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.lead {
+  max-width: 860px;
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.9;
+}
+
+.notice {
+  margin-top: 28px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--text);
+  line-height: 1.8;
+}
+
+.tabSection {
+  margin-top: 34px;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.tabButton {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tabButton:hover {
+  transform: translateY(-1px);
+  color: var(--text);
+}
+
+.activeTab {
+  background: var(--accent);
+  color: #fff;
+}
+
+.tabContent {
+  margin-top: 28px;
+}
+
+.sectionInner {
+  margin-top: 48px;
+}
+
+.sectionInner:first-child {
+  margin-top: 0;
+}
+
+.sectionHead {
+  margin-bottom: 22px;
+}
+
+.sectionHead h2,
+.checkPanel h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  letter-spacing: -0.03em;
+}
+
+.sectionHead p:not(.kicker),
+.checkPanel p {
+  max-width: 840px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.simpleSimulator {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 22px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.simpleSimulator h3 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+
+.simpleSimulator p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.selectLabel {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.rangeSelect {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+}
+
+.simpleProbGrid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.simpleProbCard {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-soft);
+}
+
+.simpleProbCard span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.simpleProbCard strong {
+  display: block;
+  color: var(--accent);
+  font-size: 1.55rem;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.ruleResultGrid,
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ruleResultCard,
+.detailCard,
+.glossaryCard,
+.checkPanel {
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.ruleResultCard,
+.detailCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 24px;
+}
+
+.ruleResultHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ruleResultHead h3 {
+  margin: 0;
+  font-size: 1.28rem;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+}
+
+.ruleTag {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.condition,
+.note,
+.detailDescription {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.winGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-soft);
+}
+
+.winGrid div {
+  padding: 16px 12px;
+  border-right: 1px solid var(--border);
+}
+
+.winGrid div:last-child {
+  border-right: 0;
+}
+
+.winGrid span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.winGrid strong {
+  display: block;
+  color: var(--text);
+  font-size: clamp(1.05rem, 2vw, 1.55rem);
+  line-height: 1.25;
+  letter-spacing: -0.04em;
+}
+
+.judgement {
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-weight: 900;
+  line-height: 1.6;
+}
+
+.bad {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.neutral {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.detailHead h3 {
+  margin: 0;
+  font-size: 1.7rem;
+  letter-spacing: -0.04em;
+}
+
+.detailHead p {
+  margin: 6px 0 0;
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.detailCard ul,
+.checkList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detailCard li,
+.checkList li {
+  position: relative;
+  padding-left: 1.35em;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.detailCard li::before {
+  content: "•";
+  position: absolute;
+  left: 0.25em;
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.checkList li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.caution {
+  margin-top: auto;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--danger-soft);
+  color: var(--text);
+  line-height: 1.75;
+}
+
+.caution strong {
+  color: var(--danger);
+}
+
+.checkPanel {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 28px;
+  padding: 30px;
+  border-radius: 28px;
+}
+
+.checkList {
+  display: grid;
+  gap: 10px;
+}
+
+.glossaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.glossaryCard {
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.glossaryCard h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.kana {
+  margin: 4px 0 12px;
+  color: var(--accent) !important;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.glossaryCard p {
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    --bg: #12100d;
+    --bg-soft: #1b1712;
+    --card: #1f1a14;
+    --text: #f4eadc;
+    --muted: #c4b8a6;
+    --border: rgba(255, 236, 207, 0.14);
+    --accent: #f0b45a;
+    --accent-soft: rgba(240, 180, 90, 0.14);
+    --danger: #ff9a86;
+    --danger-soft: rgba(255, 154, 134, 0.12);
+    --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+  }
+
+  .hero {
+    background:
+      linear-gradient(135deg, rgba(31, 26, 20, 0.94), rgba(27, 23, 18, 0.82)),
+      var(--bg-soft);
+  }
+
+  .activeTab {
+    color: #1b1712;
+  }
+}
+
+@media (max-width: 980px) {
+  .simpleSimulator,
+  .checkPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .simpleProbGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ruleResultGrid,
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .glossaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px 0 48px;
+  }
+
+  .hero,
+  .tabSection {
+    width: min(100% - 20px, 1120px);
+  }
+
+  .hero {
+    padding: 26px 20px;
+    border-radius: 22px;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    border-radius: 18px;
+  }
+
+  .tabButton {
+    padding: 12px 10px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+  }
+
+  .simpleSimulator,
+  .ruleResultCard,
+  .detailCard,
+  .glossaryCard,
+  .checkPanel {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .simpleProbGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ruleResultHead {
+    flex-direction: column;
+  }
+
+  .winGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .winGrid div {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .winGrid div:last-child {
+    border-bottom: 0;
+  }
+
+  .glossaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+.sameTurnToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sameTurnToggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.sameTurnToggle span {
+  line-height: 1;
+}
+.sameTurnToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sameTurnToggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.sameTurnToggle span {
+  line-height: 1;
+}
+
+.bakuTool {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 22px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.bakuToolHead {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 18px;
+  align-items: end;
+}
+
+.bakuTool h3 {
+  margin: 0;
+  font-size: 1.45rem;
+  letter-spacing: -0.03em;
+}
+
+.bakuTool p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.bakuStatusGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-soft);
+}
+
+.bakuStatusCard {
+  padding: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.bakuStatusCard:last-child {
+  border-right: 0;
+}
+
+.bakuStatusCard span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.bakuStatusCard strong {
+  display: block;
+  color: var(--text);
+  font-size: 1.8rem;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.loseText {
+  color: var(--danger) !important;
+}
+
+.bakuInputRow {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 18px;
+  align-items: end;
+}
+
+.bakuInput {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font: inherit;
+  font-weight: 800;
+}
+
+.bakuChoiceArea {
+  display: grid;
+  gap: 8px;
+}
+
+.bakuChoiceArea > span {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.bakuChoiceButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bakuChoiceButtons p {
+  margin: 0;
+}
+
+.bakuChoiceButton,
+.bakuActions button {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 12px 16px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.bakuChoiceButton:disabled,
+.bakuActions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bakuPreview {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+}
+
+.bakuPreview p {
+  margin: 0;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.bakuPreview strong {
+  color: var(--accent);
+}
+
+.bakuActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.bakuActions button {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+
+.bakuLog {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--bg-soft);
+}
+
+.bakuLog h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.bakuLog p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+
+.bakuLog pre {
+  overflow-x: auto;
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--text);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  line-height: 1.7;
+}
+
+@media (max-width: 980px) {
+  .bakuToolHead,
+  .bakuInputRow {
+    grid-template-columns: 1fr;
+  }
+
+  .bakuStatusGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .bakuStatusCard {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .bakuStatusCard:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .bakuTool {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .bakuChoiceButtons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+.bakuRecommend {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+}
+
+.bakuRecommend span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.bakuRecommend strong {
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.bakuRecommend p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.recommendedButton {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  transform: translateY(-1px);
+}

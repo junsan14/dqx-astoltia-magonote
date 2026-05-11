@@ -12,6 +12,7 @@ import {
 } from "@/lib/equipments";
 import { fetchGameJobs } from "@/lib/gameJobs";
 import { fetchEquipmentTypes } from "@/lib/equipmentTypes";
+import RouteProgressDoneOnDataReady from "@/components/common/RouteProgressDoneOnDataReady";
 
 import EditorSidebar from "@/components/admin/shared/editor/EditorSidebar";
 import EditorShell from "@/components/admin/shared/editor/EditorShell";
@@ -893,6 +894,7 @@ export default function EquipmentsClient() {
 
   return (
     <>
+    <RouteProgressDoneOnDataReady ready={!loading} />
       <EditorShell
         isMobile={isMobile}
         sidebar={

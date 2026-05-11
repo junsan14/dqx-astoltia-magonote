@@ -52,6 +52,20 @@ class StoreAccessoryRequest extends FormRequest
             'drop_monsters.*.monster_id' => ['nullable', 'integer'],
             'drop_monsters.*.drop_type' => ['nullable', 'string'],
             'drop_monsters.*.sort_order' => ['nullable', 'integer'],
+            'inheritance_from_accessory_id' => [
+                'nullable',
+                'integer',
+                'exists:accessories,id',
+            ],
+            'inheritance_type' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'inheritance_note' => [
+                'nullable',
+                'string',
+            ],
         ];
     }
 

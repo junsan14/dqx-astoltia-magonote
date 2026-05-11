@@ -10,84 +10,89 @@ use Illuminate\Validation\Rule;
 class EquipmentController extends Controller
 {
     public function index(Request $request): JsonResponse
-    {
-        $query = Equipment::query()
-            ->with([
-                'equipmentType.craftType:id,name',
-                'equipmentType.equipableTypes.gameJob:id,name,key',
-                'jobOverrides.gameJob:id,name,key',
-            ])
-            ->whereNotNull('item_name');
+{
+    $query = Equipment::query()
+        ->with([
+            'equipmentType.craftType:id,name',
+            'equipmentType.equipableTypes.gameJob:id,name,key',
+            'jobOverrides.gameJob:id,name,key',
+        ])
+        ->whereNotNull('item_name');
 
-        if ($request->filled('q')) {
-            $q = trim((string) $request->q);
-            $escaped = addcslashes($q, '\\%_');
+    if ($request->filled('q')) {
+        $q = trim((string) $request->q);
+        $escaped = addcslashes($q, '\\%_');
 
-            $query->where(function ($sub) use ($escaped) {
-                $sub->where('item_name', 'like', "%{$escaped}%")
-                    ->orWhere('item_name_en', 'like', "%{$escaped}%")
-                    ->orWhere('item_id', 'like', "%{$escaped}%")
-                    ->orWhere('group_name', 'like', "%{$escaped}%")
-                    ->orWhere('recipe_book', 'like', "%{$escaped}%");
-            })
-                ->orderByRaw(
-                    "
-                    CASE
-                        WHEN item_name = ? THEN 0
-                        WHEN item_name_en = ? THEN 0
-                        WHEN item_name LIKE ? THEN 1
-                        WHEN item_name_en LIKE ? THEN 1
-                        ELSE 2
-                    END
-                    ",
-                    [$q, $q, $escaped . '%', $escaped . '%']
-                )
-                ->orderByRaw('LENGTH(COALESCE(item_name_en, item_name)) ASC');
-        }
-
-        if ($request->filled('equipment_type_id')) {
-            $query->where('equipment_type_id', $request->equipment_type_id);
-        }
-
-        if ($request->filled('craft_level')) {
-            $query->where('craft_level', $request->craft_level);
-        }
-
-        if ($request->filled('equip_level')) {
-            $query->where('equip_level', $request->equip_level);
-        }
-
-        if ($request->filled('group_id')) {
-            $query->where('group_id', $request->group_id);
-        }
-
-        if ($request->filled('group_kind')) {
-            $query->where('group_kind', $request->group_kind);
-        }
-
-        if ($request->filled('slot')) {
-            $query->where('slot', $request->slot);
-        }
-
-        if ($request->filled('craft_type')) {
-            $craftType = trim((string) $request->craft_type);
-
-            $query->whereHas('equipmentType.craftType', function ($sub) use ($craftType) {
-                $sub->where('name', $craftType);
-            });
-        }
-
-        $rows = $query
-            ->orderBy('craft_level')
-            ->orderBy('equip_level')
-            ->orderBy('group_name')
-            ->orderBy('item_name')
-            ->get();
-
-        return response()->json([
-            'data' => $rows,
-        ]);
+        $query->where(function ($sub) use ($escaped) {
+            $sub->where('item_name', 'like', "%{$escaped}%")
+                ->orWhere('item_name_en', 'like', "%{$escaped}%")
+                ->orWhere('item_id', 'like', "%{$escaped}%")
+                ->orWhere('group_name', 'like', "%{$escaped}%")
+                ->orWhere('recipe_book', 'like', "%{$escaped}%");
+        })
+            ->orderByRaw(
+                "
+                CASE
+                    WHEN item_name = ? THEN 0
+                    WHEN item_name_en = ? THEN 0
+                    WHEN item_name LIKE ? THEN 1
+                    WHEN item_name_en LIKE ? THEN 1
+                    ELSE 2
+                END
+                ",
+                [$q, $q, $escaped . '%', $escaped . '%']
+            )
+            ->orderByRaw('LENGTH(COALESCE(item_name_en, item_name)) ASC');
     }
+
+    if ($request->filled('equipment_type_id')) {
+        $query->where('equipment_type_id', $request->equipment_type_id);
+    }
+
+    if ($request->filled('craft_level')) {
+        $query->where('craft_level', $request->craft_level);
+    }
+
+    if ($request->filled('equip_level')) {
+        $query->where('equip_level', $request->equip_level);
+    }
+
+    if ($request->filled('group_id')) {
+        $query->where('group_id', $request->group_id);
+    }
+
+    if ($request->filled('group_kind')) {
+        $query->where('group_kind', $request->group_kind);
+    }
+
+    if ($request->filled('slot')) {
+        $query->where('slot', $request->slot);
+    }
+
+    if ($request->boolean('has_slot_grid')) {
+        $query->whereNotNull('slot_grid_json')
+            ->where('slot_grid_json', '!=', '[]');
+    }
+
+    if ($request->filled('craft_type')) {
+        $craftType = trim((string) $request->craft_type);
+
+        $query->whereHas('equipmentType.craftType', function ($sub) use ($craftType) {
+            $sub->where('name', $craftType);
+        });
+    }
+
+    $rows = $query
+        ->orderBy('craft_level')
+        ->orderBy('equip_level')
+        ->orderBy('group_name')
+        ->orderBy('item_name')
+        ->get();
+
+    return response()->json([
+        'data' => $rows,
+    ]);
+}
 
     public function show($id): JsonResponse
     {

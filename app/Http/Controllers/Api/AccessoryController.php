@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api;
+
 use App\Http\Requests\StoreAccessoryRequest;
 use App\Http\Requests\UpdateAccessoryRequest;
 use App\Models\Accessory;
@@ -18,43 +19,56 @@ class AccessoryController extends Controller
     ) {}
 
     public function index(Request $request): JsonResponse
-{
-    $q = trim((string) $request->query('q', ''));
+    {
+        $q = trim((string) $request->query('q', ''));
 
-    $query = Accessory::query();
+        $inheritanceRelatedIds = $q !== ''
+            ? $this->findInheritanceRelatedAccessoryIds($q)
+            : [];
 
-    if ($q !== '') {
-        $escaped = addcslashes($q, '\\%_');
+        $query = Accessory::query();
 
-        $query->where(function ($sub) use ($escaped) {
-            $sub->where('item_id', 'like', "%{$escaped}%")
-                ->orWhere('name', 'like', "%{$escaped}%")
-                ->orWhere('slot', 'like', "%{$escaped}%")
-                ->orWhere('accessory_type', 'like', "%{$escaped}%")
-                ->orWhere('description', 'like', "%{$escaped}%");
-        })
-        ->orderByRaw(
-            "
-            CASE
-                WHEN name = ? THEN 0
-                WHEN name LIKE ? THEN 1
-                ELSE 2
-            END
-            ",
-            [$q, $escaped . '%']
-        )
-        ->orderByRaw('LENGTH(name) ASC')
-        ->orderBy('name');
-    } else {
-        $query->orderBy('name');
+        if ($q !== '') {
+            $escaped = addcslashes($q, '\\%_');
+
+            $query->where(function ($sub) use ($escaped, $inheritanceRelatedIds) {
+                $sub->where('item_id', 'like', "%{$escaped}%")
+                    ->orWhere('name', 'like', "%{$escaped}%")
+                    ->orWhere('slot', 'like', "%{$escaped}%")
+                    ->orWhere('accessory_type', 'like', "%{$escaped}%")
+                    ->orWhere('description', 'like', "%{$escaped}%")
+                    ->orWhere('inheritance_type', 'like', "%{$escaped}%")
+                    ->orWhere('inheritance_note', 'like', "%{$escaped}%")
+                    ->orWhereHas('inheritanceFrom', function ($inheritanceQuery) use ($escaped) {
+                        $inheritanceQuery->where('name', 'like', "%{$escaped}%");
+                    });
+
+                if (!empty($inheritanceRelatedIds)) {
+                    $sub->orWhereIn('id', $inheritanceRelatedIds);
+                }
+            })
+                ->orderByRaw(
+                    "
+                    CASE
+                        WHEN name = ? THEN 0
+                        WHEN name LIKE ? THEN 1
+                        ELSE 2
+                    END
+                    ",
+                    [$q, $escaped . '%']
+                )
+                ->orderByRaw('LENGTH(name) ASC')
+                ->orderBy('name');
+        } else {
+            $query->orderBy('name');
+        }
+
+        return response()->json([
+            'data' => $query->get()
+                ->map(fn ($accessory) => $this->buildAccessoryResponse($accessory))
+                ->values(),
+        ]);
     }
-
-    return response()->json([
-        'data' => $query->get()
-            ->map(fn ($accessory) => $this->buildAccessoryResponse($accessory))
-            ->values(),
-    ]);
-}
 
     public function show(Accessory $accessory): JsonResponse
     {
@@ -77,6 +91,11 @@ class AccessoryController extends Controller
                 'item_kind' => $validated['item_kind'] ?? 'accessory',
                 'slot' => $validated['slot'] ?? null,
                 'accessory_type' => $validated['accessory_type'] ?? null,
+
+                'inheritance_from_accessory_id' => $validated['inheritance_from_accessory_id'] ?? null,
+                'inheritance_type' => $validated['inheritance_type'] ?? null,
+                'inheritance_note' => $validated['inheritance_note'] ?? null,
+
                 'equip_level' => $validated['equip_level'] ?? null,
 
                 'weight' => $validated['weight'] ?? null,
@@ -128,6 +147,11 @@ class AccessoryController extends Controller
                 'item_kind' => $validated['item_kind'] ?? 'accessory',
                 'slot' => $validated['slot'] ?? null,
                 'accessory_type' => $validated['accessory_type'] ?? null,
+
+                'inheritance_from_accessory_id' => $validated['inheritance_from_accessory_id'] ?? null,
+                'inheritance_type' => $validated['inheritance_type'] ?? null,
+                'inheritance_note' => $validated['inheritance_note'] ?? null,
+
                 'equip_level' => $validated['equip_level'] ?? null,
 
                 'weight' => $validated['weight'] ?? null,
@@ -194,6 +218,24 @@ class AccessoryController extends Controller
             ->get()
             ->keyBy('id');
 
+        $inheritanceFrom = null;
+
+        if ($accessory->inheritance_from_accessory_id) {
+            $inheritanceFrom = Accessory::query()
+                ->select([
+                    'id',
+                    'item_id',
+                    'name',
+                    'name_en',
+                    'slot',
+                    'accessory_type',
+                    'inheritance_from_accessory_id',
+                    'inheritance_type',
+                    'image_url',
+                ])
+                ->find($accessory->inheritance_from_accessory_id);
+        }
+
         return [
             'id' => $accessory->id,
             'item_id' => $accessory->item_id,
@@ -202,6 +244,25 @@ class AccessoryController extends Controller
             'item_kind' => $accessory->item_kind,
             'slot' => $accessory->slot,
             'accessory_type' => $accessory->accessory_type,
+
+            'inheritance_from_accessory_id' => $accessory->inheritance_from_accessory_id,
+            'inheritance_type' => $accessory->inheritance_type,
+            'inheritance_note' => $accessory->inheritance_note,
+
+            'inheritance_from' => $inheritanceFrom ? [
+                'id' => $inheritanceFrom->id,
+                'item_id' => $inheritanceFrom->item_id,
+                'name' => $inheritanceFrom->name,
+                'name_en' => $inheritanceFrom->name_en,
+                'slot' => $inheritanceFrom->slot,
+                'accessory_type' => $inheritanceFrom->accessory_type,
+                'inheritance_from_accessory_id' => $inheritanceFrom->inheritance_from_accessory_id,
+                'inheritance_type' => $inheritanceFrom->inheritance_type,
+                'image_url' => $inheritanceFrom->image_url,
+            ] : null,
+
+            'inheritance_chain' => $this->buildInheritanceChain($accessory),
+
             'equip_level' => $accessory->equip_level,
 
             'weight' => $accessory->weight,
@@ -242,6 +303,235 @@ class AccessoryController extends Controller
         ];
     }
 
+    private function buildInheritanceChain(Accessory $accessory): array
+    {
+        $root = $this->findInheritanceRoot($accessory);
+
+        $chain = [];
+        $visitedIds = [];
+
+        $current = $root;
+
+        while ($current) {
+            if (in_array((int) $current->id, $visitedIds, true)) {
+                break;
+            }
+
+            $visitedIds[] = (int) $current->id;
+
+            $chain[] = [
+                'id' => $current->id,
+                'item_id' => $current->item_id,
+                'name' => $current->name,
+                'name_en' => $current->name_en,
+                'slot' => $current->slot,
+                'accessory_type' => $current->accessory_type,
+                'inheritance_from_accessory_id' => $current->inheritance_from_accessory_id,
+                'inheritance_type' => $current->inheritance_type,
+                'image_url' => $current->image_url,
+            ];
+
+            $current = Accessory::query()
+                ->select([
+                    'id',
+                    'item_id',
+                    'name',
+                    'name_en',
+                    'slot',
+                    'accessory_type',
+                    'inheritance_from_accessory_id',
+                    'inheritance_type',
+                    'image_url',
+                ])
+                ->where('inheritance_from_accessory_id', $current->id)
+                ->orderByRaw("
+                    CASE inheritance_type
+                        WHEN '第一世代' THEN 1
+                        WHEN '第二世代' THEN 2
+                        WHEN '第三世代' THEN 3
+                        WHEN '第四世代' THEN 4
+                        WHEN '第五世代' THEN 5
+                        WHEN '第六世代' THEN 6
+                        WHEN '第七世代' THEN 7
+                        WHEN '第八世代' THEN 8
+                        WHEN '第九世代' THEN 9
+                        WHEN '第十世代' THEN 10
+                        ELSE 999
+                    END
+                ")
+                ->orderBy('name')
+                ->first();
+        }
+
+        return $chain;
+    }
+    private function findInheritanceRelatedAccessoryIds(string $keyword): array
+{
+    $keyword = trim($keyword);
+
+    if ($keyword === '') {
+        return [];
+    }
+
+    $escaped = addcslashes($keyword, '\\%_');
+
+    $allAccessories = Accessory::query()
+        ->select([
+            'id',
+            'item_id',
+            'name',
+            'name_en',
+            'slot',
+            'accessory_type',
+            'inheritance_from_accessory_id',
+            'inheritance_type',
+            'inheritance_note',
+            'description',
+        ])
+        ->get();
+
+    $childrenByParentId = [];
+
+    foreach ($allAccessories as $accessory) {
+        if (!$accessory->inheritance_from_accessory_id) {
+            continue;
+        }
+
+        $parentId = (int) $accessory->inheritance_from_accessory_id;
+
+        if (!isset($childrenByParentId[$parentId])) {
+            $childrenByParentId[$parentId] = [];
+        }
+
+        $childrenByParentId[$parentId][] = $accessory;
+    }
+
+    $matchedIds = Accessory::query()
+        ->where('item_id', 'like', "%{$escaped}%")
+        ->orWhere('name', 'like', "%{$escaped}%")
+        ->orWhere('name_en', 'like', "%{$escaped}%")
+        ->orWhere('slot', 'like', "%{$escaped}%")
+        ->orWhere('accessory_type', 'like', "%{$escaped}%")
+        ->orWhere('description', 'like', "%{$escaped}%")
+        ->orWhere('inheritance_type', 'like', "%{$escaped}%")
+        ->orWhere('inheritance_note', 'like', "%{$escaped}%")
+        ->pluck('id')
+        ->map(fn ($id) => (int) $id)
+        ->values()
+        ->all();
+
+    $relatedIds = [];
+
+    foreach ($matchedIds as $matchedId) {
+        $matchedAccessory = $allAccessories->firstWhere('id', $matchedId);
+
+        if (!$matchedAccessory) {
+            continue;
+        }
+
+        $root = $this->findInheritanceRootFromCollection(
+            $matchedAccessory,
+            $allAccessories
+        );
+
+        $this->collectInheritanceDescendantIds(
+            $root,
+            $childrenByParentId,
+            $relatedIds
+        );
+    }
+
+    return array_values(array_unique($relatedIds));
+}
+
+private function findInheritanceRootFromCollection($accessory, $allAccessories)
+{
+    $current = $accessory;
+    $visitedIds = [];
+
+    while ($current && $current->inheritance_from_accessory_id) {
+        if (in_array((int) $current->id, $visitedIds, true)) {
+            break;
+        }
+
+        $visitedIds[] = (int) $current->id;
+
+        $parent = $allAccessories->firstWhere(
+            'id',
+            (int) $current->inheritance_from_accessory_id
+        );
+
+        if (!$parent) {
+            break;
+        }
+
+        $current = $parent;
+    }
+
+    return $current;
+}
+
+    private function collectInheritanceDescendantIds($accessory, array $childrenByParentId, array &$ids): void
+    {
+        if (!$accessory) {
+            return;
+        }
+
+        $accessoryId = (int) $accessory->id;
+
+        if (in_array($accessoryId, $ids, true)) {
+            return;
+        }
+
+        $ids[] = $accessoryId;
+
+        $children = $childrenByParentId[$accessoryId] ?? [];
+
+        foreach ($children as $child) {
+            $this->collectInheritanceDescendantIds(
+                $child,
+                $childrenByParentId,
+                $ids
+            );
+        }
+    }
+
+private function findInheritanceRoot(Accessory $accessory): Accessory
+{
+    $current = $accessory;
+    $visitedIds = [];
+
+    while ($current->inheritance_from_accessory_id) {
+        if (in_array((int) $current->id, $visitedIds, true)) {
+            break;
+        }
+
+        $visitedIds[] = (int) $current->id;
+
+        $parent = Accessory::query()
+            ->select([
+                'id',
+                'item_id',
+                'name',
+                'name_en',
+                'slot',
+                'accessory_type',
+                'inheritance_from_accessory_id',
+                'inheritance_type',
+                'image_url',
+            ])
+            ->find($current->inheritance_from_accessory_id);
+
+        if (!$parent) {
+            break;
+        }
+
+        $current = $parent;
+    }
+
+    return $current;
+}
+
     private function normalizeJsonOutput($value): array
     {
         if (is_array($value)) {
@@ -250,6 +540,7 @@ class AccessoryController extends Controller
 
         if (is_string($value) && $value !== '') {
             $decoded = json_decode($value, true);
+
             return is_array($decoded) ? array_values($decoded) : [];
         }
 
