@@ -17,6 +17,13 @@ import KishojuRoomTutorial, {
   TUTORIAL_STORAGE_KEY,
   TUTORIAL_STEPS,
 } from "./KishojuRoomTutorial";
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiSmartphone,
+} from "react-icons/fi";
+
+
 const MAP_KEYS = [
   {
     key: "geruhena",
@@ -50,7 +57,8 @@ const DEFAULT_SELECTED_MAPS = [
   "ベルヴァインの森",
 ];
 
-const RAINBOW_LIMIT_MINUTES = 60;
+const RAINBOW_AFTER_MINUTES = 60;
+const RED_REPORT_KEEP_MINUTES = 90;
 const IMPORTANT_BEFORE_MINUTES = 15;
 const TOAST_AUTO_DISMISS_MS = 20000;
 
@@ -111,6 +119,10 @@ export default function KishojuRoomClient({ roomId }) {
   const mapSelectorRef = useRef(null);
   const registerRef = useRef(null);
   const quickReportRef = useRef(null);
+  const mobileMapTouchStartXRef = useRef(0);
+  const mobileMapTouchStartYRef = useRef(0);
+  const mobileMapTouchCurrentXRef = useRef(0);
+  const mobileMapTouchCurrentYRef = useRef(0);
 
   const selectedMember = useMemo(() => {
     return members.find(
@@ -174,8 +186,12 @@ export default function KishojuRoomClient({ roomId }) {
         return {
           ...report,
           rainbowAt: info.rainbowAt,
+          expireAt: info.expireAt,
           remainingMinutes: info.remainingMinutes,
+          remainingToExpireMinutes: info.remainingToExpireMinutes,
+          progressPercent: info.progressPercent,
           isImportant: info.isImportant,
+          isRainbow: info.isRainbow,
           isExpired: info.isExpired,
         };
       })
@@ -393,6 +409,77 @@ export default function KishojuRoomClient({ roomId }) {
     });
   }, [selectedMaps]);
 
+  const activeMobileMapIndex = useMemo(() => {
+    if (!activeMobileMap) return 0;
+
+    const index = selectedMaps.findIndex((map) => map === activeMobileMap);
+
+    return index >= 0 ? index : 0;
+  }, [activeMobileMap, selectedMaps]);
+
+  const canSwitchMobileMap = selectedMaps.length > 1;
+
+  const moveMobileMap = (direction) => {
+    if (!canSwitchMobileMap) return;
+
+    setActiveMobileMap((current) => {
+      const currentIndex = selectedMaps.findIndex((map) => map === current);
+      const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+
+      const nextIndex =
+        (safeIndex + direction + selectedMaps.length) % selectedMaps.length;
+
+      return selectedMaps[nextIndex];
+    });
+  };
+
+  const handleMobileMapTouchStart = (e) => {
+    if (!canSwitchMobileMap) return;
+
+    const touch = e.touches[0];
+
+    mobileMapTouchStartXRef.current = touch.clientX;
+    mobileMapTouchStartYRef.current = touch.clientY;
+    mobileMapTouchCurrentXRef.current = touch.clientX;
+    mobileMapTouchCurrentYRef.current = touch.clientY;
+  };
+
+  const handleMobileMapTouchMove = (e) => {
+    if (!canSwitchMobileMap) return;
+
+    const touch = e.touches[0];
+
+    mobileMapTouchCurrentXRef.current = touch.clientX;
+    mobileMapTouchCurrentYRef.current = touch.clientY;
+  };
+
+  const handleMobileMapTouchEnd = () => {
+    if (!canSwitchMobileMap) return;
+
+    const startX = mobileMapTouchStartXRef.current;
+    const startY = mobileMapTouchStartYRef.current;
+    const endX = mobileMapTouchCurrentXRef.current;
+    const endY = mobileMapTouchCurrentYRef.current;
+
+    const diffX = endX - startX;
+    const diffY = Math.abs(endY - startY);
+
+    const isHorizontalSwipe = Math.abs(diffX) > 55 && Math.abs(diffX) > diffY * 1.3;
+
+    if (isHorizontalSwipe) {
+      if (diffX < 0) {
+        moveMobileMap(1);
+      } else {
+        moveMobileMap(-1);
+      }
+    }
+
+    mobileMapTouchStartXRef.current = 0;
+    mobileMapTouchStartYRef.current = 0;
+    mobileMapTouchCurrentXRef.current = 0;
+    mobileMapTouchCurrentYRef.current = 0;
+  };
+
   const togglePanel = (panelName) => {
     setOpenPanels((current) => ({
       ...current,
@@ -588,16 +675,28 @@ export default function KishojuRoomClient({ roomId }) {
   };
 
   const requestUndoReport = (reportId) => {
-    openConfirm({
-      title: t("confirm.deleteReportTitle"),
-      description: t("confirm.deleteReportDescription"),
-      confirmLabel: t("confirm.deleteReportConfirm"),
-      busyKey: `delete-report-${reportId}`,
-      onConfirm: async () => {
-        await undoReport(reportId);
-      },
-    });
-  };
+  const targetReport = reports.find(
+    (report) => String(report.id) === String(reportId)
+  );
+
+  const reportLabel = targetReport
+    ? `サーバー${targetReport.server_no} / ${getMapLabel(
+        targetReport.map_name
+      )} / ${getGaugeLabel(targetReport.gauge_color, t)} / ${
+        targetReport.reported_by || "報告者不明"
+      } / ${formatTime(targetReport.created_at)}`
+    : "選択した報告";
+
+  openConfirm({
+    title: "報告を削除しますか？",
+    description: reportLabel,
+    confirmLabel: t("confirm.deleteReportConfirm"),
+    busyKey: `delete-report-${reportId}`,
+    onConfirm: async () => {
+      await undoReport(reportId);
+    },
+  });
+};
 
   const dismissToast = (reportId) => {
     const timerId = toastTimerMapRef.current.get(reportId);
@@ -1006,7 +1105,7 @@ export default function KishojuRoomClient({ roomId }) {
                       </button>
 
                       <span className={styles.memberServerBadge}>
-                        {member.server_from}〜S{member.server_to}
+                        {member.server_from}〜{member.server_to}
                       </span>
 
                       <strong className={styles.memberName}>
@@ -1024,22 +1123,73 @@ export default function KishojuRoomClient({ roomId }) {
               <p className={styles.empty}>{t("quick.noMap")}</p>
             ) : (
               <>
-                <div className={styles.mobileMapTabs}>
-                  {selectedMaps.map((targetMap) => (
-                    <button
-                      key={targetMap}
-                      type="button"
-                      className={`${styles.mobileMapTab} ${
-                        activeMobileMap === targetMap
-                          ? styles.mobileMapTabActive
-                          : ""
-                      }`}
-                      onClick={() => setActiveMobileMap(targetMap)}
-                    >
-                      {getMapLabel(targetMap)}
-                    </button>
-                  ))}
+                <div className={styles.mobileMapSwitcher}>
+                  <button
+                    type="button"
+                    className={styles.mobileMapNavButton}
+                    onClick={() => moveMobileMap(-1)}
+                    disabled={!canSwitchMobileMap}
+                    aria-label="前の場所へ"
+                  >
+                    <FiChevronLeft />
+                  </button>
+
+                  <div className={styles.mobileMapCurrent}>
+                    <span className={styles.mobileMapCurrentLabel}>
+                      {getMapLabel(activeMobileMap)}
+                    </span>
+
+                    <span className={styles.mobileMapCounter}>
+                      {activeMobileMapIndex + 1} / {selectedMaps.length}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={styles.mobileMapNavButton}
+                    onClick={() => moveMobileMap(1)}
+                    disabled={!canSwitchMobileMap}
+                    aria-label="次の場所へ"
+                  >
+                    <FiChevronRight />
+                  </button>
                 </div>
+
+                {canSwitchMobileMap && (
+                  <>
+                    <div className={styles.mobileSwipeHint}>
+                      <FiSmartphone />
+                      <span>横スワイプで場所を切り替え</span>
+                      <FiChevronLeft />
+                      <FiChevronRight />
+                    </div>
+
+                    <div className={styles.mobileMapTabs}>
+                    {selectedMaps.map((targetMap) => (
+                      <button
+                        key={targetMap}
+                        type="button"
+                        className={`${styles.mobileMapTab} ${
+                          activeMobileMap === targetMap ? styles.mobileMapTabActive : ""
+                        }`}
+                        onClick={() => setActiveMobileMap(targetMap)}
+                        aria-label={`${getMapLabel(targetMap)}を表示`}
+                      >
+                        <span className={styles.mobileMapTabLabel}>
+                          {getMapLabel(targetMap)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  </>
+                )}
+
+                <div
+                  className={styles.quickTableWrap}
+                  onTouchStart={handleMobileMapTouchStart}
+                  onTouchMove={handleMobileMapTouchMove}
+                  onTouchEnd={handleMobileMapTouchEnd}
+                ></div>
 
                 <div className={styles.quickTableWrap}>
                   <table className={styles.quickTable}>
@@ -1388,13 +1538,26 @@ function RainbowNoticeCard({
     touchCurrentYRef.current = 0;
   };
 
+  const timeLabel = info.isRainbow
+      ? `あと${info.remainingToExpireMinutes}分`
+      : `あと${info.remainingMinutes}分`;
+
+    const subLabel = info.isRainbow
+      ? `${formatTime(info.rainbowAt)} 虹化 / 非表示まで`
+      : `${formatTime(info.rainbowAt)} 虹化予定`;
+
   return (
     <article
       className={`${styles.rainbowNoticeCard} ${
         info.isImportant ? styles.rainbowNoticeImportant : ""
-      } ${styles[`rainbowNotice_${variant}`] || ""} ${
-        variant === "toast" ? styles.toastAutoFade : ""
-      } ${onSwipeRight ? styles.swipeableNotice : ""}`}
+      } ${info.isRainbow ? styles.rainbowNoticeRainbow : ""} ${
+        styles[`rainbowNotice_${variant}`] || ""
+      } ${variant === "toast" ? styles.toastAutoFade : ""} ${
+        onSwipeRight ? styles.swipeableNotice : ""
+      }`}
+      style={{
+        "--rainbow-progress": `${info.progressPercent}%`,
+      }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -1410,6 +1573,8 @@ function RainbowNoticeCard({
         </button>
       )}
 
+      <div className={styles.rainbowProgressLayer} />
+
       <div className={styles.rainbowNoticeMain}>
         <p className={styles.rainbowNoticeTopLine}>
           <span className={styles.rainbowServerBadge}>
@@ -1419,16 +1584,18 @@ function RainbowNoticeCard({
           <strong>{getMapLabel(report.map_name)}</strong>
         </p>
 
+        <div className={styles.rainbowGaugeTrack}>
+          <span className={styles.rainbowGaugeFill} />
+        </div>
+
         <p className={styles.rainbowNoticeBottomLine}>
-          <span>
-            {t("schedule.until", {
-              time: formatTime(info.rainbowAt),
-            })}
-          </span>
-          <span>
-            {t("schedule.remaining", {
-              minutes: info.remainingMinutes,
-            })}
+          <span>{subLabel}</span>
+          <span
+            className={`${styles.rainbowTimeBadge} ${
+              info.isRainbow ? styles.rainbowTimeBadgeRainbow : ""
+            }`}
+          >
+            {timeLabel}
           </span>
         </p>
       </div>
@@ -1492,19 +1659,38 @@ function addMinutes(date, minutes) {
   return new Date(date.getTime() + minutes * 60 * 1000);
 }
 
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function getRainbowInfo(report, now) {
   const createdAt = new Date(report.created_at);
-  const rainbowAt = addMinutes(createdAt, RAINBOW_LIMIT_MINUTES);
+  const rainbowAt = addMinutes(createdAt, RAINBOW_AFTER_MINUTES);
+  const expireAt = addMinutes(createdAt, RED_REPORT_KEEP_MINUTES);
   const alertAt = addMinutes(rainbowAt, -IMPORTANT_BEFORE_MINUTES);
-  const diffMs = rainbowAt.getTime() - now.getTime();
+
+  const untilRainbowMs = rainbowAt.getTime() - now.getTime();
+  const untilExpireMs = expireAt.getTime() - now.getTime();
+  const elapsedMs = now.getTime() - createdAt.getTime();
+
+  const elapsedMinutes = elapsedMs / 1000 / 60;
+  const progressPercent = Math.round(
+    clampNumber((elapsedMinutes / RAINBOW_AFTER_MINUTES) * 100, 0, 100)
+  );
+
+  const isRainbow = untilRainbowMs <= 0 && untilExpireMs > 0;
 
   return {
     createdAt,
     rainbowAt,
+    expireAt,
     alertAt,
-    remainingMinutes: Math.max(0, Math.ceil(diffMs / 1000 / 60)),
-    isImportant: now >= alertAt && diffMs > 0,
-    isExpired: diffMs <= 0,
+    remainingMinutes: Math.max(0, Math.ceil(untilRainbowMs / 1000 / 60)),
+    remainingToExpireMinutes: Math.max(0, Math.ceil(untilExpireMs / 1000 / 60)),
+    progressPercent,
+    isImportant: now >= alertAt && untilRainbowMs > 0,
+    isRainbow,
+    isExpired: untilExpireMs <= 0,
   };
 }
 
