@@ -63,6 +63,10 @@ const IMPORTANT_BEFORE_MINUTES = 15;
 const TOAST_AUTO_DISMISS_MS = 20000;
 const MOBILE_CARD_GAP = 12;
 
+// 手動で赤・黄を押した直後に、自動更新で古いDB状態を拾って表示が戻るのを防ぐ
+const MANUAL_REPORT_REFRESH_PAUSE_MS = 1800;
+const MANUAL_REPORT_FORCE_REFRESH_DELAY_MS = 700;
+
 export default function KishojuRoomClient({ roomId }) {
   const t = useTranslations("KishojuRoom");
   const router = useRouter();
@@ -115,6 +119,18 @@ export default function KishojuRoomClient({ roomId }) {
   const deletingReportIdsRef = useRef(new Set());
   const toastTimerMapRef = useRef(new Map());
   const pendingReportKeysRef = useRef(new Set());
+
+  // 追加：赤・黄の手動登録中は自動更新を止める
+  const isSubmittingReportRef = useRef(false);
+
+  // 追加：押した直後に自動更新が走らないように一時停止期限を持つ
+  const autoRefreshPausedUntilRef = useRef(0);
+
+  // 追加：古いfetch結果が新しい結果を上書きしないようにする
+  const reportsFetchSeqRef = useRef(0);
+
+  // 追加：送信後の遅延再取得タイマー
+  const manualRefreshTimerRef = useRef(null);
 
   const drawerTouchStartXRef = useRef(0);
   const drawerTouchStartYRef = useRef(0);
@@ -262,7 +278,9 @@ export default function KishojuRoomClient({ roomId }) {
     activeMobileMapIndex * -safeMobileCardStepWidth;
 
   const mobileCardTrackStyle = {
-    transform: `translate3d(${mobileCardBaseTranslate + mobileDragOffset}px, 0, 0)`,
+    transform: `translate3d(${
+      mobileCardBaseTranslate + mobileDragOffset
+    }px, 0, 0)`,
     transition: isMobileDragging ? "none" : undefined,
   };
 
@@ -296,36 +314,62 @@ export default function KishojuRoomClient({ roomId }) {
     }
   };
 
-  const fetchReports = async () => {
+  const mergeReportsKeepingPending = (currentReports, nextReports) => {
+    const pendingReports = currentReports.filter((report) => {
+      const key = `${Number(report.server_no)}-${report.map_name}`;
+      return pendingReportKeysRef.current.has(key);
+    });
+
+    if (pendingReports.length === 0) {
+      return nextReports;
+    }
+
+    const nextReportKeys = new Set(
+      nextReports.map(
+        (report) => `${Number(report.server_no)}-${report.map_name}`
+      )
+    );
+
+    const stillPendingReports = pendingReports.filter((report) => {
+      const key = `${Number(report.server_no)}-${report.map_name}`;
+      return !nextReportKeys.has(key);
+    });
+
+    return [...stillPendingReports, ...nextReports];
+  };
+
+  const fetchReports = async ({ force = false } = {}) => {
+    const nowTime = Date.now();
+
+    // 手動登録中・登録直後は、自動更新だけ止める
+    if (!force && isSubmittingReportRef.current) return;
+    if (!force && nowTime < autoRefreshPausedUntilRef.current) return;
+
+    const fetchSeq = ++reportsFetchSeqRef.current;
+
     try {
       const nextReports = await fetchKishojuReports(roomId);
 
-      setReports((currentReports) => {
-        const pendingReports = currentReports.filter((report) => {
-          const key = `${Number(report.server_no)}-${report.map_name}`;
-          return pendingReportKeysRef.current.has(key);
-        });
+      // forceでない古いfetchが後から返ってきた場合は無視
+      if (!force && fetchSeq !== reportsFetchSeqRef.current) return;
 
-        if (pendingReports.length === 0) {
-          return nextReports;
-        }
-
-        const nextReportKeys = new Set(
-          nextReports.map(
-            (report) => `${Number(report.server_no)}-${report.map_name}`
-          )
-        );
-
-        const stillPendingReports = pendingReports.filter((report) => {
-          const key = `${Number(report.server_no)}-${report.map_name}`;
-          return !nextReportKeys.has(key);
-        });
-
-        return [...stillPendingReports, ...nextReports];
-      });
+      setReports((currentReports) =>
+        mergeReportsKeepingPending(currentReports, nextReports)
+      );
     } catch {
       // 自動更新なので、ここでは画面エラーにしない
     }
+  };
+
+  const scheduleManualForceRefresh = () => {
+    if (manualRefreshTimerRef.current) {
+      clearTimeout(manualRefreshTimerRef.current);
+    }
+
+    manualRefreshTimerRef.current = setTimeout(() => {
+      manualRefreshTimerRef.current = null;
+      fetchReports({ force: true });
+    }, MANUAL_REPORT_FORCE_REFRESH_DELAY_MS);
   };
 
   const deleteReportSilently = async (reportId) => {
@@ -335,12 +379,19 @@ export default function KishojuRoomClient({ roomId }) {
   useEffect(() => {
     fetchRoom({ redirectOnError: true });
 
-    const reportTimer = setInterval(fetchReports, 5000);
+    const reportTimer = setInterval(() => {
+      fetchReports();
+    }, 5000);
+
     const clockTimer = setInterval(() => setNow(new Date()), 10000);
 
     return () => {
       clearInterval(reportTimer);
       clearInterval(clockTimer);
+
+      if (manualRefreshTimerRef.current) {
+        clearTimeout(manualRefreshTimerRef.current);
+      }
     };
   }, [roomId]);
 
@@ -454,6 +505,7 @@ export default function KishojuRoomClient({ roomId }) {
     const expiredRedReports = reports.filter((report) => {
       if (report.gauge_color !== "赤") return false;
       if (deletingReportIdsRef.current.has(report.id)) return false;
+      if (report.isTemporary) return false;
 
       const info = getRainbowInfo(report, now);
       return info.isExpired;
@@ -478,7 +530,7 @@ export default function KishojuRoomClient({ roomId }) {
         )
       );
 
-      fetchReports();
+      fetchReports({ force: true });
     });
   }, [reports, now, roomId]);
 
@@ -744,6 +796,11 @@ export default function KishojuRoomClient({ roomId }) {
       return;
     }
 
+    // 同じセルの連打を防ぐ
+    if (pendingReportKeysRef.current.has(reportKey)) {
+      return;
+    }
+
     const optimisticReport = {
       id: temporaryId,
       kishoju_room_id: room?.id ?? null,
@@ -758,11 +815,16 @@ export default function KishojuRoomClient({ roomId }) {
     };
 
     try {
+      isSubmittingReportRef.current = true;
+      autoRefreshPausedUntilRef.current =
+        Date.now() + MANUAL_REPORT_REFRESH_PAUSE_MS;
+
       setError("");
       setMessage("");
       setBusyAction(busyKey);
       pendingReportKeysRef.current.add(reportKey);
 
+      // 先に画面を更新
       setReports((current) => {
         const filtered = current.filter(
           (report) =>
@@ -783,6 +845,7 @@ export default function KishojuRoomClient({ roomId }) {
         memo: null,
       });
 
+      // APIから返った正式データに差し替え
       setReports((current) => {
         const filtered = current.filter(
           (report) =>
@@ -795,7 +858,8 @@ export default function KishojuRoomClient({ roomId }) {
         return [createdReport, ...filtered];
       });
 
-      await fetchReports();
+      // DB反映直後に少し待ってから強制再取得
+      scheduleManualForceRefresh();
     } catch (err) {
       setReports((current) =>
         current.filter((report) => report.id !== temporaryId)
@@ -804,6 +868,7 @@ export default function KishojuRoomClient({ roomId }) {
       setError(err.message || t("errors.common"));
     } finally {
       pendingReportKeysRef.current.delete(reportKey);
+      isSubmittingReportRef.current = false;
       setBusyAction("");
     }
   };
@@ -814,7 +879,7 @@ export default function KishojuRoomClient({ roomId }) {
     setDismissedToastIds((current) => current.filter((id) => id !== reportId));
     setMessage(t("messages.reportDeleted"));
 
-    await fetchReports();
+    await fetchReports({ force: true });
   };
 
   const requestUndoReport = (reportId) => {
@@ -1473,7 +1538,7 @@ export default function KishojuRoomClient({ roomId }) {
                         className={styles.reportUndoButton}
                         onClick={() => requestUndoReport(report.id)}
                         aria-label={t("log.undoLabel")}
-                        disabled={Boolean(busyAction)}
+                        disabled={Boolean(busyAction) || report.isTemporary}
                       >
                         {isDeleting ? <Spinner small /> : "×"}
                       </button>
@@ -1537,6 +1602,7 @@ function QuickCell({
   const info = latest ? getRainbowInfo(latest, now) : null;
   const isYellow = latest?.gauge_color === "黄";
   const isRed = latest?.gauge_color === "赤";
+  const isTemporary = Boolean(latest?.isTemporary);
 
   return (
     <div className={styles.quickCell}>
@@ -1546,7 +1612,7 @@ function QuickCell({
           isYellow ? styles.yellowGauge : ""
         } ${busyColor === "黄" ? styles.quickButtonBusy : ""}`}
         onClick={() => onClick("黄")}
-        disabled={Boolean(busyColor || isDeleting)}
+        disabled={Boolean(busyColor || isDeleting || isTemporary)}
       >
         {busyColor === "黄" ? <Spinner small /> : t("colors.yellow")}
       </button>
@@ -1557,7 +1623,7 @@ function QuickCell({
           isRed ? styles.redGauge : ""
         } ${busyColor === "赤" ? styles.quickButtonBusy : ""}`}
         onClick={() => onClick("赤")}
-        disabled={Boolean(busyColor || isDeleting)}
+        disabled={Boolean(busyColor || isDeleting || isTemporary)}
       >
         {busyColor === "赤" ? <Spinner small /> : t("colors.red")}
       </button>
@@ -1570,12 +1636,17 @@ function QuickCell({
               className={styles.cellUndoButton}
               onClick={() => onUndo(latest.id)}
               aria-label={t("quick.deleteReportLabel")}
-              disabled={Boolean(busyColor || isDeleting)}
+              disabled={Boolean(busyColor || isDeleting || isTemporary)}
             >
               {isDeleting ? <Spinner small /> : "×"}
             </button>
 
-            {latest.gauge_color === "赤" ? (
+            {isTemporary ? (
+              <strong className={styles.stateLine}>
+                <Spinner small />
+                登録中
+              </strong>
+            ) : latest.gauge_color === "赤" ? (
               <strong className={styles.stateLine}>
                 {formatTime(latest.created_at)}〜{formatTime(info.rainbowAt)}
               </strong>
