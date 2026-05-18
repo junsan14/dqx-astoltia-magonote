@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
 import { useRouter, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import styles from "./KishojuRoom.module.css";
@@ -22,7 +23,6 @@ import {
   FiChevronRight,
   FiSmartphone,
 } from "react-icons/fi";
-
 
 const MAP_KEYS = [
   {
@@ -61,12 +61,14 @@ const RAINBOW_AFTER_MINUTES = 60;
 const RED_REPORT_KEEP_MINUTES = 90;
 const IMPORTANT_BEFORE_MINUTES = 15;
 const TOAST_AUTO_DISMISS_MS = 20000;
+const MOBILE_CARD_GAP = 12;
 
 export default function KishojuRoomClient({ roomId }) {
   const t = useTranslations("KishojuRoom");
   const router = useRouter();
   const params = useParams();
   const locale = params?.locale || "ja";
+
   const mapOptions = useMemo(() => {
     return MAP_KEYS.map((map) => ({
       ...map,
@@ -109,20 +111,29 @@ export default function KishojuRoomClient({ roomId }) {
   const [tutorialPromptOpen, setTutorialPromptOpen] = useState(false);
   const [tutorialActive, setTutorialActive] = useState(false);
   const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
+
   const deletingReportIdsRef = useRef(new Set());
   const toastTimerMapRef = useRef(new Map());
+  const pendingReportKeysRef = useRef(new Set());
 
   const drawerTouchStartXRef = useRef(0);
   const drawerTouchStartYRef = useRef(0);
   const drawerTouchCurrentXRef = useRef(0);
   const drawerTouchCurrentYRef = useRef(0);
+
   const mapSelectorRef = useRef(null);
   const registerRef = useRef(null);
   const quickReportRef = useRef(null);
+
   const mobileMapTouchStartXRef = useRef(0);
   const mobileMapTouchStartYRef = useRef(0);
   const mobileMapTouchCurrentXRef = useRef(0);
   const mobileMapTouchCurrentYRef = useRef(0);
+
+  const mobileCardViewportRef = useRef(null);
+  const [mobileCardStepWidth, setMobileCardStepWidth] = useState(0);
+  const [mobileDragOffset, setMobileDragOffset] = useState(0);
+  const [isMobileDragging, setIsMobileDragging] = useState(false);
 
   const selectedMember = useMemo(() => {
     return members.find(
@@ -151,27 +162,27 @@ export default function KishojuRoomClient({ roomId }) {
   }, [reports, now]);
 
   const latestReportMap = useMemo(() => {
-  const map = new Map();
+    const map = new Map();
 
-  activeReports.forEach((report) => {
-    const key = `${Number(report.server_no)}-${report.map_name}`;
-    const current = map.get(key);
+    activeReports.forEach((report) => {
+      const key = `${Number(report.server_no)}-${report.map_name}`;
+      const current = map.get(key);
 
-    if (!current) {
-      map.set(key, report);
-      return;
-    }
+      if (!current) {
+        map.set(key, report);
+        return;
+      }
 
-    const currentTime = new Date(current.created_at).getTime();
-    const reportTime = new Date(report.created_at).getTime();
+      const currentTime = new Date(current.created_at).getTime();
+      const reportTime = new Date(report.created_at).getTime();
 
-    if (reportTime > currentTime) {
-      map.set(key, report);
-    }
-  });
+      if (reportTime > currentTime) {
+        map.set(key, report);
+      }
+    });
 
-  return map;
-}, [activeReports]);
+    return map;
+  }, [activeReports]);
 
   const importantReports = useMemo(() => {
     return activeReports
@@ -216,19 +227,45 @@ export default function KishojuRoomClient({ roomId }) {
       .filter((report) => !dismissedToastIds.includes(report.id))
       .slice(0, 3);
   }, [importantReports, dismissedToastIds]);
+
   const tutorialStep = TUTORIAL_STEPS[tutorialStepIndex];
 
   const tutorialTargetRefs = useMemo(() => {
-      return {
-        maps: mapSelectorRef,
-        register: registerRef,
-        quick: quickReportRef,
-      };
-    }, []);
-
-    const isTutorialTarget = (target) => {
-      return tutorialActive && tutorialStep?.target === target;
+    return {
+      maps: mapSelectorRef,
+      register: registerRef,
+      quick: quickReportRef,
     };
+  }, []);
+
+  const isTutorialTarget = (target) => {
+    return tutorialActive && tutorialStep?.target === target;
+  };
+
+  const activeMobileMapIndex = useMemo(() => {
+    if (!activeMobileMap) return 0;
+
+    const index = selectedMaps.findIndex((map) => map === activeMobileMap);
+
+    return index >= 0 ? index : 0;
+  }, [activeMobileMap, selectedMaps]);
+
+  const canSwitchMobileMap = selectedMaps.length > 1;
+
+  const safeMobileCardStepWidth =
+    mobileCardStepWidth ||
+    (typeof window !== "undefined"
+      ? window.innerWidth * 0.92 + MOBILE_CARD_GAP
+      : 360);
+
+  const mobileCardBaseTranslate =
+    activeMobileMapIndex * -safeMobileCardStepWidth;
+
+  const mobileCardTrackStyle = {
+    transform: `translate3d(${mobileCardBaseTranslate + mobileDragOffset}px, 0, 0)`,
+    transition: isMobileDragging ? "none" : undefined,
+  };
+
   const fetchRoom = async ({ redirectOnError = false } = {}) => {
     try {
       const nextRoom = await fetchKishojuRoom(roomId);
@@ -262,7 +299,30 @@ export default function KishojuRoomClient({ roomId }) {
   const fetchReports = async () => {
     try {
       const nextReports = await fetchKishojuReports(roomId);
-      setReports(nextReports);
+
+      setReports((currentReports) => {
+        const pendingReports = currentReports.filter((report) => {
+          const key = `${Number(report.server_no)}-${report.map_name}`;
+          return pendingReportKeysRef.current.has(key);
+        });
+
+        if (pendingReports.length === 0) {
+          return nextReports;
+        }
+
+        const nextReportKeys = new Set(
+          nextReports.map(
+            (report) => `${Number(report.server_no)}-${report.map_name}`
+          )
+        );
+
+        const stillPendingReports = pendingReports.filter((report) => {
+          const key = `${Number(report.server_no)}-${report.map_name}`;
+          return !nextReportKeys.has(key);
+        });
+
+        return [...stillPendingReports, ...nextReports];
+      });
     } catch {
       // 自動更新なので、ここでは画面エラーにしない
     }
@@ -273,23 +333,62 @@ export default function KishojuRoomClient({ roomId }) {
   };
 
   useEffect(() => {
-  fetchRoom({ redirectOnError: true });
+    fetchRoom({ redirectOnError: true });
 
-  const reportTimer = setInterval(fetchReports, 5000);
-  const clockTimer = setInterval(() => setNow(new Date()), 10000);
+    const reportTimer = setInterval(fetchReports, 5000);
+    const clockTimer = setInterval(() => setNow(new Date()), 10000);
 
-  return () => {
-    clearInterval(reportTimer);
-    clearInterval(clockTimer);
-  };
-}, [roomId]);
+    return () => {
+      clearInterval(reportTimer);
+      clearInterval(clockTimer);
+    };
+  }, [roomId]);
+
+  useLayoutEffect(() => {
+    const viewport = mobileCardViewportRef.current;
+    if (!viewport) return;
+
+    const updateStepWidth = () => {
+      const firstSlide = viewport.querySelector(
+        `.${styles.mobileMapCardSlide}`
+      );
+
+      if (!firstSlide) return;
+
+      const slideWidth = firstSlide.getBoundingClientRect().width;
+      setMobileCardStepWidth(slideWidth + MOBILE_CARD_GAP);
+    };
+
+    const frameId = requestAnimationFrame(updateStepWidth);
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateStepWidth);
+
+      return () => {
+        cancelAnimationFrame(frameId);
+        window.removeEventListener("resize", updateStepWidth);
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(updateStepWidth);
+    resizeObserver.observe(viewport);
+
+    window.addEventListener("resize", updateStepWidth);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateStepWidth);
+    };
+  }, [selectedMemberId, selectedMaps.length, activeMobileMap, serverRows.length]);
+
   useEffect(() => {
-  const tutorialStatus = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+    const tutorialStatus = localStorage.getItem(TUTORIAL_STORAGE_KEY);
 
-  if (!tutorialStatus) {
-    setTutorialPromptOpen(true);
-  }
-}, []);
+    if (!tutorialStatus) {
+      setTutorialPromptOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!tutorialActive || !tutorialStep) return;
@@ -314,6 +413,7 @@ export default function KishojuRoomClient({ roomId }) {
 
     return () => clearTimeout(scrollTimer);
   }, [tutorialActive, tutorialStep, tutorialTargetRefs]);
+
   useEffect(() => {
     return () => {
       toastTimerMapRef.current.forEach((timerId) => {
@@ -421,18 +521,11 @@ export default function KishojuRoomClient({ roomId }) {
     });
   }, [selectedMaps]);
 
-  const activeMobileMapIndex = useMemo(() => {
-    if (!activeMobileMap) return 0;
-
-    const index = selectedMaps.findIndex((map) => map === activeMobileMap);
-
-    return index >= 0 ? index : 0;
-  }, [activeMobileMap, selectedMaps]);
-
-  const canSwitchMobileMap = selectedMaps.length > 1;
-
   const moveMobileMap = (direction) => {
     if (!canSwitchMobileMap) return;
+
+    setIsMobileDragging(false);
+    setMobileDragOffset(0);
 
     setActiveMobileMap((current) => {
       const currentIndex = selectedMaps.findIndex((map) => map === current);
@@ -454,6 +547,9 @@ export default function KishojuRoomClient({ roomId }) {
     mobileMapTouchStartYRef.current = touch.clientY;
     mobileMapTouchCurrentXRef.current = touch.clientX;
     mobileMapTouchCurrentYRef.current = touch.clientY;
+
+    setIsMobileDragging(true);
+    setMobileDragOffset(0);
   };
 
   const handleMobileMapTouchMove = (e) => {
@@ -463,10 +559,29 @@ export default function KishojuRoomClient({ roomId }) {
 
     mobileMapTouchCurrentXRef.current = touch.clientX;
     mobileMapTouchCurrentYRef.current = touch.clientY;
+
+    const startX = mobileMapTouchStartXRef.current;
+    const startY = mobileMapTouchStartYRef.current;
+    const diffX = touch.clientX - startX;
+    const diffY = Math.abs(touch.clientY - startY);
+
+    const isHorizontalMove =
+      Math.abs(diffX) > 8 && Math.abs(diffX) > diffY * 1.15;
+
+    if (!isHorizontalMove) return;
+
+    const maxOffset = Math.max(80, safeMobileCardStepWidth * 0.86);
+    const nextOffset = Math.max(Math.min(diffX, maxOffset), -maxOffset);
+
+    setMobileDragOffset(nextOffset);
   };
 
   const handleMobileMapTouchEnd = () => {
-    if (!canSwitchMobileMap) return;
+    if (!canSwitchMobileMap) {
+      setIsMobileDragging(false);
+      setMobileDragOffset(0);
+      return;
+    }
 
     const startX = mobileMapTouchStartXRef.current;
     const startY = mobileMapTouchStartYRef.current;
@@ -476,7 +591,9 @@ export default function KishojuRoomClient({ roomId }) {
     const diffX = endX - startX;
     const diffY = Math.abs(endY - startY);
 
-    const isHorizontalSwipe = Math.abs(diffX) > 55 && Math.abs(diffX) > diffY * 1.3;
+    const threshold = Math.max(55, safeMobileCardStepWidth * 0.22);
+    const isHorizontalSwipe =
+      Math.abs(diffX) > threshold && Math.abs(diffX) > diffY * 1.25;
 
     if (isHorizontalSwipe) {
       if (diffX < 0) {
@@ -485,6 +602,9 @@ export default function KishojuRoomClient({ roomId }) {
         moveMobileMap(-1);
       }
     }
+
+    setIsMobileDragging(false);
+    setMobileDragOffset(0);
 
     mobileMapTouchStartXRef.current = 0;
     mobileMapTouchStartYRef.current = 0;
@@ -615,6 +735,7 @@ export default function KishojuRoomClient({ roomId }) {
     targetMap,
     targetColor,
   }) => {
+    const reportKey = `${Number(targetServer)}-${targetMap}`;
     const busyKey = `report-${targetServer}-${targetMap}-${targetColor}`;
     const temporaryId = `temp-${Date.now()}-${targetServer}-${targetMap}`;
 
@@ -640,6 +761,7 @@ export default function KishojuRoomClient({ roomId }) {
       setError("");
       setMessage("");
       setBusyAction(busyKey);
+      pendingReportKeysRef.current.add(reportKey);
 
       setReports((current) => {
         const filtered = current.filter(
@@ -661,11 +783,19 @@ export default function KishojuRoomClient({ roomId }) {
         memo: null,
       });
 
-      setReports((current) =>
-        current.map((report) =>
-          report.id === temporaryId ? createdReport : report
-        )
-      );
+      setReports((current) => {
+        const filtered = current.filter(
+          (report) =>
+            !(
+              Number(report.server_no) === Number(targetServer) &&
+              report.map_name === targetMap
+            )
+        );
+
+        return [createdReport, ...filtered];
+      });
+
+      await fetchReports();
     } catch (err) {
       setReports((current) =>
         current.filter((report) => report.id !== temporaryId)
@@ -673,6 +803,7 @@ export default function KishojuRoomClient({ roomId }) {
 
       setError(err.message || t("errors.common"));
     } finally {
+      pendingReportKeysRef.current.delete(reportKey);
       setBusyAction("");
     }
   };
@@ -687,28 +818,28 @@ export default function KishojuRoomClient({ roomId }) {
   };
 
   const requestUndoReport = (reportId) => {
-  const targetReport = reports.find(
-    (report) => String(report.id) === String(reportId)
-  );
+    const targetReport = reports.find(
+      (report) => String(report.id) === String(reportId)
+    );
 
-  const reportLabel = targetReport
-    ? `サーバー${targetReport.server_no} / ${getMapLabel(
-        targetReport.map_name
-      )} / ${getGaugeLabel(targetReport.gauge_color, t)} / ${
-        targetReport.reported_by || "報告者不明"
-      } / ${formatTime(targetReport.created_at)}`
-    : "選択した報告";
+    const reportLabel = targetReport
+      ? `サーバー${targetReport.server_no} / ${getMapLabel(
+          targetReport.map_name
+        )} / ${getGaugeLabel(targetReport.gauge_color, t)} / ${
+          targetReport.reported_by || "報告者不明"
+        } / ${formatTime(targetReport.created_at)}`
+      : "選択した報告";
 
-  openConfirm({
-    title: "報告を削除しますか？",
-    description: reportLabel,
-    confirmLabel: t("confirm.deleteReportConfirm"),
-    busyKey: `delete-report-${reportId}`,
-    onConfirm: async () => {
-      await undoReport(reportId);
-    },
-  });
-};
+    openConfirm({
+      title: "報告を削除しますか？",
+      description: reportLabel,
+      confirmLabel: t("confirm.deleteReportConfirm"),
+      busyKey: `delete-report-${reportId}`,
+      onConfirm: async () => {
+        await undoReport(reportId);
+      },
+    });
+  };
 
   const dismissToast = (reportId) => {
     const timerId = toastTimerMapRef.current.get(reportId);
@@ -761,11 +892,12 @@ export default function KishojuRoomClient({ roomId }) {
     drawerTouchCurrentXRef.current = 0;
     drawerTouchCurrentYRef.current = 0;
   };
+
   const startTutorial = () => {
-  setTutorialPromptOpen(false);
-  setTutorialStepIndex(0);
-  setTutorialActive(true);
-};
+    setTutorialPromptOpen(false);
+    setTutorialStepIndex(0);
+    setTutorialActive(true);
+  };
 
   const skipTutorial = () => {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, "skipped");
@@ -790,6 +922,7 @@ export default function KishojuRoomClient({ roomId }) {
   const goPrevTutorialStep = () => {
     setTutorialStepIndex((current) => Math.max(0, current - 1));
   };
+
   const copyUrl = async () => {
     await navigator.clipboard.writeText(window.location.href);
     setMessage(t("messages.urlCopied"));
@@ -808,6 +941,7 @@ export default function KishojuRoomClient({ roomId }) {
         onConfirm={runConfirmedAction}
         t={t}
       />
+
       <KishojuRoomTutorial
         isPromptOpen={tutorialPromptOpen}
         isActive={tutorialActive}
@@ -820,6 +954,7 @@ export default function KishojuRoomClient({ roomId }) {
         onPrev={goPrevTutorialStep}
         onFinish={finishTutorial}
       />
+
       {toastReports.length > 0 && (
         <div className={styles.toastStack}>
           {toastReports.map((report) => (
@@ -938,11 +1073,11 @@ export default function KishojuRoomClient({ roomId }) {
       <section className={styles.grid}>
         <aside className={styles.side}>
           <div
-              ref={mapSelectorRef}
-              className={`${styles.card} ${styles.accordionCard} ${
-                isTutorialTarget("maps") ? styles.tutorialTarget : ""
-              }`}
-            >
+            ref={mapSelectorRef}
+            className={`${styles.card} ${styles.accordionCard} ${
+              isTutorialTarget("maps") ? styles.tutorialTarget : ""
+            }`}
+          >
             <button
               type="button"
               className={styles.accordionHead}
@@ -974,7 +1109,7 @@ export default function KishojuRoomClient({ roomId }) {
             </div>
           </div>
 
-         <div
+          <div
             ref={registerRef}
             className={`${styles.card} ${styles.accordionCard} ${
               isTutorialTarget("register") ? styles.tutorialTarget : ""
@@ -1066,11 +1201,11 @@ export default function KishojuRoomClient({ roomId }) {
 
         <section className={styles.main}>
           <div
-              ref={quickReportRef}
-              className={`${styles.card} ${
-                isTutorialTarget("quick") ? styles.tutorialTarget : ""
-              }`}
-            >
+            ref={quickReportRef}
+            className={`${styles.card} ${
+              isTutorialTarget("quick") ? styles.tutorialTarget : ""
+            }`}
+          >
             <div className={styles.panelHead}>
               <h2>{t("quick.title")}</h2>
               <span>{t("quick.caption")}</span>
@@ -1135,38 +1270,6 @@ export default function KishojuRoomClient({ roomId }) {
               <p className={styles.empty}>{t("quick.noMap")}</p>
             ) : (
               <>
-                <div className={styles.mobileMapSwitcher}>
-                  <button
-                    type="button"
-                    className={styles.mobileMapNavButton}
-                    onClick={() => moveMobileMap(-1)}
-                    disabled={!canSwitchMobileMap}
-                    aria-label="前の場所へ"
-                  >
-                    <FiChevronLeft />
-                  </button>
-
-                  <div className={styles.mobileMapCurrent}>
-                    <span className={styles.mobileMapCurrentLabel}>
-                      {getMapLabel(activeMobileMap)}
-                    </span>
-
-                    <span className={styles.mobileMapCounter}>
-                      {activeMobileMapIndex + 1} / {selectedMaps.length}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className={styles.mobileMapNavButton}
-                    onClick={() => moveMobileMap(1)}
-                    disabled={!canSwitchMobileMap}
-                    aria-label="次の場所へ"
-                  >
-                    <FiChevronRight />
-                  </button>
-                </div>
-
                 {canSwitchMobileMap && (
                   <>
                     <div className={styles.mobileSwipeHint}>
@@ -1177,123 +1280,69 @@ export default function KishojuRoomClient({ roomId }) {
                     </div>
 
                     <div className={styles.mobileMapTabs}>
-                    {selectedMaps.map((targetMap) => (
-                      <button
-                        key={targetMap}
-                        type="button"
-                        className={`${styles.mobileMapTab} ${
-                          activeMobileMap === targetMap ? styles.mobileMapTabActive : ""
-                        }`}
-                        onClick={() => setActiveMobileMap(targetMap)}
-                        aria-label={`${getMapLabel(targetMap)}を表示`}
-                      >
-                        <span className={styles.mobileMapTabLabel}>
-                          {getMapLabel(targetMap)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                      {selectedMaps.map((targetMap) => (
+                        <button
+                          key={targetMap}
+                          type="button"
+                          className={`${styles.mobileMapTab} ${
+                            activeMobileMap === targetMap
+                              ? styles.mobileMapTabActive
+                              : ""
+                          }`}
+                          onClick={() => {
+                            setIsMobileDragging(false);
+                            setMobileDragOffset(0);
+                            setActiveMobileMap(targetMap);
+                          }}
+                          aria-label={`${getMapLabel(targetMap)}を表示`}
+                        >
+                          <span className={styles.mobileMapTabLabel}>
+                            {getMapLabel(targetMap)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </>
                 )}
 
-                <div
-                  className={styles.quickTableWrap}
-                  onTouchStart={handleMobileMapTouchStart}
-                  onTouchMove={handleMobileMapTouchMove}
-                  onTouchEnd={handleMobileMapTouchEnd}
-                ></div>
+                <div className={styles.desktopQuickTableWrap}>
+                  <div className={styles.quickTableWrap}>
+                    <table className={styles.quickTable}>
+                      <thead>
+                        <tr>
+                          <th>{t("quick.server")}</th>
 
-                <div className={styles.quickTableWrap}>
-                  <table className={styles.quickTable}>
-                    <thead>
-                      <tr>
-                        <th>{t("quick.server")}</th>
+                          {selectedMaps.map((targetMap) => (
+                            <th key={targetMap}>{getMapLabel(targetMap)}</th>
+                          ))}
+                        </tr>
+                      </thead>
 
-                        {selectedMaps.map((targetMap) => (
-                          <th
-                            key={targetMap}
-                            className={styles.desktopMapColumn}
-                          >
-                            {getMapLabel(targetMap)}
-                          </th>
-                        ))}
+                      <tbody>
+                        {serverRows.map((targetServer) => (
+                          <tr key={targetServer}>
+                            <th>{targetServer}</th>
 
-                        {activeMobileMap && (
-                          <th className={styles.mobileMapColumn}>
-                            {getMapLabel(activeMobileMap)}
-                          </th>
-                        )}
-                      </tr>
-                    </thead>
+                            {selectedMaps.map((targetMap) => {
+                              const latest = latestReportMap.get(
+                                `${targetServer}-${targetMap}`
+                              );
 
-                    <tbody>
-                      {serverRows.map((targetServer) => (
-                        <tr key={targetServer}>
-                          <th>{targetServer}</th>
+                              const busyColor =
+                                busyAction ===
+                                `report-${targetServer}-${targetMap}-黄`
+                                  ? "黄"
+                                  : busyAction ===
+                                      `report-${targetServer}-${targetMap}-赤`
+                                    ? "赤"
+                                    : "";
 
-                          {selectedMaps.map((targetMap) => {
-                            const latest = latestReportMap.get(
-                              `${targetServer}-${targetMap}`
-                            );
+                              const isDeleting =
+                                latest &&
+                                busyAction === `delete-report-${latest.id}`;
 
-                            const busyColor =
-                              busyAction ===
-                              `report-${targetServer}-${targetMap}-黄`
-                                ? "黄"
-                                : busyAction ===
-                                    `report-${targetServer}-${targetMap}-赤`
-                                  ? "赤"
-                                  : "";
-
-                            const isDeleting =
-                              latest &&
-                              busyAction === `delete-report-${latest.id}`;
-
-                            return (
-                              <td
-                                key={`${targetServer}-${targetMap}`}
-                                className={styles.desktopMapColumn}
-                              >
-                                <QuickCell
-                                  latest={latest}
-                                  now={now}
-                                  busyColor={busyColor}
-                                  isDeleting={isDeleting}
-                                  onClick={(color) =>
-                                    submitQuickReport({
-                                      targetServer,
-                                      targetMap,
-                                      targetColor: color,
-                                    })
-                                  }
-                                  onUndo={requestUndoReport}
-                                  t={t}
-                                />
-                              </td>
-                            );
-                          })}
-
-                          {activeMobileMap && (
-                            <td className={styles.mobileMapColumn}>
-                              {(() => {
-                                const latest = latestReportMap.get(
-                                  `${targetServer}-${activeMobileMap}`
-                                );
-
-                                const busyColor =
-                                  busyAction ===
-                                  `report-${targetServer}-${activeMobileMap}-黄`
-                                    ? "黄"
-                                    : busyAction ===
-                                        `report-${targetServer}-${activeMobileMap}-赤`
-                                      ? "赤"
-                                      : "";
-
-                                const isDeleting =
-                                  latest &&
-                                  busyAction === `delete-report-${latest.id}`;
-
-                                return (
+                              return (
+                                <td key={`${targetServer}-${targetMap}`}>
                                   <QuickCell
                                     latest={latest}
                                     now={now}
@@ -1302,21 +1351,101 @@ export default function KishojuRoomClient({ roomId }) {
                                     onClick={(color) =>
                                       submitQuickReport({
                                         targetServer,
-                                        targetMap: activeMobileMap,
+                                        targetMap,
                                         targetColor: color,
                                       })
                                     }
                                     onUndo={requestUndoReport}
                                     t={t}
                                   />
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div
+                  ref={mobileCardViewportRef}
+                  className={styles.mobileMapCardViewport}
+                  onTouchStart={handleMobileMapTouchStart}
+                  onTouchMove={handleMobileMapTouchMove}
+                  onTouchEnd={handleMobileMapTouchEnd}
+                >
+                  <div
+                    className={styles.mobileMapCardTrack}
+                    style={mobileCardTrackStyle}
+                  >
+                    {selectedMaps.map((targetMap) => (
+                      <div
+                        key={targetMap}
+                        className={`${styles.mobileMapCardSlide} ${
+                          activeMobileMap === targetMap
+                            ? styles.mobileMapCardSlideActive
+                            : ""
+                        }`}
+                      >
+                        <div className={styles.quickTableWrap}>
+                          <table className={styles.quickTable}>
+                            <thead>
+                              <tr>
+                                <th>{t("quick.server")}</th>
+                                <th>{getMapLabel(targetMap)}</th>
+                              </tr>
+                            </thead>
+
+                            <tbody>
+                              {serverRows.map((targetServer) => {
+                                const latest = latestReportMap.get(
+                                  `${targetServer}-${targetMap}`
                                 );
-                              })()}
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                                const busyColor =
+                                  busyAction ===
+                                  `report-${targetServer}-${targetMap}-黄`
+                                    ? "黄"
+                                    : busyAction ===
+                                        `report-${targetServer}-${targetMap}-赤`
+                                      ? "赤"
+                                      : "";
+
+                                const isDeleting =
+                                  latest &&
+                                  busyAction === `delete-report-${latest.id}`;
+
+                                return (
+                                  <tr key={`${targetMap}-${targetServer}`}>
+                                    <th>{targetServer}</th>
+
+                                    <td>
+                                      <QuickCell
+                                        latest={latest}
+                                        now={now}
+                                        busyColor={busyColor}
+                                        isDeleting={isDeleting}
+                                        onClick={(color) =>
+                                          submitQuickReport({
+                                            targetServer,
+                                            targetMap,
+                                            targetColor: color,
+                                          })
+                                        }
+                                        onUndo={requestUndoReport}
+                                        t={t}
+                                      />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </>
             )}
@@ -1551,12 +1680,12 @@ function RainbowNoticeCard({
   };
 
   const timeLabel = info.isRainbow
-      ? `あと${info.remainingToExpireMinutes}分`
-      : `あと${info.remainingMinutes}分`;
+    ? `あと${info.remainingToExpireMinutes}分`
+    : `あと${info.remainingMinutes}分`;
 
-    const subLabel = info.isRainbow
-      ? `${formatTime(info.rainbowAt)} 虹化 / 非表示まで`
-      : `${formatTime(info.rainbowAt)} 虹化予定`;
+  const subLabel = info.isRainbow
+    ? `${formatTime(info.rainbowAt)} 虹化 / 非表示まで`
+    : `${formatTime(info.rainbowAt)} 虹化予定`;
 
   return (
     <article
