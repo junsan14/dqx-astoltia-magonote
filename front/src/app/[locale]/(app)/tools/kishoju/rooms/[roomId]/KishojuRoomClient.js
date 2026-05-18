@@ -151,15 +151,27 @@ export default function KishojuRoomClient({ roomId }) {
   }, [reports, now]);
 
   const latestReportMap = useMemo(() => {
-    const map = new Map();
+  const map = new Map();
 
-    activeReports.forEach((report) => {
-      const key = `${report.server_no}-${report.map_name}`;
-      if (!map.has(key)) map.set(key, report);
-    });
+  activeReports.forEach((report) => {
+    const key = `${Number(report.server_no)}-${report.map_name}`;
+    const current = map.get(key);
 
-    return map;
-  }, [activeReports]);
+    if (!current) {
+      map.set(key, report);
+      return;
+    }
+
+    const currentTime = new Date(current.created_at).getTime();
+    const reportTime = new Date(report.created_at).getTime();
+
+    if (reportTime > currentTime) {
+      map.set(key, report);
+    }
+  });
+
+  return map;
+}, [activeReports]);
 
   const importantReports = useMemo(() => {
     return activeReports
