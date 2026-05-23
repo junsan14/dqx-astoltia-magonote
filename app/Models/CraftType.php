@@ -6,5 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class CraftType extends Model
 {
-    protected $table = 'craft_types';
+    protected $fillable = [
+        'key',
+        'name',
+    ];
+
+    public function equipmentTypes()
+    {
+        return $this->hasMany(EquipmentType::class);
+    }
 }

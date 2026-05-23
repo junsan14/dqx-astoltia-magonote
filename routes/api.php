@@ -18,6 +18,9 @@ use App\Http\Controllers\Api\ContinentController;
 use App\Http\Controllers\Api\KishojuReportController;
 use App\Http\Controllers\Api\KishojuRoomController;
 use App\Http\Controllers\Api\BossController;
+use App\Http\Controllers\Api\CraftTypeController;
+
+
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
@@ -56,7 +59,9 @@ Route::get('/admin/kishoju/near-rainbow', [KishojuRoomController::class, 'adminN
 Route::Resource('/monster-map-spawns', MonsterMapSpawnController::class);
 
 
-Route::get('/equipment-types', [EquipmentTypeController::class, 'index']);
+Route::apiResource('equipment-types', EquipmentTypeController::class);
+Route::apiResource('craft-types', CraftTypeController::class);
+
 Route::Resource('/game-jobs', GameJobController::class);
 
 Route::put('/game-jobs/{gameJob}/equipable-types', [GameJobController::class, 'updateEquipableTypes']);

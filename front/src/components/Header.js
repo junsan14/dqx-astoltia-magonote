@@ -122,6 +122,16 @@ const ADMIN_MENUS = [
     localized: false,
   },
   {
+    href: "/admin/tool-editor/equipment-types",
+    label: "装備職人タイプ",
+    localized: false,
+  },
+  {
+    href: "/admin/tool-editor/craft-types",
+    label: "職人",
+    localized: false,
+  },
+  {
     href: "/admin/tool-editor/continents",
     label: "大陸",
     localized: false,

@@ -12,6 +12,8 @@ class EquipmentType extends Model
     protected $fillable = [
         'key',
         'name',
+        'kind',
+        'craft_type_id',
     ];
 
     public function equipments(): HasMany

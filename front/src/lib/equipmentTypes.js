@@ -14,6 +14,19 @@ const api = axios.create({
   },
 });
 
+export function createEmptyEquipmentType() {
+  return {
+    id: null,
+    key: "",
+    name: "",
+    kind: "",
+    craftTypeId: null,
+    createdAt: null,
+    updatedAt: null,
+    equipableTypes: [],
+  };
+}
+
 function normalizeEquipmentType(row = {}) {
   return {
     id: row?.id ?? null,
@@ -22,8 +35,18 @@ function normalizeEquipmentType(row = {}) {
     kind: row?.kind ?? "",
     craftTypeId:
       row?.craft_type_id == null ? null : Number(row.craft_type_id),
+
+    craftType: row?.craft_type
+      ? {
+          id: row.craft_type?.id ?? null,
+          key: row.craft_type?.key ?? "",
+          name: row.craft_type?.name ?? "",
+        }
+      : null,
+
     createdAt: row?.created_at ?? null,
     updatedAt: row?.updated_at ?? null,
+
     equipableTypes: Array.isArray(row?.equipable_types)
       ? row.equipable_types.map((item) => ({
           id: item?.id ?? null,
@@ -44,6 +67,15 @@ function normalizeEquipmentType(row = {}) {
             : null,
         }))
       : [],
+  };
+}
+
+function toPayload(data = {}) {
+  return {
+    key: data.key ?? "",
+    name: data.name ?? "",
+    kind: data.kind ?? "",
+    craft_type_id: data.craftTypeId ?? null,
   };
 }
 
@@ -82,7 +114,11 @@ export async function fetchEquipmentType(id) {
 
 export async function createEquipmentType(data) {
   try {
-    const res = await api.post(`${API_URL}/api/equipment-types`, data);
+    const res = await api.post(
+      `${API_URL}/api/equipment-types`,
+      toPayload(data)
+    );
+
     return normalizeEquipmentType(res.data?.data ?? res.data);
   } catch (error) {
     console.error(error);
@@ -97,7 +133,11 @@ export async function createEquipmentType(data) {
 
 export async function updateEquipmentType(id, data) {
   try {
-    const res = await api.put(`${API_URL}/api/equipment-types/${id}`, data);
+    const res = await api.put(
+      `${API_URL}/api/equipment-types/${id}`,
+      toPayload(data)
+    );
+
     return normalizeEquipmentType(res.data?.data ?? res.data);
   } catch (error) {
     console.error(error);
