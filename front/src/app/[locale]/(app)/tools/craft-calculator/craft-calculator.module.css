@@ -1,3 +1,4 @@
+
 .page {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
@@ -11,6 +12,12 @@
   --craft-input: #ffffff;
   --craft-button: #f8fafc;
   --craft-button-hover: #eef2ff;
+  --craft-active: #111827;
+  --craft-active-text: #ffffff;
+  --craft-blue: #2563eb;
+  --craft-blue-soft: rgba(59, 130, 246, 0.08);
+  --craft-green-soft: rgba(34, 197, 94, 0.08);
+  --craft-red-soft: rgba(239, 68, 68, 0.08);
 }
 
 .hero {
@@ -100,6 +107,120 @@
   background: var(--craft-button-hover);
 }
 
+/* 職人タブ */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tabButton {
+  padding: 10px 14px;
+  border: 1px solid var(--craft-border);
+  border-radius: 999px;
+  background: var(--craft-button);
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tabButton:hover {
+  background: var(--craft-button-hover);
+}
+
+.activeTab {
+  border-color: var(--craft-active);
+  background: var(--craft-active);
+  color: var(--craft-active-text);
+}
+
+/* 装備検索 */
+
+.searchBox {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.searchBox label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--craft-muted);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-input);
+  color: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: rgba(59, 130, 246, 0.75);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.searchResult {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 2px 2px 8px;
+}
+
+.equipmentButton {
+  padding: 12px;
+  border: 1px solid var(--craft-border);
+  border-radius: 16px;
+  background: var(--craft-soft);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.equipmentButton:hover {
+  background: var(--craft-button-hover);
+}
+
+.equipmentButton span {
+  display: block;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.equipmentButton small {
+  display: block;
+  margin-top: 6px;
+  color: var(--craft-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.activeEquipment {
+  border-color: var(--craft-active);
+  background: var(--craft-active);
+  color: var(--craft-active-text);
+}
+
+.activeEquipment small {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.noResult {
+  margin: 0;
+  color: var(--craft-muted);
+  font-weight: 700;
+}
+
+/* 装備情報 */
+
 .equipmentInfo {
   margin-top: 18px;
   padding: 18px;
@@ -136,6 +257,90 @@
   font-weight: 800;
 }
 
+/* ぬいパワー */
+
+.powerControlGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 160px;
+  gap: 14px;
+  align-items: end;
+}
+
+.powerControl {
+  display: grid;
+  gap: 8px;
+}
+
+.powerControl > span,
+.mentalBox label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--craft-muted);
+}
+
+.powerButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.powerButton {
+  padding: 10px 13px;
+  border: 1px solid var(--craft-border);
+  border-radius: 999px;
+  background: var(--craft-button);
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.powerButton:hover {
+  background: var(--craft-button-hover);
+}
+
+.activePower {
+  border-color: var(--craft-blue);
+  background: var(--craft-blue);
+  color: #ffffff;
+}
+
+.mentalBox {
+  display: grid;
+  gap: 8px;
+}
+
+.mentalInput {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-input);
+  color: inherit;
+  font-size: 1.15rem;
+  font-weight: 900;
+  outline: none;
+}
+
+.mentalInput:focus {
+  border-color: rgba(59, 130, 246, 0.75);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+}
+
+.powerNotice {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--craft-soft);
+  color: var(--craft-muted);
+  font-weight: 800;
+}
+
+.powerNotice strong {
+  color: var(--craft-text);
+}
+
+/* サマリー */
+
 .summaryGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -160,6 +365,8 @@
   font-size: 1.35rem;
 }
 
+/* グリッド */
+
 .gridWrap {
   overflow-x: auto;
   padding-bottom: 4px;
@@ -173,11 +380,16 @@
 
 .cell,
 .disabledCell {
-  min-height: 144px;
+  min-height: 214px;
   padding: 14px;
   border: 1px solid var(--craft-border);
   border-radius: 18px;
   background: var(--craft-card);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
 }
 
 .disabledCell {
@@ -235,18 +447,71 @@
 
 .short {
   border-color: rgba(59, 130, 246, 0.45);
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--craft-blue-soft);
 }
 
 .perfect {
   border-color: rgba(34, 197, 94, 0.55);
-  background: rgba(34, 197, 94, 0.08);
+  background: var(--craft-green-soft);
 }
 
 .over {
   border-color: rgba(239, 68, 68, 0.55);
-  background: rgba(239, 68, 68, 0.08);
+  background: var(--craft-red-soft);
 }
+
+/* おすすめ候補 */
+
+.candidateBox {
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.candidateBox > span {
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: var(--craft-muted);
+}
+
+.candidateBox small {
+  color: var(--craft-muted);
+  font-weight: 700;
+}
+
+.candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 1px solid var(--craft-border);
+  border-radius: 12px;
+  background: var(--craft-card);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.candidate:hover {
+  background: var(--craft-button-hover);
+}
+
+.candidate b {
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.candidate em {
+  flex: 0 0 auto;
+  font-style: normal;
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: var(--craft-blue);
+}
+
+/* 使い方 */
 
 .tips {
   margin-top: 20px;
@@ -266,6 +531,45 @@
   color: var(--craft-muted);
 }
 
+/* 特技表 */
+
+.skillTableWrap {
+  overflow-x: auto;
+}
+
+.skillTable {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.skillTable th,
+.skillTable td {
+  padding: 12px;
+  border-bottom: 1px solid var(--craft-border);
+  text-align: left;
+}
+
+.skillTable th {
+  background: var(--craft-soft);
+  color: var(--craft-muted);
+  font-size: 0.8rem;
+}
+
+.skillTable td {
+  color: var(--craft-muted);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.skillTable td:first-child {
+  color: var(--craft-text);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+/* 数値表 */
+
 .numberTables {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -280,7 +584,15 @@
 }
 
 .numberCard h3 {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
+}
+
+.numberEffect {
+  margin: 0 0 12px;
+  color: var(--craft-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.7;
 }
 
 .numberRow {
@@ -300,6 +612,8 @@
   color: var(--craft-muted);
   line-height: 1.6;
 }
+
+/* 空状態 */
 
 .emptyState {
   padding: 28px;
@@ -323,6 +637,8 @@
   background: rgba(148, 163, 184, 0.16);
 }
 
+/* dark mode */
+
 @media (prefers-color-scheme: dark) {
   .page {
     --craft-text: #e5e7eb;
@@ -333,6 +649,11 @@
     --craft-input: #020617;
     --craft-button: #111827;
     --craft-button-hover: #1e293b;
+    --craft-active: #e5e7eb;
+    --craft-active-text: #020617;
+    --craft-blue-soft: rgba(59, 130, 246, 0.14);
+    --craft-green-soft: rgba(34, 197, 94, 0.12);
+    --craft-red-soft: rgba(239, 68, 68, 0.12);
   }
 
   .hero,
@@ -348,6 +669,14 @@
       rgba(30, 41, 59, 0.5) 8px,
       rgba(30, 41, 59, 0.5) 16px
     );
+  }
+}
+
+/* responsive */
+
+@media (max-width: 900px) {
+  .powerControlGrid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -374,6 +703,11 @@
     grid-template-columns: 1fr;
   }
 
+  .searchResult {
+    grid-template-columns: 1fr;
+    max-height: 300px;
+  }
+
   .craftGrid {
     grid-template-columns: 1fr !important;
   }
@@ -386,4 +720,1229 @@
   .subButton {
     width: 100%;
   }
+}
+.stickyPowerPanel {
+  position: sticky;
+  top: 72px;
+  z-index: 20;
+  backdrop-filter: blur(14px);
+}
+
+.powerControlGrid {
+  grid-template-columns: 1fr 1fr 120px 100px;
+}
+
+.craftGrid {
+  gap: 8px;
+}
+
+.cell,
+.disabledCell {
+  min-height: 150px;
+  padding: 9px;
+  border-radius: 14px;
+}
+
+.cellTop {
+  margin-bottom: 6px;
+}
+
+.cellTop span {
+  font-size: 0.68rem;
+}
+
+.cellTop strong {
+  font-size: 1rem;
+}
+
+.input {
+  padding: 7px 8px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+.status {
+  margin: 6px 0 0;
+  font-size: 0.76rem;
+}
+
+.candidateBox {
+  gap: 4px;
+  padding-top: 6px;
+}
+
+.candidateBox > span {
+  font-size: 0.68rem;
+}
+
+.candidate {
+  padding: 5px 6px;
+  border-radius: 9px;
+  gap: 4px;
+}
+
+.candidate b {
+  font-size: 0.68rem;
+}
+
+.candidate em {
+  font-size: 0.66rem;
+}
+
+.clothEventBox {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--craft-soft);
+}
+
+.clothEventBox h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.clothEventBox p {
+  margin: 0 0 12px;
+  color: var(--craft-muted);
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+.clothCellButton {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 5px 6px;
+  border: 1px solid var(--craft-border);
+  border-radius: 999px;
+  background: var(--craft-button);
+  color: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.activeClothCellButton {
+  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.14);
+  color: #be185d;
+}
+
+.clothActiveCell {
+  outline: 3px solid rgba(236, 72, 153, 0.26);
+  outline-offset: 2px;
+}
+
+@media (min-width: 900px) {
+  .craftGrid {
+    grid-auto-rows: minmax(150px, auto);
+  }
+}
+
+@media (max-width: 900px) {
+  .stickyPowerPanel {
+    top: 12px;
+  }
+
+  .powerControlGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .stickyPowerPanel {
+    position: static;
+  }
+
+  .cell,
+  .disabledCell {
+    min-height: auto;
+  }
+}
+.stickyPowerPanel {
+  position: sticky;
+  top: 72px;
+  z-index: 30;
+  padding: 12px 16px;
+  backdrop-filter: blur(14px);
+}
+
+.stickyPowerPanel .panelHeader {
+  margin-bottom: 10px;
+}
+
+.stickyPowerPanel .panelHeader h2 {
+  font-size: 1.05rem;
+}
+
+.powerControlGrid {
+  grid-template-columns: 1fr 1fr 92px 78px;
+  gap: 10px;
+}
+
+.powerButton,
+.tabButton,
+.miniTabButton {
+  padding: 7px 10px;
+  font-size: 0.78rem;
+}
+
+.mentalInput {
+  padding: 7px 8px;
+  font-size: 0.9rem;
+}
+
+.compactClothArea {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--craft-border);
+}
+
+.compactClothHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+}
+
+.compactClothHeader span {
+  color: var(--craft-muted);
+  font-weight: 800;
+}
+
+.compactClothHeader strong {
+  font-weight: 900;
+}
+
+.compactClothTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.miniTabButton {
+  border: 1px solid var(--craft-border);
+  border-radius: 999px;
+  background: var(--craft-button);
+  color: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.activeMiniTab {
+  border-color: var(--craft-active);
+  background: var(--craft-active);
+  color: var(--craft-active-text);
+}
+
+.compactClothText {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  color: var(--craft-muted);
+  font-weight: 700;
+}
+
+.summaryGrid {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.summaryGrid div {
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.summaryGrid strong {
+  font-size: 1rem;
+}
+
+.craftGrid {
+  gap: 6px;
+}
+
+.cell,
+.disabledCell {
+  min-height: 92px;
+  padding: 7px;
+  border-radius: 12px;
+}
+
+.cellTop {
+  margin-bottom: 4px;
+}
+
+.cellTop span {
+  font-size: 0.62rem;
+}
+
+.cellTop strong {
+  font-size: 0.9rem;
+}
+
+.input {
+  padding: 5px 6px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+
+.status {
+  margin-top: 4px;
+  font-size: 0.68rem;
+}
+
+.globalCandidateBox {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--craft-border);
+  border-radius: 18px;
+  background: var(--craft-soft);
+}
+
+.globalCandidateHeader {
+  margin-bottom: 10px;
+}
+
+.globalCandidateHeader h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.globalCandidateList {
+  display: grid;
+  gap: 8px;
+}
+
+.globalCandidate {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-card);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.globalCandidate:hover {
+  background: var(--craft-button-hover);
+}
+
+.globalRank {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--craft-active);
+  color: var(--craft-active-text);
+  font-weight: 900;
+}
+
+.globalMain {
+  display: grid;
+  gap: 3px;
+}
+
+.globalMain strong {
+  font-size: 0.9rem;
+}
+
+.globalMain small {
+  color: var(--craft-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.globalCandidate em {
+  font-style: normal;
+  color: var(--craft-muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.modal,
+.smallModal {
+  width: min(720px, 100%);
+  max-height: min(80vh, 760px);
+  overflow: auto;
+  padding: 20px;
+  border-radius: 22px;
+  background: var(--craft-card);
+  color: var(--craft-text);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+}
+
+.smallModal {
+  width: min(420px, 100%);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.modalClose {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--craft-border);
+  border-radius: 999px;
+  background: var(--craft-button);
+  color: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.modalLead {
+  margin: 0 0 14px;
+  color: var(--craft-muted);
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+.resultInputList {
+  display: grid;
+  gap: 10px;
+}
+
+.resultInputRow {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-soft);
+}
+
+.resultInputRow span {
+  display: grid;
+  gap: 3px;
+}
+
+.resultInputRow strong {
+  font-size: 0.9rem;
+}
+
+.resultInputRow small {
+  color: var(--craft-muted);
+  font-size: 0.75rem;
+}
+
+.resultInputRow input,
+.regenCell input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--craft-border);
+  border-radius: 10px;
+  background: var(--craft-input);
+  color: inherit;
+  font-weight: 800;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.primaryButton {
+  padding: 10px 16px;
+  border: 1px solid var(--craft-active);
+  border-radius: 999px;
+  background: var(--craft-active);
+  color: var(--craft-active-text);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.powerSelectList {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.powerSelectButton {
+  padding: 14px;
+  border: 1px solid var(--craft-border);
+  border-radius: 16px;
+  background: var(--craft-soft);
+  color: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.powerSelectButton:hover {
+  background: var(--craft-button-hover);
+}
+
+.regenGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.regenCell {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-soft);
+}
+
+.regenCell span {
+  font-size: 0.78rem;
+  color: var(--craft-muted);
+  font-weight: 900;
+}
+
+@media (min-width: 900px) {
+  .craftGrid {
+    grid-auto-rows: minmax(92px, auto);
+  }
+}
+
+@media (max-width: 900px) {
+  .stickyPowerPanel {
+    top: 12px;
+  }
+
+  .powerControlGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .globalCandidate {
+    grid-template-columns: 28px 1fr;
+  }
+
+  .globalCandidate em {
+    grid-column: 2;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 760px) {
+  .stickyPowerPanel {
+    position: static;
+  }
+
+  .powerControlGrid,
+  .powerSelectList {
+    grid-template-columns: 1fr;
+  }
+
+  .resultInputRow {
+    grid-template-columns: 1fr;
+  }
+}
+.resultInputReadonly {
+  opacity: 0.55;
+}
+.resultGrid {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.resultGridCell {
+  min-height: 124px;
+  padding: 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-soft);
+  color: inherit;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  text-align: left;
+}
+
+.resultGridEditable {
+  border-color: rgba(59, 130, 246, 0.65);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.resultGridReadonly {
+  opacity: 0.46;
+}
+
+.resultGridDisabled {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--craft-soft),
+    var(--craft-soft) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  opacity: 0.35;
+}
+
+.resultCellName {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--craft-muted);
+}
+
+.resultCellTarget {
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.resultGridCell small {
+  font-size: 0.68rem;
+  color: var(--craft-muted);
+  line-height: 1.35;
+}
+
+.resultGridCell input {
+  width: 100%;
+  margin-top: auto;
+  padding: 7px 8px;
+  border: 1px solid var(--craft-border);
+  border-radius: 10px;
+  background: var(--craft-input);
+  color: inherit;
+  font-weight: 900;
+}
+
+.resultGridReadonly input {
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .resultGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+.resultGrid {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.resultGridCell {
+  min-height: 124px;
+  padding: 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-soft);
+  color: inherit;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  text-align: left;
+}
+
+.resultGridEditable {
+  border-color: rgba(59, 130, 246, 0.65);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.resultGridReadonly {
+  opacity: 0.46;
+}
+
+.resultGridDisabled {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--craft-soft),
+    var(--craft-soft) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  opacity: 0.35;
+}
+
+.resultCellName {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--craft-muted);
+}
+
+.resultCellTarget {
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.resultGridCell small {
+  font-size: 0.68rem;
+  color: var(--craft-muted);
+  line-height: 1.35;
+}
+
+.resultGridCell input {
+  width: 100%;
+  margin-top: auto;
+  padding: 7px 8px;
+  border: 1px solid var(--craft-border);
+  border-radius: 10px;
+  background: var(--craft-input);
+  color: inherit;
+  font-weight: 900;
+}
+
+.resultGridReadonly input {
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .resultGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.powerDisplayGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(82px, 1fr));
+  gap: 8px;
+}
+
+.powerDisplayItem {
+  padding: 9px 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-soft);
+}
+
+.powerDisplayItem span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--craft-muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.powerDisplayItem strong {
+  display: block;
+  font-size: 0.96rem;
+  font-weight: 900;
+}
+
+.statusActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.initialPowerBlock {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.initialPowerBlock h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.resultGrid {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.resultGridCell {
+  min-height: 124px;
+  padding: 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-soft);
+  color: inherit;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  text-align: left;
+}
+
+.resultGridEditable {
+  border-color: rgba(59, 130, 246, 0.65);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.resultGridReadonly {
+  opacity: 0.46;
+}
+
+.resultGridDisabled {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--craft-soft),
+    var(--craft-soft) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  opacity: 0.35;
+}
+
+.resultCellName {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--craft-muted);
+}
+
+.resultCellTarget {
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.resultGridCell small {
+  font-size: 0.68rem;
+  color: var(--craft-muted);
+  line-height: 1.35;
+}
+
+.resultGridCell input {
+  width: 100%;
+  margin-top: auto;
+  padding: 7px 8px;
+  border: 1px solid var(--craft-border);
+  border-radius: 10px;
+  background: var(--craft-input);
+  color: inherit;
+  font-weight: 900;
+}
+
+.resultGridReadonly input {
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .powerDisplayGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .powerDisplayGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .resultGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+.statusHeaderCompact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.statusHeaderCompact h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.stickyPowerPanel {
+  padding: 10px 14px;
+}
+
+.powerDisplayGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(72px, 1fr));
+  gap: 6px;
+}
+
+.powerDisplayItem {
+  padding: 7px 8px;
+  border: 1px solid var(--craft-border);
+  border-radius: 12px;
+  background: var(--craft-soft);
+}
+
+.powerDisplayItem span {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--craft-muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+
+.powerDisplayItem strong {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.statusActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.statusActions .subButton {
+  padding: 7px 10px;
+  font-size: 0.75rem;
+}
+
+.compactClothArea {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--craft-border);
+}
+
+.compactClothHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+}
+
+.compactClothHeader span {
+  color: var(--craft-muted);
+  font-weight: 900;
+}
+
+.compactClothHeader strong {
+  font-weight: 900;
+}
+
+.compactClothTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.miniTabButton {
+  padding: 7px 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 999px;
+  background: var(--craft-button);
+  color: inherit;
+  font-size: 0.76rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.activeMiniTab,
+.powerSelectButton.activePower,
+.activePower {
+  border-color: var(--craft-active);
+  background: var(--craft-active);
+  color: var(--craft-active-text);
+}
+
+.initialPowerBlock {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.initialPowerBlock h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.resultGrid {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.resultGridCell {
+  min-height: 124px;
+  padding: 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 14px;
+  background: var(--craft-soft);
+  color: inherit;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  text-align: left;
+}
+
+.resultGridEditable {
+  border-color: rgba(59, 130, 246, 0.65);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.resultGridReadonly {
+  opacity: 0.46;
+}
+
+.resultGridDisabled {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--craft-soft),
+    var(--craft-soft) 8px,
+    transparent 8px,
+    transparent 16px
+  );
+  opacity: 0.35;
+}
+
+.resultCellName {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--craft-muted);
+}
+
+.resultCellTarget {
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.resultGridCell small {
+  font-size: 0.68rem;
+  color: var(--craft-muted);
+  line-height: 1.35;
+}
+
+.resultGridCell input {
+  width: 100%;
+  margin-top: auto;
+  padding: 7px 8px;
+  border: 1px solid var(--craft-border);
+  border-radius: 10px;
+  background: var(--craft-input);
+  color: inherit;
+  font-weight: 900;
+}
+
+.resultGridReadonly input {
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .statusHeaderCompact {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .statusActions {
+    justify-content: flex-start;
+  }
+
+  .powerDisplayGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .powerDisplayGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .resultGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+/* PC 2カラム: 左に数値グリッド、右におすすめ候補 */
+.emptySelectionBox {
+  padding: 22px;
+  border: 1px dashed var(--craft-border);
+  border-radius: 20px;
+  background: var(--craft-soft);
+}
+
+.emptySelectionBox h3 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.emptySelectionBox p {
+  margin: 0;
+  color: var(--craft-muted);
+  font-weight: 700;
+  line-height: 1.8;
+}
+
+.workbenchGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.gridColumnPanel,
+.candidateColumnPanel {
+  min-width: 0;
+}
+
+.candidateColumnPanel {
+  position: sticky;
+  top: 172px;
+}
+
+.candidateColumnPanel .globalCandidateBox {
+  margin-bottom: 0;
+  height: fit-content;
+}
+
+.activeGlobalCandidate {
+  border-color: var(--craft-blue);
+  background: rgba(59, 130, 246, 0.12);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.previewAffectedCell {
+  position: relative;
+  border-color: rgba(245, 158, 11, 0.9) !important;
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.18), rgba(59, 130, 246, 0.1)),
+    var(--craft-card) !important;
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.22),
+    0 14px 28px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.previewAffectedCell::after {
+  content: "縫う";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.95);
+  color: #111827;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.previewText {
+  margin: 4px 0 0;
+  color: #b45309;
+  font-size: 0.66rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.selectedCandidateActionBox {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--craft-border);
+  border-radius: 16px;
+  background: var(--craft-card);
+}
+
+.selectedCandidateActionBox p {
+  margin: 0 0 10px;
+  color: var(--craft-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+.selectedCandidateActionBox p:last-child {
+  margin-bottom: 0;
+}
+
+.selectedCandidateActionBox strong {
+  color: var(--craft-text);
+}
+
+.selectedCandidateActionBox .primaryButton {
+  width: 100%;
+}
+
+@media (max-width: 980px) {
+  .workbenchGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .candidateColumnPanel {
+    position: static;
+  }
+}
+
+/* TOP1 + accordion candidates */
+.moreCandidateDetails {
+  margin-top: 10px;
+  border: 1px solid var(--craft-border);
+  border-radius: 16px;
+  background: var(--craft-card);
+  overflow: hidden;
+}
+
+.moreCandidateDetails summary {
+  padding: 10px 12px;
+  color: var(--craft-muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.moreCandidateDetails summary:hover {
+  background: var(--craft-button-hover);
+}
+
+.moreCandidateList {
+  display: grid;
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.globalCandidate,
+.compactGlobalCandidate,
+.randomCandidate {
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+}
+
+.globalCandidate em {
+  grid-column: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.45;
+}
+
+.globalMain {
+  min-width: 0;
+}
+
+.globalMain strong,
+.globalMain small {
+  overflow-wrap: anywhere;
+}
+
+.randomCandidate {
+  border-style: dashed;
+}
+
+.randomCandidate .globalRank {
+  background: #7c3aed;
+  color: #ffffff;
+}
+
+.compactGlobalCandidate {
+  padding: 9px;
+  border-radius: 12px;
+}
+
+.compactGlobalCandidate .globalRank {
+  width: 24px;
+  height: 24px;
+  font-size: 0.72rem;
 }
