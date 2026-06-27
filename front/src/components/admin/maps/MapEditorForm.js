@@ -69,8 +69,7 @@ function mergeContinentOptions(defaultOptions = [], apiOptions = []) {
   if (apiItems.length > 0 && apiItems.some((item) => item.id !== null)) {
     return apiItems.map((item) => ({
       ...item,
-      value:
-        item.id !== null ? String(item.id) : String(item.value ?? ""),
+      value: item.id !== null ? String(item.id) : String(item.value ?? ""),
       label:
         item.display_id !== null && item.display_id !== undefined
           ? `${item.display_id}. ${item.name || item.label || item.value}`
@@ -79,9 +78,11 @@ function mergeContinentOptions(defaultOptions = [], apiOptions = []) {
   }
 
   const defaultMap = new Map();
+
   for (const item of defaultItems) {
     const key = String(item?.value ?? "");
     if (!key) continue;
+
     if (!defaultMap.has(key)) {
       defaultMap.set(key, item);
     }
@@ -126,9 +127,11 @@ function mergeOptionsByDefaultOrder(defaultOptions = [], apiOptions = []) {
     : [];
 
   const apiMap = new Map();
+
   for (const item of apiItems) {
     const key = String(item?.value ?? "");
     if (!key) continue;
+
     if (!apiMap.has(key)) {
       apiMap.set(key, item);
     }
@@ -179,6 +182,9 @@ export default function MapEditorForm({
   onChangeLayer,
   onRemoveLayer,
   isMobile = false,
+
+  // 追加: レイヤー追加ボタンの下に差し込む表示
+  afterLayerContent = null,
 }) {
   const mergedContinentOptions = useMemo(() => {
     return mergeContinentOptions(
@@ -235,7 +241,9 @@ export default function MapEditorForm({
 
   function handleSelectImage(index, file) {
     if (!file) return;
+
     const previewUrl = URL.createObjectURL(file);
+
     onChangeLayer?.(index, "image_file", file);
     onChangeLayer?.(index, "image_url", previewUrl);
   }
@@ -342,6 +350,7 @@ export default function MapEditorForm({
               <div key={layer?.id ?? `layer_${index}`} style={styles.layerCard}>
                 <div style={styles.layerCardHeader}>
                   <div style={styles.layerCardIndex}>{index + 1}</div>
+
                   <button
                     type="button"
                     onClick={() => onRemoveLayer?.(index)}
@@ -377,7 +386,11 @@ export default function MapEditorForm({
                     <input
                       value={layer?.layer_file_name ?? ""}
                       onChange={(e) =>
-                        onChangeLayer?.(index, "layer_file_name", e.target.value)
+                        onChangeLayer?.(
+                          index,
+                          "layer_file_name",
+                          e.target.value
+                        )
                       }
                       style={styles.input}
                     />
@@ -389,7 +402,11 @@ export default function MapEditorForm({
                       type="number"
                       value={layer?.floor_no ?? 0}
                       onChange={(e) =>
-                        onChangeLayer?.(index, "floor_no", Number(e.target.value))
+                        onChangeLayer?.(
+                          index,
+                          "floor_no",
+                          Number(e.target.value)
+                        )
                       }
                       style={styles.input}
                     />
@@ -461,6 +478,10 @@ export default function MapEditorForm({
             レイヤー追加
           </button>
         </div>
+
+        {afterLayerContent ? (
+          <div style={styles.afterLayerContent}>{afterLayerContent}</div>
+        ) : null}
       </section>
     </div>
   );
@@ -586,5 +607,9 @@ const styles = {
   loading: {
     padding: "20px",
     color: "var(--text-muted, #64748b)",
+  },
+  afterLayerContent: {
+    marginTop: "18px",
+    minWidth: 0,
   },
 };

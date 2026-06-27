@@ -9,8 +9,13 @@ import {
   fetchMapOptions,
   updateMap,
 } from "@/lib/maps";
+import {
+  fetchMapMonsterSpawns,
+  saveMapMonsterSpawns,
+} from "@/lib/monsterMapSpawns";
 import MapListPane from "./MapListPane";
 import MapEditorForm from "./MapEditorForm";
+import MapMonsterSpawnsEditor from "./MapMonsterSpawnsEditor";
 import { DEFAULT_LAYER_NAME_OPTIONS } from "./mapOptions";
 
 import EditorShell from "@/components/admin/shared/editor/EditorShell";
@@ -122,10 +127,14 @@ export default function MapsClient() {
   const [selectedId, setSelectedId] = useState(null);
   const [currentMap, setCurrentMap] = useState(createEmptyMap());
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingSpawns, setLoadingSpawns] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [continentOptions, setContinentOptions] = useState([]);
   const [mapTypeOptions, setMapTypeOptions] = useState([]);
+
+  const [mapSpawns, setMapSpawns] = useState([]);
+  const [initialMapSpawns, setInitialMapSpawns] = useState([]);
 
   const { toast, showToast } = useFloatingToast();
 
@@ -140,15 +149,19 @@ export default function MapsClient() {
   async function loadMaps(q = "") {
     setLoadingList(true);
     setMessage("");
+
     try {
       const rows = await fetchMaps(q);
       const normalized = Array.isArray(rows) ? rows : [];
+
       setMaps(normalized);
+
       return normalized;
     } catch (error) {
       console.error(error);
       setMessage(error.message || "マップ一覧取得失敗");
       showToast(error.message || "マップ一覧取得失敗", "error");
+
       return [];
     } finally {
       setLoadingList(false);
@@ -158,10 +171,42 @@ export default function MapsClient() {
   async function loadOptions() {
     try {
       const data = await fetchMapOptions();
-      setContinentOptions(Array.isArray(data?.continents) ? data.continents : []);
+
+      setContinentOptions(
+        Array.isArray(data?.continents) ? data.continents : []
+      );
       setMapTypeOptions(Array.isArray(data?.map_types) ? data.map_types : []);
     } catch (error) {
       console.error(error);
+    }
+  }
+
+  async function loadMapSpawns(mapId) {
+    if (!mapId) {
+      setMapSpawns([]);
+      setInitialMapSpawns([]);
+      return [];
+    }
+
+    setLoadingSpawns(true);
+
+    try {
+      const rows = await fetchMapMonsterSpawns(mapId);
+      const normalized = Array.isArray(rows) ? rows : [];
+
+      setMapSpawns(normalized);
+      setInitialMapSpawns(normalized);
+
+      return normalized;
+    } catch (error) {
+      console.error(error);
+      setMapSpawns([]);
+      setInitialMapSpawns([]);
+      showToast(error.message || "生息モンスター取得失敗", "error");
+
+      return [];
+    } finally {
+      setLoadingSpawns(false);
     }
   }
 
@@ -174,7 +219,7 @@ export default function MapsClient() {
     try {
       const row = await fetchMap(id);
 
-      setCurrentMap({
+      const normalizedMap = {
         ...createEmptyMap(),
         ...row,
         continent_id:
@@ -188,9 +233,12 @@ export default function MapsClient() {
           Array.isArray(row?.layers) && row.layers.length > 0
             ? row.layers.map((layer, index) => normalizeLayer(layer, index))
             : [createEmptyLayer(1)],
-      });
+      };
 
+      setCurrentMap(normalizedMap);
       setSelectedId(row.id);
+
+      await loadMapSpawns(row.id);
     } catch (error) {
       console.error(error);
       setMessage(error.message || "マップ詳細取得失敗");
@@ -209,6 +257,8 @@ export default function MapsClient() {
       if (rows.length === 0) {
         setSelectedId(null);
         setCurrentMap(createEmptyMap());
+        setMapSpawns([]);
+        setInitialMapSpawns([]);
         return;
       }
 
@@ -236,6 +286,8 @@ export default function MapsClient() {
           setMaps([]);
           setSelectedId(null);
           setCurrentMap(createEmptyMap());
+          setMapSpawns([]);
+          setInitialMapSpawns([]);
           setMessage("その map id は見つからなかった");
           return;
         }
@@ -247,6 +299,8 @@ export default function MapsClient() {
         setMaps([]);
         setSelectedId(null);
         setCurrentMap(createEmptyMap());
+        setMapSpawns([]);
+        setInitialMapSpawns([]);
         setMessage(error.message || "その map id は見つからなかった");
       } finally {
         setLoadingList(false);
@@ -260,6 +314,8 @@ export default function MapsClient() {
     if (rows.length === 0) {
       setSelectedId(null);
       setCurrentMap(createEmptyMap());
+      setMapSpawns([]);
+      setInitialMapSpawns([]);
       setMessage("検索結果なし");
       return;
     }
@@ -278,12 +334,15 @@ export default function MapsClient() {
   useEffect(() => {
     (async () => {
       await loadOptions();
+
       const rows = await loadMaps("");
 
       if (rows.length > 0) {
         await loadMapDetail(rows[0].id);
       } else {
         setCurrentMap(createEmptyMap());
+        setMapSpawns([]);
+        setInitialMapSpawns([]);
       }
     })();
   }, []);
@@ -303,6 +362,8 @@ export default function MapsClient() {
   function handleCreateNew() {
     setSelectedId(null);
     setCurrentMap(createEmptyMap());
+    setMapSpawns([]);
+    setInitialMapSpawns([]);
     setMessage("新規作成モード");
 
     if (isMobile) {
@@ -353,6 +414,7 @@ export default function MapsClient() {
 
       if (key === "layer_name") {
         const derived = getLayerMetaByName(value);
+
         if (derived) {
           nextLayer = {
             ...nextLayer,
@@ -449,6 +511,7 @@ export default function MapsClient() {
       const targetName = payload.name || currentMap.name || "マップ";
 
       let saved;
+
       if (isEdit) {
         saved = await updateMap(currentMap.id, payload);
         setMessage("更新した");
@@ -457,13 +520,31 @@ export default function MapsClient() {
         setMessage("作成した");
       }
 
+      const savedMapId = saved?.id ?? currentMap.id ?? null;
+
+      if (!savedMapId) {
+        throw new Error("マップ保存後のID取得に失敗");
+      }
+
+      if (Array.isArray(mapSpawns) && mapSpawns.length > 0) {
+        await saveMapMonsterSpawns(savedMapId, mapSpawns, initialMapSpawns);
+      } else if (
+        Array.isArray(initialMapSpawns) &&
+        initialMapSpawns.length > 0
+      ) {
+        await saveMapMonsterSpawns(savedMapId, [], initialMapSpawns);
+      }
+
       showToast(
-        isEdit ? `「${targetName}」を更新した` : `「${targetName}」を作成した`
+        isEdit
+          ? `「${targetName}」を更新した`
+          : `「${targetName}」を作成した`
       );
 
       await loadOptions();
+
       const rows = await loadMaps(keyword);
-      const nextId = saved?.id ?? currentMap.id ?? rows?.[0]?.id ?? null;
+      const nextId = savedMapId ?? rows?.[0]?.id ?? null;
 
       if (nextId) {
         await loadMapDetail(nextId);
@@ -481,6 +562,8 @@ export default function MapsClient() {
     if (!currentMap?.id) {
       setCurrentMap(createEmptyMap());
       setSelectedId(null);
+      setMapSpawns([]);
+      setInitialMapSpawns([]);
       setMessage("未保存データを破棄した");
       showToast("未保存データを破棄した");
       return;
@@ -488,6 +571,7 @@ export default function MapsClient() {
 
     const targetName = currentMap.name || "このマップ";
     const ok = window.confirm(`「${targetName}」を削除する?`);
+
     if (!ok) return;
 
     setSaving(true);
@@ -495,16 +579,21 @@ export default function MapsClient() {
 
     try {
       await deleteMap(currentMap.id);
+
       setMessage("削除した");
       showToast(`「${targetName}」を削除した`);
+
       await loadOptions();
 
       const rows = await loadMaps(keyword);
+
       if (rows.length > 0) {
         await loadMapDetail(rows[0].id);
       } else {
         setSelectedId(null);
         setCurrentMap(createEmptyMap());
+        setMapSpawns([]);
+        setInitialMapSpawns([]);
       }
 
       if (isMobile) {
@@ -556,7 +645,7 @@ export default function MapsClient() {
           onSave={handleSave}
           onDelete={handleDelete}
           saving={saving}
-          saveDisabled={saving || loadingDetail}
+          saveDisabled={saving || loadingDetail || loadingSpawns}
           deleteDisabled={saving}
           deleteTitle=""
         />
@@ -572,6 +661,14 @@ export default function MapsClient() {
           onChangeLayer={handleChangeLayer}
           onRemoveLayer={handleRemoveLayer}
           isMobile={isMobile}
+          afterLayerContent={
+            <MapMonsterSpawnsEditor
+              map={currentMap}
+              spawns={mapSpawns}
+              loading={loadingDetail || loadingSpawns}
+              onChange={setMapSpawns}
+            />
+          }
         />
       </EditorShell>
 

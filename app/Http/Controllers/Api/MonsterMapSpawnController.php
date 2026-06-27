@@ -50,18 +50,26 @@ class MonsterMapSpawnController extends Controller
         return [
             'id' => $row->id,
             'monster_id' => $row->monster_id,
+            'monster_name' => $row->monster_name ?? null,
+            'monster_name_en' => $row->monster_name_en ?? null,
+
             'map_id' => $row->map_id,
             'map_layer_id' => $row->map_layer_id,
+
             'area' => $row->area,
             'coords' => $coords,
+
             'spawn_time' => $row->spawn_time,
             'spawn_count' => $row->spawn_count,
             'symbol_count' => $row->symbol_count,
+
             'imported_note' => $row->imported_note,
             'note' => $row->note,
             'is_hunting_ground' => (bool) $row->is_hunting_ground,
+
             'created_at' => $row->created_at,
             'updated_at' => $row->updated_at,
+
             'map_name' => $row->map_name,
             'map_layer_name' => $layerDisplayName,
             'map_layer_floor_no' => $row->map_layer_floor_no,
@@ -272,83 +280,94 @@ private function syncUpdatedSpawnToReincarnations(object $before, array $after):
 }
 
     public function index(Request $request)
-    {
-        $monsterId = $request->get('monster_id');
+{
+    $monsterId = $request->get('monster_id');
+    $mapId = $request->get('map_id');
 
-        $query = DB::table('monster_map_spawns')
-            ->leftJoin('maps', 'monster_map_spawns.map_id', '=', 'maps.id')
-            ->leftJoin('map_layers', 'monster_map_spawns.map_layer_id', '=', 'map_layers.id')
-            ->select(
-                'monster_map_spawns.id',
-                'monster_map_spawns.monster_id',
-                'monster_map_spawns.map_id',
-                'monster_map_spawns.map_layer_id',
-                'monster_map_spawns.area',
-                'monster_map_spawns.spawn_time',
-                'monster_map_spawns.spawn_count',
-                'monster_map_spawns.symbol_count',
-                'monster_map_spawns.imported_note',
-                'monster_map_spawns.note',
-                'monster_map_spawns.is_hunting_ground',
-                'monster_map_spawns.created_at',
-                'monster_map_spawns.updated_at',
-                'maps.name as map_name',
-                'map_layers.layer_name as map_layer_name',
-                'map_layers.floor_no as map_layer_floor_no',
-                'map_layers.image_path as map_layer_image_path'
-            )
-            ->orderBy('monster_map_spawns.id', 'asc');
+    $query = DB::table('monster_map_spawns')
+        ->leftJoin('monsters', 'monster_map_spawns.monster_id', '=', 'monsters.id')
+        ->leftJoin('maps', 'monster_map_spawns.map_id', '=', 'maps.id')
+        ->leftJoin('map_layers', 'monster_map_spawns.map_layer_id', '=', 'map_layers.id')
+        ->select(
+            'monster_map_spawns.id',
+            'monster_map_spawns.monster_id',
+            'monster_map_spawns.map_id',
+            'monster_map_spawns.map_layer_id',
+            'monster_map_spawns.area',
+            'monster_map_spawns.spawn_time',
+            'monster_map_spawns.spawn_count',
+            'monster_map_spawns.symbol_count',
+            'monster_map_spawns.imported_note',
+            'monster_map_spawns.note',
+            'monster_map_spawns.is_hunting_ground',
+            'monster_map_spawns.created_at',
+            'monster_map_spawns.updated_at',
+            'monsters.name as monster_name',
+            'monsters.name_en as monster_name_en',
+            'maps.name as map_name',
+            'map_layers.layer_name as map_layer_name',
+            'map_layers.floor_no as map_layer_floor_no',
+            'map_layers.image_path as map_layer_image_path'
+        )
+        ->orderBy('monster_map_spawns.id', 'asc');
 
-        if ($monsterId !== null && $monsterId !== '') {
-            $query->where('monster_map_spawns.monster_id', $monsterId);
-        }
-
-        $rows = $query->get()->map(function ($row) {
-            return $this->normalizeRow($row);
-        });
-
-        return response()->json([
-            'data' => $rows,
-        ]);
+    if ($monsterId !== null && $monsterId !== '') {
+        $query->where('monster_map_spawns.monster_id', $monsterId);
     }
+
+    if ($mapId !== null && $mapId !== '') {
+        $query->where('monster_map_spawns.map_id', $mapId);
+    }
+
+    $rows = $query->get()->map(function ($row) {
+        return $this->normalizeRow($row);
+    });
+
+    return response()->json([
+        'data' => $rows,
+    ]);
+}
 
     public function show(string $id)
-    {
-        $row = DB::table('monster_map_spawns')
-            ->leftJoin('maps', 'monster_map_spawns.map_id', '=', 'maps.id')
-            ->leftJoin('map_layers', 'monster_map_spawns.map_layer_id', '=', 'map_layers.id')
-            ->where('monster_map_spawns.id', $id)
-            ->select(
-                'monster_map_spawns.id',
-                'monster_map_spawns.monster_id',
-                'monster_map_spawns.map_id',
-                'monster_map_spawns.map_layer_id',
-                'monster_map_spawns.area',
-                'monster_map_spawns.spawn_time',
-                'monster_map_spawns.spawn_count',
-                'monster_map_spawns.symbol_count',
-                'monster_map_spawns.imported_note',
-                'monster_map_spawns.note',
-                'monster_map_spawns.is_hunting_ground',
-                'monster_map_spawns.created_at',
-                'monster_map_spawns.updated_at',
-                'maps.name as map_name',
-                'map_layers.layer_name as map_layer_name',
-                'map_layers.floor_no as map_layer_floor_no',
-                'map_layers.image_path as map_layer_image_path'
-            )
-            ->first();
+{
+    $row = DB::table('monster_map_spawns')
+        ->leftJoin('monsters', 'monster_map_spawns.monster_id', '=', 'monsters.id')
+        ->leftJoin('maps', 'monster_map_spawns.map_id', '=', 'maps.id')
+        ->leftJoin('map_layers', 'monster_map_spawns.map_layer_id', '=', 'map_layers.id')
+        ->where('monster_map_spawns.id', $id)
+        ->select(
+            'monster_map_spawns.id',
+            'monster_map_spawns.monster_id',
+            'monster_map_spawns.map_id',
+            'monster_map_spawns.map_layer_id',
+            'monster_map_spawns.area',
+            'monster_map_spawns.spawn_time',
+            'monster_map_spawns.spawn_count',
+            'monster_map_spawns.symbol_count',
+            'monster_map_spawns.imported_note',
+            'monster_map_spawns.note',
+            'monster_map_spawns.is_hunting_ground',
+            'monster_map_spawns.created_at',
+            'monster_map_spawns.updated_at',
+            'monsters.name as monster_name',
+            'monsters.name_en as monster_name_en',
+            'maps.name as map_name',
+            'map_layers.layer_name as map_layer_name',
+            'map_layers.floor_no as map_layer_floor_no',
+            'map_layers.image_path as map_layer_image_path'
+        )
+        ->first();
 
-        if (!$row) {
-            return response()->json([
-                'message' => '生息地が見つからない',
-            ], 404);
-        }
-
+    if (!$row) {
         return response()->json([
-            'data' => $this->normalizeRow($row),
-        ]);
+            'message' => '生息地が見つからない',
+        ], 404);
     }
+
+    return response()->json([
+        'data' => $this->normalizeRow($row),
+    ]);
+}
 
     public function store(Request $request)
     {
