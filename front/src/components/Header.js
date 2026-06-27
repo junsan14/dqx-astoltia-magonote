@@ -167,7 +167,7 @@ export default function Header() {
 
   const headerRef = useRef(null);
 
-  const term = "v7.6対応";
+  const term = "v8.0対応";
   const showAdminArea = isAdminPath(pathname);
 
   const publicMenus = useMemo(
