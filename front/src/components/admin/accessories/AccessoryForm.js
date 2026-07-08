@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import MonsterPicker from "@/components/admin/shared/MonsterPicker";
+import AccessoryImageCropper from "./AccessoryImageCropper";
 import {
   ACCESSORY_BASE_EFFECT_FIELDS,
   createEmptyAccessory,
   normalizeAccessory,
+  uploadAccessoryImage,
 } from "@/lib/accessories";
 
 const DROP_TYPE_OPTIONS = [
@@ -25,14 +27,18 @@ export default function AccessoryForm({
   isMobile = false,
 }) {
   const [form, setForm] = useState(() => createEmptyAccessory());
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
 
   useEffect(() => {
     if (accessory) {
       setForm(normalizeAccessory(accessory));
+      setImageUploadError("");
       return;
     }
 
     setForm(createEmptyAccessory());
+    setImageUploadError("");
   }, [accessory]);
 
   const safeGenerationOptions = useMemo(() => {
@@ -72,7 +78,10 @@ export default function AccessoryForm({
   }, [allAccessories, form?.id, form?.inheritance_type]);
 
   const inheritanceChain = useMemo(() => {
-    if (Array.isArray(form?.inheritance_chain) && form.inheritance_chain.length > 0) {
+    if (
+      Array.isArray(form?.inheritance_chain) &&
+      form.inheritance_chain.length > 0
+    ) {
       return form.inheritance_chain;
     }
 
@@ -151,6 +160,8 @@ export default function AccessoryForm({
 
     rows.push({
       text,
+      note: "",
+      recommended: false,
     });
 
     updateField(key, rows);
@@ -160,6 +171,33 @@ export default function AccessoryForm({
     const rows = Array.isArray(form[key]) ? [...form[key]] : [];
     rows.splice(index, 1);
     updateField(key, rows);
+  }
+
+  async function handleAccessoryImageApply({ file }) {
+    if (!file) return;
+
+    setImageUploading(true);
+    setImageUploadError("");
+
+    try {
+      const result = await uploadAccessoryImage(file, {
+        accessoryId: form?.id,
+        itemId: form?.item_id,
+      });
+
+      const nextImageUrl = result?.image_url || result?.url || "";
+
+      if (!nextImageUrl) {
+        throw new Error("画像URLが返ってきませんでした");
+      }
+
+      updateField("image_url", nextImageUrl);
+    } catch (error) {
+      console.error(error);
+      setImageUploadError(error.message || "画像アップロードに失敗しました");
+    } finally {
+      setImageUploading(false);
+    }
   }
 
   return (
@@ -370,6 +408,7 @@ export default function AccessoryForm({
           updateJsonRow("synthesis_effects_json", index, field, value)
         }
         isMobile={isMobile}
+        enableRecommended={true}
       />
 
       <JsonTabsEditor
@@ -384,11 +423,27 @@ export default function AccessoryForm({
       />
 
       <Section title="画像・URL">
+        <AccessoryImageCropper
+          value={form.image_url}
+          onApply={handleAccessoryImageApply}
+          disabled={imageUploading}
+          title="アクセサリ画像"
+        />
+
+        {imageUploading && (
+          <div style={imageStatusStyle}>画像をアップロード中...</div>
+        )}
+
+        {imageUploadError && (
+          <div style={imageErrorStyle}>{imageUploadError}</div>
+        )}
+
         <Field label="画像URL">
           <input
             value={form.image_url}
             onChange={(e) => updateField("image_url", e.target.value)}
             style={inputStyle}
+            placeholder="/storage/images/accessories/109-.webp"
           />
         </Field>
 
@@ -546,7 +601,6 @@ function AccessoryInheritancePicker({
                     }}
                   >
                     <strong>{item.name}</strong>
-  
                   </button>
                 );
               })}
@@ -703,6 +757,7 @@ function JsonTabsEditor({
   onRemove,
   onChange,
   isMobile = false,
+  enableRecommended = false,
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [draftText, setDraftText] = useState("");
@@ -749,16 +804,21 @@ function JsonTabsEditor({
 
         <div style={jsonTabsHeaderStyle}>
           <div style={jsonTabsStyle}>
-            {safeRows.map((row, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => setActiveIndex(index)}
-                style={tabButtonStyle(activeIndex === index)}
-              >
-                {row?.text || index + 1}
-              </button>
-            ))}
+            {safeRows.map((row, index) => {
+              const isRecommended = Boolean(row?.recommended);
+
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  style={tabButtonStyle(activeIndex === index)}
+                >
+                  {enableRecommended && isRecommended ? "★ " : ""}
+                  {row?.text || index + 1}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -790,12 +850,42 @@ function JsonTabsEditor({
                 placeholder="例：万魔の塔"
               />
             </Field>
+
+            {enableRecommended && (
+              <label style={checkboxLabelStyle}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(activeRow?.recommended)}
+                  onChange={(e) =>
+                    onChange(activeIndex, "recommended", e.target.checked)
+                  }
+                  style={checkboxStyle}
+                />
+                <span>おすすめ合成効果にする</span>
+              </label>
+            )}
           </div>
         )}
       </div>
     </Section>
   );
 }
+
+const checkboxLabelStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  width: "fit-content",
+  cursor: "pointer",
+  fontWeight: 700,
+  color: "var(--text-main)",
+};
+
+const checkboxStyle = {
+  width: 18,
+  height: 18,
+  cursor: "pointer",
+};
 
 const formStyle = {
   display: "grid",
@@ -903,6 +993,24 @@ const emptySelectedStyle = {
   borderRadius: 10,
   color: "var(--text-sub)",
   background: "var(--soft-bg, transparent)",
+};
+
+const imageStatusStyle = {
+  padding: 10,
+  border: "1px solid var(--soft-border, var(--input-border))",
+  borderRadius: 10,
+  background: "var(--soft-bg, transparent)",
+  color: "var(--text-sub)",
+  fontWeight: 700,
+};
+
+const imageErrorStyle = {
+  padding: 10,
+  border: "1px solid #ef4444",
+  borderRadius: 10,
+  background: "rgba(239, 68, 68, 0.08)",
+  color: "#ef4444",
+  fontWeight: 700,
 };
 
 const pickerStyle = {

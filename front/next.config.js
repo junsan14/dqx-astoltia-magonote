@@ -12,6 +12,12 @@ const nextConfig = {
         port: "8000",
         pathname: "/storage/**",
       },
+            {
+        protocol: "http",
+        hostname: "192.168.1.68",
+        port: "8000",
+        pathname: "/storage/**",
+      },
       {
         protocol: "https",
         hostname: "api.dqx-tool.com",

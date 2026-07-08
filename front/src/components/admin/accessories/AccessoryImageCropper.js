@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import { FaImage } from "react-icons/fa6";
 import { getCroppedImageBlob } from "@/lib/cropImage";
+import { getAccessoryAssetUrl } from "@/lib/accessories";
 
 const EXISTING_IMAGE_CROP = { x: 0, y: 0 };
 const EXISTING_IMAGE_ZOOM = 1;
@@ -29,34 +30,6 @@ const DEFAULT_AUTO_CROP = {
   sizeRatio: 1,
   zoom: 10,
 };
-
-const BACKEND_URL = (
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000"
-).replace(/\/$/, "");
-
-function getImageSrc(src = "") {
-  if (!src) return "";
-
-  if (src.startsWith("blob:")) {
-    return src;
-  }
-
-  if (src.startsWith("data:")) {
-    return src;
-  }
-
-  if (src.startsWith("http://") || src.startsWith("https://")) {
-    return src;
-  }
-
-  const normalized = src.startsWith("/") ? src : `/${src}`;
-
-  if (normalized.startsWith("/storage/")) {
-    return `${BACKEND_URL}${normalized}`;
-  }
-
-  return normalized;
-}
 
 function getDefaultAccessoryAreaPixels(imgWidth, imgHeight) {
   const centerX = imgWidth * DEFAULT_AUTO_CROP.centerXRatio;
@@ -93,6 +66,9 @@ const loadImageSize = (src) =>
     };
 
     img.onerror = reject;
+
+    // storage画像をCanvasで再編集するときのCORS対策
+    img.crossOrigin = "anonymous";
     img.src = src;
   });
 
@@ -104,10 +80,10 @@ export default function AccessoryImageCropper({
   title = "アクセサリ画像",
 }) {
   const [originalImageUrl, setOriginalImageUrl] = useState(() =>
-    getImageSrc(value || "")
+    getAccessoryAssetUrl(value || "")
   );
   const [previewImageUrl, setPreviewImageUrl] = useState(() =>
-    getImageSrc(value || "")
+    getAccessoryAssetUrl(value || "")
   );
   const [sourceFileName, setSourceFileName] = useState(DEFAULT_FILE_NAME);
 
@@ -194,7 +170,7 @@ export default function AccessoryImageCropper({
   );
 
   const syncInitialState = useCallback((nextUrl, nextFileName) => {
-    const resolvedUrl = getImageSrc(nextUrl || "");
+    const resolvedUrl = getAccessoryAssetUrl(nextUrl || "");
 
     setOriginalImageUrl(resolvedUrl);
     setPreviewImageUrl(resolvedUrl);

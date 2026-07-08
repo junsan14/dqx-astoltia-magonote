@@ -65,6 +65,7 @@
         "monsterSearch": "Monster Search",
         "monsterZukan": "Monster Encyclopedia",
         "mapMonsterBrowser": "Map Monster Search",
+        "accessory-guide": "Accessory Guide",
         "kishoju": "Crystal Beast Split Room"
       },
       "admin": {
@@ -75,6 +76,7 @@
         "equipments": "Equipment Manager",
         "orbs": "Orb Manager",
         "continents": "Continent Manager",
+        
         "crystals": "Crystal Manager"
       }
     }

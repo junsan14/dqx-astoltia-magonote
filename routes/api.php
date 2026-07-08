@@ -89,6 +89,8 @@ Route::Resource('continents', ContinentController::class);
 // 画像アップロード
 Route::post('/maps/{map}/layers/upload', [MapController::class, 'uploadLayerImage']);
 
+Route::post('/accessories/upload-image', [AccessoryController::class, 'uploadImage']);
+
 Route::Resource('/orbs', OrbController::class);
 Route::get('/items/by-ids', [ItemController::class, 'byIds']);
 Route::Resource('/items', ItemController::class);

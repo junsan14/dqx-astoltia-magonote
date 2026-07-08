@@ -43,6 +43,7 @@ class StoreAccessoryRequest extends FormRequest
             'obtain_methods_json' => ['nullable', 'array'],
             'obtain_methods_json.*.text' => ['nullable', 'string'],
             'obtain_methods_json.*.note' => ['nullable', 'string'],
+            'synthesis_effects_json.*.recommended' => ['nullable', 'boolean'],
 
             'image_url' => ['nullable', 'string', 'max:255'],
             'source_url' => ['nullable', 'string', 'max:255'],

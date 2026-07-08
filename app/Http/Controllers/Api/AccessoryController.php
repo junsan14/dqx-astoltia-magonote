@@ -11,6 +11,8 @@ use App\Services\MonsterDropSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class AccessoryController extends Controller
 {
@@ -202,6 +204,45 @@ class AccessoryController extends Controller
             'message' => 'アクセサリを削除した',
         ]);
     }
+
+    public function uploadImage(Request $request): JsonResponse
+{
+    $validated = $request->validate([
+        'image' => ['required', 'image', 'max:5120'],
+        'accessory_id' => ['nullable', 'integer', 'exists:accessories,id'],
+        'item_id' => ['nullable', 'string', 'max:255'],
+    ]);
+
+    $file = $validated['image'];
+    $accessoryId = $validated['accessory_id'] ?? null;
+    $itemId = $validated['item_id'] ?? null;
+
+    $baseName = $this->buildAccessoryImageBaseName($accessoryId, $itemId);
+
+    $directory = 'images/accessories';
+    $fileName = "{$baseName}.webp";
+    $relativePath = "{$directory}/{$fileName}";
+
+    $webpBinary = $this->convertUploadedImageToWebp($file->getRealPath());
+
+    Storage::disk('public')->put($relativePath, $webpBinary);
+
+    $imageUrl = Storage::url($relativePath);
+
+    if ($accessoryId) {
+        Accessory::query()
+            ->where('id', $accessoryId)
+            ->update([
+                'image_url' => $imageUrl,
+            ]);
+    }
+
+    return response()->json([
+        'message' => 'アクセサリ画像をアップロードしました',
+        'image_url' => $imageUrl,
+        'path' => $relativePath,
+    ]);
+}
 
     private function buildAccessoryResponse(Accessory $accessory): array
     {
@@ -546,4 +587,59 @@ private function findInheritanceRoot(Accessory $accessory): Accessory
 
         return [];
     }
+    private function buildAccessoryImageBaseName(?int $accessoryId, ?string $itemId): string
+{
+    if ($accessoryId) {
+        return "{$accessoryId}-";
+    }
+
+    $normalizedItemId = trim((string) $itemId);
+
+    if ($normalizedItemId !== '') {
+        return Str::slug($normalizedItemId);
+    }
+
+    return 'accessory-' . now()->format('YmdHis');
+}
+
+private function convertUploadedImageToWebp(string $path): string
+{
+    $imageInfo = getimagesize($path);
+
+    if (!$imageInfo) {
+        abort(422, '画像ファイルを読み込めませんでした');
+    }
+
+    $mime = $imageInfo['mime'] ?? '';
+
+    $source = match ($mime) {
+        'image/jpeg' => imagecreatefromjpeg($path),
+        'image/png' => imagecreatefrompng($path),
+        'image/webp' => imagecreatefromwebp($path),
+        'image/gif' => imagecreatefromgif($path),
+        default => null,
+    };
+
+    if (!$source) {
+        abort(422, '対応していない画像形式です');
+    }
+
+    imagepalettetotruecolor($source);
+    imagealphablending($source, true);
+    imagesavealpha($source, true);
+
+    ob_start();
+
+    $ok = imagewebp($source, null, 90);
+
+    $binary = ob_get_clean();
+
+    imagedestroy($source);
+
+    if (!$ok || !$binary) {
+        abort(500, 'WebP画像の生成に失敗しました');
+    }
+
+    return $binary;
+}
 }

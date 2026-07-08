@@ -193,6 +193,11 @@ export default function Header() {
         localized: true,
       },
       {
+        href: "/tools/accessory-guide",
+        label: t("menus.public.accessory-guide"),
+        localized: true,
+      },
+      {
         href: "/tools/kishoju",
         label: t("menus.public.kishoju"),
         localized: true,
@@ -220,7 +225,7 @@ export default function Header() {
     return () => {
       window.removeEventListener("resize", updateHeaderHeight);
     };
-  }, [showAdminArea]);
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -229,6 +234,10 @@ export default function Header() {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   function closeMenu() {
     setOpen(false);
@@ -260,48 +269,14 @@ export default function Header() {
                 Tools
               </span>
 
-              <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-emerald-700 md:inline-flex dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+              <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] text-emerald-700 sm:inline-flex dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-300">
                 {term}
               </span>
             </HeaderNavLink>
 
-            <div className="hidden min-w-0 flex-1 items-center justify-end gap-3 md:flex">
-              <nav className="min-w-0 overflow-x-auto">
-                <div className="flex min-w-max items-center gap-2">
-                  {publicMenus.map((menu) => (
-                    <HeaderNavLink
-                      key={menu.href}
-                      href={menu.href}
-                      localized={menu.localized}
-                      className="whitespace-nowrap rounded-xl px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white"
-                    >
-                      {menu.label}
-                    </HeaderNavLink>
-                  ))}
-                </div>
-              </nav>
-
-              <div className="flex shrink-0 items-center gap-2">
-                <LanguageSwitcher />
-
-                <a
-                  href="https://x.com/miki0801388249"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-100 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white"
-                  aria-label="X"
-                  title="X"
-                >
-                  <FaXTwitter className="h-4 w-4" />
-                </a>
-
-               
-              </div>
-            </div>
-
             <button
               type="button"
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 md:hidden"
+              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 transition hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
               onClick={toggleMenu}
               aria-label={open ? t("closeMenu") : t("openMenu")}
               aria-expanded={open}
@@ -338,23 +313,24 @@ export default function Header() {
               )}
             </button>
           </div>
-
-          {showAdminArea ? <HeaderAdminMenu t={t} /> : null}
         </div>
       </header>
 
       {open && (
         <div
-          className={`fixed inset-x-0 z-40 md:hidden ${mochiy.className}`}
+          className={`fixed inset-x-0 z-40 ${mochiy.className}`}
           style={{
             top: `${headerHeight}px`,
             height: `calc(100dvh - ${headerHeight}px)`,
           }}
         >
-          <div className="absolute inset-0 bg-white/96 backdrop-blur-[30px] dark:bg-slate-950/92" />
+          <div
+            className="absolute inset-0 bg-white/96 backdrop-blur-[30px] dark:bg-slate-950/92"
+            onClick={closeMenu}
+          />
 
           <div className="relative h-full overflow-y-auto px-6 py-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
-            <div className="mx-auto flex min-h-full w-full max-w-sm flex-col gap-7 text-center">
+            <div className="mx-auto flex min-h-full w-full max-w-md flex-col gap-7 text-center">
               <section className="w-full">
                 <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-500">
                   {t("menuTitle")}
@@ -408,69 +384,6 @@ export default function Header() {
         </div>
       )}
     </>
-  );
-}
-
-
-
-function HeaderAdminMenu({ t }) {
-  const { user, logout } = useAuth();
-
-  if (!user) return null;
-
-  const isAdmin = Boolean(user?.is_admin);
-
-  const limitedAdminMenus = [
-    {
-      href: "/admin/tool-editor/monsters",
-      label: t("menus.admin.monsters"),
-      localized: false,
-    },
-  ];
-
-  const visibleAdminMenus = isAdmin ? ADMIN_MENUS : limitedAdminMenus;
-
-  return (
-    <div className="mt-3 hidden border-t border-slate-200 pt-3 md:block dark:border-white/10">
-      <div className="mb-2 flex items-center gap-3">
-        <span className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-
-        <span className="text-[11px] font-semibold uppercase tracking-[0.25em] text-indigo-500 dark:text-blue-400/80">
-          {t("adminTitle")}
-        </span>
-
-        <span className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="max-w-[180px] truncate rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-            {user.name}
-          </span>
-
-          <button
-            type="button"
-            onClick={logout}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-red-500/10 dark:hover:text-white"
-          >
-            {t("logout")}
-          </button>
-        </div>
-      </div>
-
-      <nav className="overflow-x-auto">
-        <div className="flex min-w-max items-center gap-2">
-          {visibleAdminMenus.map((menu) => (
-            <HeaderNavLink
-              key={menu.href}
-              href={menu.href}
-              localized={menu.localized}
-              className="whitespace-nowrap rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-100 hover:text-slate-950 dark:border-blue-500/10 dark:bg-blue-500/5 dark:text-slate-200 dark:hover:bg-blue-500/10 dark:hover:text-white"
-            >
-              {menu.label}
-            </HeaderNavLink>
-          ))}
-        </div>
-      </nav>
-    </div>
   );
 }
 

@@ -39,6 +39,7 @@ class UpdateAccessoryRequest extends FormRequest
             'synthesis_effects_json' => ['nullable', 'array'],
             'synthesis_effects_json.*.text' => ['nullable', 'string'],
             'synthesis_effects_json.*.note' => ['nullable', 'string'],
+            'synthesis_effects_json.*.recommended' => ['nullable', 'boolean'],
 
             'obtain_methods_json' => ['nullable', 'array'],
             'obtain_methods_json.*.text' => ['nullable', 'string'],

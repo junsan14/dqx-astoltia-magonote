@@ -9,6 +9,55 @@ import styles from "./accessory-guide.module.css";
 import Image from "next/image";
 import PageHeroTitle from "@/components/PageHeroTitle";
 
+/**
+ * 部位の表示順
+ * ここを好きな順番に並び替えれば、検索セレクトの順番も変わります。
+ * DBに存在するけどここに書いていない部位は、最後に五十音順で表示されます。
+ */
+const SLOT_ORDER = [
+  "顔アクセサリー",
+  "首アクセサリー",
+  "指アクセサリー",
+  "胸アクセサリー",
+  "腰アクセサリー",
+  "札アクセサリー",
+  "他アクセサリー",
+  "紋章",
+  "証",
+];
+
+/**
+ * 種類の表示順
+ * ここを好きな順番に並び替えれば、検索セレクトの順番も変わります。
+ * DBに存在するけどここに書いていない種類は、最後に五十音順で表示されます。
+ */
+const TYPE_ORDER = [
+  "顔",
+  "首",
+  "指",
+  "胸",
+  "腰",
+  "札",
+  "他",
+  "紋章",
+  "証",
+];
+
+function sortByCustomOrder(values = [], order = []) {
+  const orderMap = new Map(order.map((name, index) => [name, index]));
+
+  return [...values].sort((a, b) => {
+    const aIndex = orderMap.has(a) ? orderMap.get(a) : 9999;
+    const bIndex = orderMap.has(b) ? orderMap.get(b) : 9999;
+
+    if (aIndex !== bIndex) {
+      return aIndex - bIndex;
+    }
+
+    return String(a).localeCompare(String(b), "ja");
+  });
+}
+
 function getBaseEffects(item) {
   return ACCESSORY_BASE_EFFECT_FIELDS.filter((field) => {
     const value = Number(item?.[field.key]);
@@ -17,6 +66,15 @@ function getBaseEffects(item) {
     ...field,
     value: item[field.key],
   }));
+}
+
+function toSearchKanaText(value = "") {
+  return String(value)
+    .normalize("NFKC")
+    .replace(/[\u30a1-\u30f6]/g, (char) =>
+      String.fromCharCode(char.charCodeAt(0) - 0x60)
+    )
+    .toLowerCase();
 }
 
 function normalizeTextRows(rows) {
@@ -28,6 +86,28 @@ function normalizeTextRows(rows) {
       return row?.text || row?.note || "";
     })
     .filter(Boolean);
+}
+
+function normalizeSynthesisRows(rows) {
+  if (!Array.isArray(rows)) return [];
+
+  return rows
+    .map((row) => {
+      if (typeof row === "string") {
+        return {
+          text: row,
+          note: "",
+          recommended: false,
+        };
+      }
+
+      return {
+        text: row?.text || row?.note || "",
+        note: row?.note || "",
+        recommended: Boolean(row?.recommended),
+      };
+    })
+    .filter((row) => row.text);
 }
 
 function getObtainPlaces(item) {
@@ -44,8 +124,6 @@ function getInheritanceChain(item) {
 
   return item ? [item] : [];
 }
-
-
 
 function getChainKeyFromItem(item) {
   const chain = getInheritanceChain(item);
@@ -87,26 +165,34 @@ function getChainSearchText(chain = []) {
 function getSearchTextFromAccessory(item) {
   const obtainPlaces = getObtainPlaces(item).join(" ");
   const effects = normalizeTextRows(item?.effects_json).join(" ");
-  const syntheses = normalizeTextRows(item?.synthesis_effects_json).join(" ");
+  const syntheses = normalizeSynthesisRows(item?.synthesis_effects_json)
+    .map((row) => row.text)
+    .join(" ");
   const chainText = getChainSearchText(getInheritanceChain(item));
 
-  return [
-    item?.name,
-    item?.name_en,
-    item?.item_id,
-    item?.slot,
-    item?.accessory_type,
-    item?.description,
-    item?.inheritance_type,
-    item?.inheritance_note,
-    obtainPlaces,
-    effects,
-    syntheses,
-    chainText,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+  return toSearchKanaText(
+    [
+      item?.name,
+      item?.name_en,
+      item?.item_id,
+      item?.slot,
+      item?.accessory_type,
+      item?.description,
+      item?.inheritance_type,
+      item?.inheritance_note,
+      obtainPlaces,
+      effects,
+      syntheses,
+      chainText,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
+function getSlotOrderValue(slot = "") {
+  const index = SLOT_ORDER.indexOf(slot);
+  return index >= 0 ? index : 9999;
 }
 
 function buildChainRows(accessories = []) {
@@ -139,10 +225,10 @@ function buildChainRows(accessories = []) {
     const aFirst = a.chain[0];
     const bFirst = b.chain[0];
 
-    const slotCompare = String(aFirst?.slot ?? "").localeCompare(
-      String(bFirst?.slot ?? ""),
-      "ja"
-    );
+    const aSlot = String(aFirst?.slot ?? "");
+    const bSlot = String(bFirst?.slot ?? "");
+
+    const slotCompare = getSlotOrderValue(aSlot) - getSlotOrderValue(bSlot);
 
     if (slotCompare !== 0) return slotCompare;
 
@@ -171,7 +257,10 @@ function chainMatchesType(row, type) {
 function chainMatchesKeyword(row, keyword) {
   if (!keyword) return true;
 
-  const text = row.chain.map((item) => getSearchTextFromAccessory(item)).join(" ");
+  const text = row.chain
+    .map((item) => getSearchTextFromAccessory(item))
+    .join(" ");
+
   return text.includes(keyword);
 }
 
@@ -219,17 +308,21 @@ export default function AccessoryGuideClient() {
   }, []);
 
   const slots = useMemo(() => {
-    return [
+    const values = [
       ...new Set(accessories.map((item) => item.slot).filter(Boolean)),
-    ].sort();
+    ];
+
+    return sortByCustomOrder(values, SLOT_ORDER);
   }, [accessories]);
 
   const types = useMemo(() => {
-    return [
+    const values = [
       ...new Set(
         accessories.map((item) => item.accessory_type).filter(Boolean)
       ),
-    ].sort();
+    ];
+
+    return sortByCustomOrder(values, TYPE_ORDER);
   }, [accessories]);
 
   const chainRows = useMemo(() => {
@@ -237,7 +330,7 @@ export default function AccessoryGuideClient() {
   }, [accessories]);
 
   const filteredRows = useMemo(() => {
-    const keyword = q.trim().toLowerCase();
+    const keyword = toSearchKanaText(q.trim());
 
     return chainRows.filter((row) => {
       if (!chainMatchesKeyword(row, keyword)) return false;
@@ -264,18 +357,9 @@ export default function AccessoryGuideClient() {
 
   return (
     <main>
-        <PageHeroTitle
-            kicker="DQX Tools"
-            title="アクセサリ伝承ガイド"
-            maxWidth="100%"
-            margin="0"
-            padding="0"
-          />
       <section className={styles.hero}>
-        <div className={styles.heroCard}>
-          <span>登録アクセサリ</span>
-          <strong>{accessories.length}</strong>
-          <small>items</small>
+        <div className={styles.heroText}>
+          <PageHeroTitle kicker="Accessory Guide" title="アクセサリ伝承ガイド" />
         </div>
       </section>
 
@@ -320,15 +404,6 @@ export default function AccessoryGuideClient() {
             onChange={(e) => setOnlyInheritance(e.target.checked)}
           />
           <span>伝承ありのみ</span>
-        </label>
-
-        <label className={styles.checkLabel}>
-          <input
-            type="checkbox"
-            checked={onlyObtainPlace}
-            onChange={(e) => setOnlyObtainPlace(e.target.checked)}
-          />
-          <span>入手場所ありのみ</span>
         </label>
       </section>
 
@@ -384,16 +459,13 @@ function AccessoryChainRow({ row }) {
         }`}
       >
         {row.chain.map((item) => (
-          <AccessoryGuideCard
-            key={`${row.id}-${item.id}`}
-            item={item}
-            chain={row.chain}
-          />
+          <AccessoryGuideCard key={`${row.id}-${item.id}`} item={item} />
         ))}
-    </div>
+      </div>
     </section>
   );
 }
+
 const BACKEND_URL = (
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000"
 ).replace(/\/$/, "");
@@ -411,11 +483,12 @@ function getImageSrc(src = "") {
 
   return src;
 }
+
 function AccessoryGuideCard({ item }) {
   const obtainPlaces = getObtainPlaces(item);
   const effects = getBaseEffects(item);
   const normalEffects = normalizeTextRows(item.effects_json);
-  const syntheses = normalizeTextRows(item.synthesis_effects_json);
+  const syntheses = normalizeSynthesisRows(item.synthesis_effects_json);
 
   return (
     <article className={styles.accessoryCard}>
@@ -427,8 +500,6 @@ function AccessoryGuideCard({ item }) {
           </div>
 
           <h3>{item.name}</h3>
-
-         
         </div>
 
         {item.image_url && (
@@ -461,12 +532,25 @@ function AccessoryGuideCard({ item }) {
       </section>
 
       <section className={styles.infoBlock}>
-        <h4>合成効果</h4>
+        <h4>付く合成効果</h4>
 
         {syntheses.length > 0 ? (
           <ul className={styles.synthesisList}>
-            {syntheses.map((text, index) => (
-              <li key={`${item.id}-synthesis-${index}`}>{text}</li>
+            {syntheses.map((row, index) => (
+              <li
+                key={`${item.id}-synthesis-${index}`}
+                className={`${styles.synthesisItem} ${
+                  row.recommended ? styles.recommendedSynthesis : ""
+                }`}
+              >
+                <span className={styles.synthesisText}>{row.text}</span>
+
+                {row.recommended && (
+                  <span className={styles.recommendedStar} aria-label="おすすめ">
+                    ★
+                  </span>
+                )}
+              </li>
             ))}
           </ul>
         ) : (

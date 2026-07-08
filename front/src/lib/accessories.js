@@ -86,6 +86,7 @@ export function createEmptyJsonRow() {
   return {
     text: "",
     note: "",
+    recommended: false,
   };
 }
 
@@ -102,12 +103,14 @@ export function normalizeJsonRows(value) {
       return {
         text: item,
         note: "",
+        recommended: false,
       };
     }
 
     return {
       text: item?.text ?? "",
       note: item?.note ?? "",
+      recommended: Boolean(item?.recommended),
     };
   });
 }
@@ -301,13 +304,70 @@ function cleanJsonRows(rows) {
         return {
           text: row.trim(),
           note: "",
+          recommended: false,
         };
       }
 
       return {
         text: String(row?.text ?? "").trim(),
         note: String(row?.note ?? "").trim(),
+        recommended: Boolean(row?.recommended),
       };
     })
     .filter((row) => row.text !== "" || row.note !== "");
+}
+
+export async function uploadAccessoryImage(file, options = {}) {
+  try {
+    const formData = new FormData();
+
+    formData.append("image", file);
+
+    if (options.accessoryId) {
+      formData.append("accessory_id", String(options.accessoryId));
+    }
+
+    if (options.itemId) {
+      formData.append("item_id", String(options.itemId));
+    }
+
+    const res = await api.post(
+      `${API_URL}/api/accessories/upload-image`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    return res.data;
+  } catch (error) {
+    console.error(error);
+
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+
+    throw new Error("アクセサリ画像アップロード失敗");
+  }
+}
+export function getAccessoryAssetUrl(path = "") {
+  if (!path) return "";
+
+  if (path.startsWith("blob:")) {
+    return path;
+  }
+
+  if (path.startsWith("data:")) {
+    return path;
+  }
+
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+
+  return `${API_URL}${normalized}`;
 }
