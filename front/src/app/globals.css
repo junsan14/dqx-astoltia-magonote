@@ -143,6 +143,12 @@ main {
   min-width: 0;
   box-sizing: border-box;
 }
+.homePageMain {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
 
 @media (max-width: 1024px) {
   main {

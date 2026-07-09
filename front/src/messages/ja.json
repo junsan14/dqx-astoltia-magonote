@@ -5,51 +5,21 @@
       "description": "ドラクエ10向け便利ツール集"
     },
     "hero": {
-      "titleLine1": "ドラゴンクエスト10を",
-      "titleHighlight": "もっと便利に",
-      "description": "職人の利益確認、モンスター逆引き検索、モンスター図鑑、マップ別モンスター検索までまとめて使える便利ツール集。"
-    },
-    "pains": {
-      "heading": "こういった悩み、ありませんか？",
-      "items": {
-        "equipmentStats": {
-          "title": "装備の数値を見たい",
-          "text": "最新の装備の職人数値をすぐ確認したい。"
-        },
-        "costCheck": {
-          "title": "原価を知りたい",
-          "text": "素材費や原価を見ながら、装備づくりの判断をしたい。"
-        },
-        "reverseLookup": {
-          "title": "逆引きして探したい",
-          "text": "宝珠・装備・レアドロップから、モンスターがどのマップのどの位置に出現するか調べたい。"
-        }
-      }
-    },
-    "tools": {
-      "heading": "使えるツール",
-      "open": "ツールを開く",
-      "items": {
-        "craftProfit": {
-          "badge": "職人向け",
-          "title": "Craft Profit",
-          "description": "装備の素材費、原価、売値を見ながら利益を確認できる職人向けツール。"
-        },
-        "monsterSearch": {
-          "badge": "検索ツール",
-          "title": "モンスター検索",
-          "description": "宝珠・装備・レアドロップから、出現場所やマップ位置まで調べられる検索ツール。"
-        },
-        "monsterZukan": {
-          "badge": "図鑑",
-          "title": "モンスター図鑑",
-          "description": "モンスターの基本情報、ドロップ、出現マップなどを一覧で確認できる図鑑ツール。"
-        },
-        "mapMonsterBrowser": {
-          "badge": "マップ検索",
-          "title": "MAP別モンスター検索",
-          "description": "マップごとに出現モンスターを確認し、どこにいるかを視覚的に探せるツール。"
-        }
+      "label": "アストルティアの孫の手",
+      "titleLine1": "アストルティアの",
+      "titleHighlight": "知りたいものが",
+      "titleLine2": "ぱぱっと見つかる",
+      "button": "ツールを使う",
+      "description": "職人の利益確認、モンスター逆引き検索、モンスター図鑑、マップ別モンスター検索までまとめて使える便利ツール集。",
+      "questions": {
+        "orbDrop": "ストームカイザーの閃きは誰のドロップ？",
+        "slimeMap": "スライムはどこのマップだっけ？",
+        "gigantesArea": "ギガンデスはマップのどのあたりだっけ？",
+        "materialDrop": "天竜草ってどのモンスターのドロップ？",
+        "craftCost": "一角鬼、原価いくらだっけ？",
+        "profit": "叡聖って利益取れるんだっけ",
+        "accessoryWhere": "智謀の首飾りどこで手に入るんだっけ？",
+        "inheritance": "赤竜の伝承元アクセサリーなんだっけ？"
       }
     }
   },

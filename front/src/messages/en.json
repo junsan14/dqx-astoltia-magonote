@@ -5,53 +5,24 @@
       "description": "Useful tools for Dragon Quest X"
     },
     "hero": {
-      "titleLine1": "Make Dragon Quest X",
-      "titleHighlight": "more convenient",
-      "description": "A collection of useful tools for checking crafting profit, reverse monster lookup, monster encyclopedia, and map-based monster search."
-    },
-    "pains": {
-      "heading": "Do you have these problems?",
-      "items": {
-        "equipmentStats": {
-          "title": "Want to check equipment stats",
-          "text": "I want to quickly check the latest crafting values for equipment."
-        },
-        "costCheck": {
-          "title": "Want to know the cost",
-          "text": "I want to judge whether to craft while checking material costs and total cost."
-        },
-        "reverseLookup": {
-          "title": "Want to search by reverse lookup",
-          "text": "I want to find which monsters appear on which map and where, starting from jewels, equipment, or rare drops."
-        }
-      }
-    },
-    "tools": {
-      "heading": "Available Tools",
-      "open": "Open tool",
-      "items": {
-        "craftProfit": {
-          "badge": "For Crafters",
-          "title": "Craft Profit",
-          "description": "A tool for crafters to check profit while viewing material cost, total cost, and selling price."
-        },
-        "monsterSearch": {
-          "badge": "Search Tool",
-          "title": "Monster Search",
-          "description": "Search monsters by jewels, equipment, or rare drops, and check their locations and map positions."
-        },
-        "monsterZukan": {
-          "badge": "Encyclopedia",
-          "title": "Monster Encyclopedia",
-          "description": "A monster encyclopedia tool where you can browse monster info, drops, and appearance maps."
-        },
-        "mapMonsterBrowser": {
-          "badge": "Map Search",
-          "title": "Map Monster Search",
-          "description": "A tool to explore monsters by map and visually check where they appear."
-        }
+      "label": "A handy helper for Astoltia",
+      "titleLine1": "Quickly solve",
+      "titleHighlight": "YOUR QUESTIONS",
+      "titleLine2": "in Astoltia.",
+      "button": "Use tools",
+      "description": "A collection of useful tools for checking crafting profit, reverse monster lookup, monster encyclopedia, and map-based monster search.",
+      "questions": {
+        "orbDrop": "Which monster drops Storm Kaiser Flash?",
+        "slimeMap": "Which map was Slime on again?",
+        "gigantesArea": "Where on the map was Gigantes again?",
+        "materialDrop": "Which monster drops Tenryu Grass?",
+        "craftCost": "How much does Ikkakuki cost to craft?",
+        "profit": "Can I make profit with Eisei gear?",
+        "accessoryWhere": "Where can I get Chibou's Necklace?",
+        "inheritance": "What was the inheritance accessory for Red Dragon?"
       }
     }
+    
   },
   "Header": {
     "logout": "Log out",
