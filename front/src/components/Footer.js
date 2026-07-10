@@ -3,7 +3,10 @@
 import NextLink from "next/link";
 import { Link as I18nLink } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
+
 import { useAuth } from "@/hooks/auth";
+
+import styles from "./Footer.module.css";
 
 function FooterNavLink({
   href,
@@ -30,6 +33,8 @@ function FooterNavLink({
 export default function Footer() {
   const t = useTranslations("Footer");
   const { user } = useAuth();
+
+  const currentYear = new Date().getFullYear();
 
   const toolLinks = [
     {
@@ -60,65 +65,68 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="border-t border-slate-800 bg-slate-950 text-slate-400">
-      <div className="mx-auto max-w-6xl px-4 py-12">
-        <div className="grid gap-10 md:grid-cols-3">
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+    <footer className={styles.footer}>
+      <div className={styles.inner}>
+        <div className={styles.sections}>
+          <section className={styles.section}>
+            <h3 className={styles.heading}>
               {t("sections.tools")}
             </h3>
 
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className={styles.linkList}>
               {toolLinks.map((link) => (
-                <li key={link.href}>
+                <li
+                  key={link.href}
+                  className={styles.linkItem}
+                >
                   <FooterNavLink
                     href={link.href}
                     localized={link.localized}
-                    className="transition hover:text-white"
+                    className={styles.link}
                   >
                     {link.label}
                   </FooterNavLink>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
 
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <section className={styles.section}>
+            <h3 className={styles.heading}>
               {t("sections.info")}
             </h3>
 
-            <ul className="mt-4 space-y-2 text-sm">
-              <li>
+            <ul className={styles.linkList}>
+              <li className={styles.linkItem}>
                 <FooterNavLink
                   href="/about"
                   localized
-                  className="transition hover:text-white"
+                  className={styles.link}
                 >
                   {t("links.about")}
                 </FooterNavLink>
               </li>
 
-              <li>
-                <span className="text-slate-500">
+              <li className={styles.linkItem}>
+                <span className={styles.description}>
                   {t("unofficialFanSite")}
                 </span>
               </li>
             </ul>
-          </div>
+          </section>
 
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <section className={styles.section}>
+            <h3 className={styles.heading}>
               {t("sections.admin")}
             </h3>
 
-            <ul className="mt-4 space-y-2 text-sm">
+            <ul className={styles.linkList}>
               {!user && (
-                <li>
+                <li className={styles.linkItem}>
                   <FooterNavLink
                     href="/login"
                     localized={false}
-                    className="inline-flex items-center rounded-full border border-slate-700 px-4 py-1.5 text-xs transition hover:bg-slate-800 hover:text-white"
+                    className={styles.adminButton}
                   >
                     {t("adminLogin")}
                   </FooterNavLink>
@@ -126,23 +134,38 @@ export default function Footer() {
               )}
 
               {user && (
-                <li>
+                <li className={styles.linkItem}>
                   <NextLink
                     href="/admin"
-                    className="inline-flex items-center rounded-full border border-slate-700 px-4 py-1.5 text-xs transition hover:bg-slate-800 hover:text-white"
+                    className={styles.adminButton}
                   >
                     ADMIN
                   </NextLink>
                 </li>
               )}
             </ul>
-          </div>
+          </section>
         </div>
 
-        <div className="mt-12 space-y-1 border-t border-slate-800 pt-6 text-center text-[11px] leading-relaxed text-slate-500">
-          <div>© {new Date().getFullYear()} DQX Tools</div>
-          <div>{t("copyrightNotice")}</div>
-          <div>© ARMOR PROJECT/BIRD STUDIO/SQUARE ENIX All Rights Reserved.</div>
+        <div className={styles.bottom}>
+          <div className={styles.brand}>
+            <span>© {currentYear}</span>
+
+            <span className={styles.brandBadge}>
+              DQX
+            </span>
+
+            <span>Tools</span>
+          </div>
+
+          <div className={styles.copyrightNotice}>
+            {t("copyrightNotice")}
+          </div>
+
+          <div className={styles.rights}>
+            © ARMOR PROJECT/BIRD STUDIO/SQUARE ENIX
+            All Rights Reserved.
+          </div>
         </div>
       </div>
     </footer>
