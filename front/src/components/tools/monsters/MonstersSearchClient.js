@@ -849,14 +849,154 @@ function getLoadingStyles() {
       justifySelf: "end",
     },
     detailCard: {
-      borderRadius: "0 0 24px 24px",
-      padding: "18px",
-      background: "var(--panel-bg)",
-      border: "1px solid var(--selected-border)",
-      borderTop: "1px solid var(--selected-border)",
-      width: "100%",
-      boxSizing: "border-box",
-    },
+  borderRadius: "0 0 24px 24px",
+  padding: "18px",
+  background: "var(--panel-bg)",
+  border: "1px solid var(--selected-border)",
+  borderTop: "1px solid var(--selected-border)",
+  width: "100%",
+  maxWidth: "100%",
+  minWidth: 0,
+  overflowX: "hidden",
+  boxSizing: "border-box",
+},
+
+detailOverview: {
+  width: "100%",
+  minWidth: 0,
+},
+
+detailDescription: {
+  display: "grid",
+  gap: "10px",
+  width: "100%",
+  minWidth: 0,
+},
+
+detailMetaRow: {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: "10px",
+  marginTop: "14px",
+},
+
+detailMetaItem: {
+  height: "34px",
+  borderRadius: "14px",
+  border: "1px solid var(--soft-border)",
+  ...shimmer,
+},
+
+detailDropSection: {
+  display: "grid",
+  gap: "12px",
+  width: "100%",
+  minWidth: 0,
+  marginTop: "18px",
+},
+
+detailTabsRow: {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "6px",
+  width: "100%",
+  minWidth: 0,
+},
+
+detailTab: {
+  width: "100%",
+  height: "34px",
+  borderRadius: "5px",
+  border: "1px solid var(--panel-border)",
+  boxSizing: "border-box",
+  ...shimmer,
+},
+
+detailDropPanel: {
+  width: "100%",
+  minWidth: 0,
+  minHeight: "142px",
+  padding: "10px 8px",
+  border: "1px solid var(--card-border)",
+  borderRadius: "5px",
+  background: "var(--card-bg)",
+  boxSizing: "border-box",
+},
+
+detailTagList: {
+  display: "grid",
+  gap: "8px",
+  width: "100%",
+  minWidth: 0,
+},
+
+detailTagRow: {
+  display: "flex",
+  alignItems: "center",
+  gap: "7px",
+  width: "100%",
+  minWidth: 0,
+  padding: "3px 0",
+  boxSizing: "border-box",
+},
+
+detailTagBadge: {
+  width: "36px",
+  minWidth: "36px",
+  height: "18px",
+  borderRadius: "999px",
+  ...shimmer,
+},
+
+detailMapSection: {
+  display: "grid",
+  gap: "12px",
+  width: "100%",
+  minWidth: 0,
+  marginTop: "18px",
+},
+
+detailMapTabs: {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  width: "100%",
+  minWidth: 0,
+  overflow: "hidden",
+  paddingBottom: "4px",
+},
+
+detailMapTab: {
+  flexShrink: 0,
+  height: "32px",
+  borderRadius: "999px",
+  border: "1px solid var(--panel-border)",
+  ...shimmer,
+},
+
+detailMapCard: {
+  width: "100%",
+  minWidth: 0,
+  overflow: "hidden",
+  borderRadius: "18px",
+  border: "1px solid var(--card-border)",
+  background: "var(--card-bg)",
+  boxSizing: "border-box",
+},
+
+detailMapImage: {
+  width: "100%",
+  aspectRatio: "16 / 10",
+  borderRadius: "0",
+  ...shimmer,
+},
+
+detailMapInfo: {
+  display: "grid",
+  gap: "9px",
+  padding: "12px",
+},
     detailHero: {
       display: "grid",
       gridTemplateColumns: "88px minmax(0,1fr)",
