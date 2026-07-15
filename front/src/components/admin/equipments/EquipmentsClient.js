@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { fetchItemsByIds } from "@/lib/items";
+import { fetchItems } from "@/lib/items";
 import {
   createEmptyEquipmentRow,
   createEquipment,
@@ -351,72 +351,59 @@ export default function EquipmentsClient() {
   }, [rows, selectedKey]);
 
  async function fetchInitial(preferredId = null, preferredKey = null) {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const equipments = await fetchEquipments();
-      const fetchedEquipmentTypes = await fetchEquipmentTypes();
-      const jobs = await fetchGameJobs();
+    const [equipments, fetchedEquipmentTypes, jobs, materialItems] =
+      await Promise.all([
+        fetchEquipments(),
+        fetchEquipmentTypes(),
+        fetchGameJobs(),
 
-      const materialItemIds = Array.from(
-        new Set(
-          equipments.flatMap((row) => {
-            const mats = Array.isArray(row.materialsJson)
-              ? row.materialsJson
-              : safeJsonParse(row.materialsJson, []);
+        // category が material のアイテムだけ取得
+        fetchItems("", "material"),
+      ]);
 
-            return mats
-              .map((mat) => Number(mat?.item_id ?? mat?.itemId))
-              .filter((id) => Number.isInteger(id) && id > 0);
-          })
-        )
-      );
+    const safeMaterialItems = Array.isArray(materialItems)
+      ? materialItems
+      : [];
 
-      let materialItems = [];
+    const hydratedEquipments = equipments.map((row) =>
+      hydrateRowMaterialsWithItems(row)
+    );
 
-      if (materialItemIds.length > 0) {
-        try {
-          materialItems = await fetchItemsByIds(materialItemIds);
-        } catch (error) {
-          console.error("fetchItemsByIds failed", error);
-          materialItems = [];
-        }
-      }
+    setRows(hydratedEquipments);
+    setEquipmentTypes(fetchedEquipmentTypes);
+    setAllJobs(jobs);
+    setAllItems(safeMaterialItems);
 
-      const hydratedEquipments = equipments.map((row) =>
-        hydrateRowMaterialsWithItems(row, materialItems)
-      );
+    const preferredRow =
+      hydratedEquipments.find((row) => {
+        if (preferredId == null) return false;
 
-      setRows(hydratedEquipments);
-      setEquipmentTypes(fetchedEquipmentTypes);
-      setAllJobs(jobs);
-      setAllItems(materialItems);
+        return String(row.id) === String(preferredId);
+      }) ??
+      hydratedEquipments.find((row) => {
+        if (!preferredKey) return false;
 
-      const preferredRow =
-        hydratedEquipments.find((row) => {
-          if (preferredId == null) return false;
-          return String(row.id) === String(preferredId);
-        }) ??
-        hydratedEquipments.find((row) => {
-          if (!preferredKey) return false;
-          return String(row.__key) === String(preferredKey);
-        }) ??
-        null;
+        return String(row.__key) === String(preferredKey);
+      }) ??
+      null;
 
-      if (preferredRow?.__key) {
-        setSelectedKey(preferredRow.__key);
-      } else if (hydratedEquipments[0]?.__key) {
-        setSelectedKey(hydratedEquipments[0].__key);
-      } else {
-        setSelectedKey("");
-      }
-    } catch (error) {
-      console.error(error);
-      showToast("初期データ読み込みに失敗した", "error");
-    } finally {
-      setLoading(false);
+    if (preferredRow?.__key) {
+      setSelectedKey(preferredRow.__key);
+    } else if (hydratedEquipments[0]?.__key) {
+      setSelectedKey(hydratedEquipments[0].__key);
+    } else {
+      setSelectedKey("");
     }
+  } catch (error) {
+    console.error(error);
+    showToast("初期データ読み込みに失敗した", "error");
+  } finally {
+    setLoading(false);
   }
+}
 
   function setSelectedRowPatch(patch) {
     if (!selectedKey) return;

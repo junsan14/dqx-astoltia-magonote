@@ -77,71 +77,136 @@ function MonstersSearchPageLoading() {
 function MonsterDetailLoading() {
   const loadingStyles = getLoadingStyles();
 
+  const tagWidths = ["62%", "78%", "54%", "70%"];
+
   return (
     <div style={loadingStyles.detailCard}>
-      <div style={loadingStyles.detailHero}>
-        <div style={loadingStyles.detailHeroThumb} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ ...loadingStyles.line, width: "42%", height: 22 }} />
+      {/* モンスター基本情報 */}
+      <section style={loadingStyles.detailOverview}>
+        <div style={loadingStyles.detailDescription}>
           <div
             style={{
               ...loadingStyles.line,
-              width: "20%",
+              width: "94%",
               height: 13,
-              marginTop: 10,
             }}
           />
+
           <div
             style={{
               ...loadingStyles.line,
-              width: "64%",
+              width: "72%",
               height: 13,
-              marginTop: 14,
             }}
           />
         </div>
-      </div>
 
-      <div style={loadingStyles.detailSplitGrid}>
-        <div style={loadingStyles.detailPanel}>
-          <div style={{ ...loadingStyles.line, width: 120, height: 16 }} />
-          <div style={loadingStyles.detailList}>
-            <div style={{ ...loadingStyles.line, width: "100%", height: 14 }} />
-            <div style={{ ...loadingStyles.line, width: "88%", height: 14 }} />
-            <div style={{ ...loadingStyles.line, width: "76%", height: 14 }} />
+        <div style={loadingStyles.detailMetaRow}>
+          <div
+            style={{
+              ...loadingStyles.detailMetaItem,
+              width: 92,
+            }}
+          />
+
+          <div
+            style={{
+              ...loadingStyles.detailMetaItem,
+              width: 78,
+            }}
+          />
+        </div>
+      </section>
+
+      {/* ドロップ */}
+      <section style={loadingStyles.detailDropSection}>
+        <div
+          style={{
+            ...loadingStyles.line,
+            width: 88,
+            height: 18,
+          }}
+        />
+
+        <div style={loadingStyles.detailTabsRow}>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={`detail-tab-${index}`}
+              style={loadingStyles.detailTab}
+            />
+          ))}
+        </div>
+
+        <div style={loadingStyles.detailDropPanel}>
+          <div style={loadingStyles.detailTagList}>
+            {tagWidths.map((width, index) => (
+              <div
+                key={`detail-tag-${index}`}
+                style={loadingStyles.detailTagRow}
+              >
+                <div style={loadingStyles.detailTagBadge} />
+
+                <div
+                  style={{
+                    ...loadingStyles.line,
+                    width,
+                    height: 12,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 出現場所 */}
+      <section style={loadingStyles.detailMapSection}>
+        <div
+          style={{
+            ...loadingStyles.line,
+            width: 92,
+            height: 18,
+          }}
+        />
+
+        <div style={loadingStyles.detailMapTabs}>
+          <div
+            style={{
+              ...loadingStyles.detailMapTab,
+              width: 104,
+            }}
+          />
+
+          <div
+            style={{
+              ...loadingStyles.detailMapTab,
+              width: 86,
+            }}
+          />
+        </div>
+
+        <div style={loadingStyles.detailMapCard}>
+          <div style={loadingStyles.detailMapImage} />
+
+          <div style={loadingStyles.detailMapInfo}>
             <div
               style={{
                 ...loadingStyles.line,
-                width: "100%",
-                height: 220,
-                borderRadius: 22,
-                marginTop: 10,
+                width: "42%",
+                height: 14,
+              }}
+            />
+
+            <div
+              style={{
+                ...loadingStyles.line,
+                width: "68%",
+                height: 12,
               }}
             />
           </div>
         </div>
-
-        <div style={loadingStyles.detailPanel}>
-          <div style={{ ...loadingStyles.line, width: 140, height: 16 }} />
-          <div
-            style={{
-              ...loadingStyles.line,
-              width: "100%",
-              height: 320,
-              borderRadius: 22,
-              marginTop: 12,
-            }}
-          />
-        </div>
-      </div>
-
-      <div style={loadingStyles.detailSection}>
-        <div style={{ ...loadingStyles.line, width: 140, height: 16 }} />
-        <div style={loadingStyles.mapGrid}>
-          <div style={loadingStyles.mapBox} />
-          <div style={loadingStyles.mapBox} />
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
