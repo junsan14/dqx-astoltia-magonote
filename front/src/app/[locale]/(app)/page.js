@@ -18,7 +18,7 @@ export async function generateMetadata({ params }) {
     title,
     description,
     path: `/${locale}`,
-    image: "/ogp/home.webp",
+    image: "/ogp/top-ogp.webp",
   });
 }
 
