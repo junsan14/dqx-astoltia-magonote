@@ -1,27 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  FiChevronLeft,
-  FiChevronRight,
-  FiMenu,
-  FiSmartphone,
-} from "react-icons/fi";
 
 import styles from "./RoomMain.module.css";
-
-import {
-  QuickCell,
-  Spinner,
-  formatTime,
-  getColorClass,
-  getGaugeLabel,
-  getRainbowInfo,
-} from "./RoomParts";
+import RoomHeaderPanel from "./RoomHeaderPanel";
+import RoomMapPanel from "./RoomMapPanel";
+import RoomReportPanel from "./RoomReportPanel";
+import { QuickCell } from "./RoomParts";
 
 const SELECTED_MAPS_STORAGE_KEY = "kishoju_selected_maps";
 const MOBILE_TAB_LONG_PRESS_MS = 420;
-const MOBILE_CARD_GAP = 12;
 
 export default function RoomMain({ controller: c }) {
   const {
@@ -47,6 +35,10 @@ export default function RoomMain({ controller: c }) {
     submitQuickReport,
     requestUndoReport,
     mobileCardViewportRef,
+    handleMobileMapTouchStart,
+    handleMobileMapTouchMove,
+    handleMobileMapTouchEnd,
+    mobileCardTrackStyle,
     activeReports,
   } = c;
 
@@ -65,15 +57,12 @@ export default function RoomMain({ controller: c }) {
   const [isMobileTabReordering, setIsMobileTabReordering] = useState(false);
   const [mobileDraggingMap, setMobileDraggingMap] = useState("");
   const [mobileDragOverMap, setMobileDragOverMap] = useState("");
-  const [mobileCardStepWidth, setMobileCardStepWidth] = useState(0);
-  const [mobileSwipeOffset, setMobileSwipeOffset] = useState(0);
-  const [isMobileSwiping, setIsMobileSwiping] = useState(false);
 
   const mobileTabLongPressTimerRef = useRef(null);
   const mobileTabPointerStartRef = useRef({ x: 0, y: 0 });
   const mobileTabLongPressTriggeredRef = useRef(false);
-  const mobileSwipeStartRef = useRef({ x: 0, y: 0 });
-  const mobileSwipeCurrentRef = useRef({ x: 0, y: 0 });
+  const mobileDraggingMapRef = useRef("");
+  const mobileLastTargetMapRef = useRef("");
 
   const savedOrderRef = useRef([]);
   const hasLoadedSavedOrderRef = useRef(false);
@@ -212,7 +201,6 @@ export default function RoomMain({ controller: c }) {
 
     setIsMobileDragging(false);
     setMobileDragOffset(0);
-    setMobileSwipeOffset(0);
     setActiveMobileMap(orderedMaps[nextIndex]);
   };
 
@@ -225,6 +213,8 @@ export default function RoomMain({ controller: c }) {
 
   const finishMobileTabReorder = () => {
     clearMobileTabLongPressTimer();
+    mobileDraggingMapRef.current = "";
+    mobileLastTargetMapRef.current = "";
     setIsMobileTabReordering(false);
     setMobileDraggingMap("");
     setMobileDragOverMap("");
@@ -241,6 +231,8 @@ export default function RoomMain({ controller: c }) {
       y: event.clientY,
     };
     mobileTabLongPressTriggeredRef.current = false;
+    mobileDraggingMapRef.current = targetMap;
+    mobileLastTargetMapRef.current = targetMap;
 
     mobileTabLongPressTimerRef.current = setTimeout(() => {
       mobileTabLongPressTriggeredRef.current = true;
@@ -271,11 +263,14 @@ export default function RoomMain({ controller: c }) {
     const element = document.elementFromPoint(event.clientX, event.clientY);
     const tabElement = element?.closest?.("[data-mobile-map-tab]");
     const targetMap = tabElement?.dataset?.mobileMapTab;
+    const sourceMap = mobileDraggingMapRef.current;
 
-    if (!targetMap || targetMap === mobileDraggingMap) return;
+    if (!sourceMap || !targetMap || targetMap === sourceMap) return;
+    if (mobileLastTargetMapRef.current === targetMap) return;
 
+    mobileLastTargetMapRef.current = targetMap;
     setMobileDragOverMap(targetMap);
-    reorderMap(mobileDraggingMap, targetMap);
+    reorderMap(sourceMap, targetMap);
   };
 
   const handleMobileTabPointerUp = (event, targetMap) => {
@@ -289,15 +284,54 @@ export default function RoomMain({ controller: c }) {
       return;
     }
 
+    mobileDraggingMapRef.current = "";
+    mobileLastTargetMapRef.current = "";
     setIsMobileDragging(false);
     setMobileDragOffset(0);
-    setMobileSwipeOffset(0);
     setActiveMobileMap(targetMap);
   };
 
   const handleMobileTabPointerCancel = () => {
     mobileTabLongPressTriggeredRef.current = false;
     finishMobileTabReorder();
+  };
+
+  useEffect(() => {
+    return () => clearMobileTabLongPressTimer();
+  }, []);
+
+  /*
+   * SP用です。
+   *
+   * 現在表示中の探査場所を左右へ1つ移動します。
+   */
+  const moveMapByDirection = (targetMap, direction) => {
+    if (!targetMap) return;
+
+    setOrderedMaps((currentMaps) => {
+      const currentIndex = currentMaps.indexOf(targetMap);
+
+      if (currentIndex < 0) {
+        return currentMaps;
+      }
+
+      const nextIndex = currentIndex + direction;
+
+      if (nextIndex < 0 || nextIndex >= currentMaps.length) {
+        return currentMaps;
+      }
+
+      const nextMaps = [...currentMaps];
+
+      [nextMaps[currentIndex], nextMaps[nextIndex]] = [
+        nextMaps[nextIndex],
+        nextMaps[currentIndex],
+      ];
+
+      saveMapOrder(nextMaps);
+
+      return nextMaps;
+    });
   };
 
   /*
@@ -358,101 +392,11 @@ export default function RoomMain({ controller: c }) {
     (mapName) => mapName === activeMobileMap
   );
 
-  const safeActiveOrderedMapIndex =
-    activeOrderedMapIndex >= 0 ? activeOrderedMapIndex : 0;
+  const canMoveActiveMapLeft = activeOrderedMapIndex > 0;
 
-  const safeMobileCardStepWidth =
-    mobileCardStepWidth ||
-    (typeof window !== "undefined"
-      ? window.innerWidth * 0.92 + MOBILE_CARD_GAP
-      : 360);
-
-  const roomMainMobileCardTrackStyle = {
-    transform: `translate3d(${
-      safeActiveOrderedMapIndex * -safeMobileCardStepWidth + mobileSwipeOffset
-    }px, 0, 0)`,
-    transition: isMobileSwiping ? "none" : undefined,
-  };
-
-  useEffect(() => {
-    const viewport = mobileCardViewportRef.current;
-    if (!viewport) return;
-
-    const updateStepWidth = () => {
-      const firstSlide = viewport.querySelector("[data-mobile-map-slide]");
-      if (!firstSlide) return;
-
-      setMobileCardStepWidth(
-        firstSlide.getBoundingClientRect().width + MOBILE_CARD_GAP
-      );
-    };
-
-    const frameId = requestAnimationFrame(updateStepWidth);
-    const observer =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(updateStepWidth)
-        : null;
-
-    observer?.observe(viewport);
-    window.addEventListener("resize", updateStepWidth);
-
-    return () => {
-      cancelAnimationFrame(frameId);
-      observer?.disconnect();
-      window.removeEventListener("resize", updateStepWidth);
-    };
-  }, [mobileCardViewportRef, orderedMaps.length, selectedMemberId]);
-
-  useEffect(() => {
-    return () => clearMobileTabLongPressTimer();
-  }, []);
-
-  const handleRoomMainMobileTouchStart = (event) => {
-    if (!canSwitchMobileMap || isMobileTabReordering) return;
-
-    const touch = event.touches[0];
-    mobileSwipeStartRef.current = { x: touch.clientX, y: touch.clientY };
-    mobileSwipeCurrentRef.current = { x: touch.clientX, y: touch.clientY };
-    setIsMobileSwiping(true);
-    setMobileSwipeOffset(0);
-  };
-
-  const handleRoomMainMobileTouchMove = (event) => {
-    if (!canSwitchMobileMap || isMobileTabReordering) return;
-
-    const touch = event.touches[0];
-    mobileSwipeCurrentRef.current = { x: touch.clientX, y: touch.clientY };
-
-    const diffX = touch.clientX - mobileSwipeStartRef.current.x;
-    const diffY = Math.abs(touch.clientY - mobileSwipeStartRef.current.y);
-
-    if (Math.abs(diffX) <= 8 || Math.abs(diffX) <= diffY * 1.15) return;
-
-    const maxOffset = Math.max(80, safeMobileCardStepWidth * 0.86);
-    setMobileSwipeOffset(Math.max(Math.min(diffX, maxOffset), -maxOffset));
-  };
-
-  const handleRoomMainMobileTouchEnd = () => {
-    if (!canSwitchMobileMap || isMobileTabReordering) {
-      setIsMobileSwiping(false);
-      setMobileSwipeOffset(0);
-      return;
-    }
-
-    const diffX =
-      mobileSwipeCurrentRef.current.x - mobileSwipeStartRef.current.x;
-    const diffY = Math.abs(
-      mobileSwipeCurrentRef.current.y - mobileSwipeStartRef.current.y
-    );
-    const threshold = Math.max(55, safeMobileCardStepWidth * 0.22);
-
-    if (Math.abs(diffX) > threshold && Math.abs(diffX) > diffY * 1.25) {
-      switchMobileMapByDirection(diffX < 0 ? 1 : -1);
-    }
-
-    setIsMobileSwiping(false);
-    setMobileSwipeOffset(0);
-  };
+  const canMoveActiveMapRight =
+    activeOrderedMapIndex >= 0 &&
+    activeOrderedMapIndex < orderedMaps.length - 1;
 
   const renderCell = (targetServer, targetMap) => {
     const latest = latestReportMap.get(
@@ -494,532 +438,64 @@ export default function RoomMain({ controller: c }) {
       <div
         ref={quickReportRef}
         className={`${styles.card} ${
-          isTutorialTarget("quick")
-            ? styles.tutorialTarget
-            : ""
+          isTutorialTarget("quick") ? styles.tutorialTarget : ""
         }`}
       >
-        <div className={styles.panelHead}>
-          <h2>{t("quick.title")}</h2>
-          <span>{t("quick.caption")}</span>
-        </div>
+        <RoomHeaderPanel
+          t={t}
+          members={members}
+          selectedMemberId={selectedMemberId}
+          setSelectedMemberId={setSelectedMemberId}
+          busyAction={busyAction}
+          requestDeleteMember={requestDeleteMember}
+        />
 
-        {members.length > 0 && (
-          <div className={styles.memberTabs}>
-            {members.map((member) => {
-              const isSelected =
-                String(member.id) ===
-                String(selectedMemberId);
-
-              const memberBusy =
-                busyAction ===
-                `delete-member-${member.id}`;
-
-              return (
-                <div
-                  key={member.id}
-                  className={`${styles.memberTab} ${
-                    isSelected
-                      ? styles.memberTabActive
-                      : ""
-                  } ${
-                    memberBusy ? styles.isBusy : ""
-                  }`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    if (!busyAction) {
-                      setSelectedMemberId(
-                        String(member.id)
-                      );
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (
-                      event.key === "Enter" &&
-                      !busyAction
-                    ) {
-                      setSelectedMemberId(
-                        String(member.id)
-                      );
-                    }
-                  }}
-                >
-                  <button
-                    type="button"
-                    className={
-                      styles.memberDeleteButton
-                    }
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      requestDeleteMember(member);
-                    }}
-                    aria-label={t(
-                      "quick.deleteMemberLabel",
-                      {
-                        name: member.name,
-                      }
-                    )}
-                    disabled={Boolean(busyAction)}
-                  >
-                    {memberBusy ? (
-                      <Spinner small />
-                    ) : (
-                      "×"
-                    )}
-                  </button>
-
-                  <span
-                    className={
-                      styles.memberServerBadge
-                    }
-                  >
-                    {member.server_from}〜
-                    {member.server_to}
-                  </span>
-
-                  <strong
-                    className={styles.memberName}
-                  >
-                    {member.name}
-                  </strong>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {!selectedMember ? (
-          <p className={styles.empty}>
-            {t("quick.noMember")}
-          </p>
-        ) : orderedMaps.length === 0 ? (
-          <p className={styles.empty}>
-            {t("quick.noMap")}
-          </p>
-        ) : (
-          <>
-            {canSwitchMobileMap && (
-              <>
-                <div className={styles.mobileSwipeHint}>
-                  <FiSmartphone />
-                  <span>6つの場所をタップで切り替え・長押しで並び替え</span>
-                </div>
-
-                <div
-                  className={`${styles.mobileMapTabs} ${
-                    isMobileTabReordering
-                      ? styles.mobileMapTabsReordering
-                      : ""
-                  }`}
-                >
-                  {orderedMaps.map((targetMap) => {
-                    const isDragging = mobileDraggingMap === targetMap;
-                    const isDragOver = mobileDragOverMap === targetMap;
-
-                    return (
-                      <button
-                        key={targetMap}
-                        type="button"
-                        data-mobile-map-tab={targetMap}
-                        className={`${styles.mobileMapTab} ${
-                          activeMobileMap === targetMap
-                            ? styles.mobileMapTabActive
-                            : ""
-                        } ${
-                          isDragging ? styles.mobileMapTabDragging : ""
-                        } ${
-                          isDragOver ? styles.mobileMapTabDropTarget : ""
-                        }`}
-                        onPointerDown={(event) =>
-                          handleMobileTabPointerDown(event, targetMap)
-                        }
-                        onPointerMove={handleMobileTabPointerMove}
-                        onPointerUp={(event) =>
-                          handleMobileTabPointerUp(event, targetMap)
-                        }
-                        onPointerCancel={handleMobileTabPointerCancel}
-                        onContextMenu={(event) => event.preventDefault()}
-                        aria-label={`${getMapLabel(targetMap)}を表示。長押しで並べ替え`}
-                      >
-                        <span className={styles.mobileMapTabLabel}>
-                          {getMapLabel(targetMap)}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className={styles.mobileMapNavigation}>
-                  <button
-                    type="button"
-                    className={styles.mobileMapNavigationButton}
-                    onClick={() => switchMobileMapByDirection(-1)}
-                    aria-label="前の探査場所を表示"
-                  >
-                    <FiChevronLeft />
-                  </button>
-
-                  <div className={styles.mobileMapNavigationCurrent}>
-                    <strong>{getMapLabel(activeMobileMap)}</strong>
-                    <span>タブ長押しで並び替え</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className={styles.mobileMapNavigationButton}
-                    onClick={() => switchMobileMapByDirection(1)}
-                    aria-label="次の探査場所を表示"
-                  >
-                    <FiChevronRight />
-                  </button>
-                </div>
-              </>
-            )}
-
-            <div
-              className={
-                styles.desktopQuickTableWrap
-              }
-            >
-              <div
-                className={styles.quickTableWrap}
-              >
-                <table className={styles.quickTable}>
-                  <thead>
-                    <tr>
-                      <th>{t("quick.server")}</th>
-
-                      {orderedMaps.map(
-                        (targetMap) => {
-                          const isDragging =
-                            draggingMap ===
-                            targetMap;
-
-                          const isDragOver =
-                            dragOverMap ===
-                            targetMap;
-
-                          return (
-                            <th
-                              key={targetMap}
-                              className={`${
-                                styles.draggableMapHeader
-                              } ${
-                                isDragging
-                                  ? styles.draggingMapHeader
-                                  : ""
-                              } ${
-                                isDragOver
-                                  ? styles.dragOverMapHeader
-                                  : ""
-                              }`}
-                              draggable
-                              onDragStart={(
-                                event
-                              ) =>
-                                handleMapDragStart(
-                                  event,
-                                  targetMap
-                                )
-                              }
-                              onDragEnter={(
-                                event
-                              ) =>
-                                handleMapDragEnter(
-                                  event,
-                                  targetMap
-                                )
-                              }
-                              onDragOver={
-                                handleMapDragOver
-                              }
-                              onDrop={(event) =>
-                                handleMapDrop(
-                                  event,
-                                  targetMap
-                                )
-                              }
-                              onDragEnd={
-                                handleMapDragEnd
-                              }
-                              title="ドラッグして列を並べ替え"
-                            >
-                              <span
-                                className={
-                                  styles.mapHeaderContent
-                                }
-                              >
-                                <span
-                                  className={
-                                    styles.mapDragHandle
-                                  }
-                                  aria-hidden="true"
-                                >
-                                  <FiMenu />
-                                </span>
-
-                                <span
-                                  className={
-                                    styles.mapHeaderLabel
-                                  }
-                                >
-                                  {getMapLabel(
-                                    targetMap
-                                  )}
-                                </span>
-                              </span>
-                            </th>
-                          );
-                        }
-                      )}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {serverRows.map(
-                      (targetServer) => (
-                        <tr key={targetServer}>
-                          <th>{targetServer}</th>
-
-                          {orderedMaps.map(
-                            (targetMap) => (
-                              <td
-                                key={`${targetServer}-${targetMap}`}
-                              >
-                                {renderCell(
-                                  targetServer,
-                                  targetMap
-                                )}
-                              </td>
-                            )
-                          )}
-                        </tr>
-                      )
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div
-              ref={mobileCardViewportRef}
-              className={
-                styles.mobileMapCardViewport
-              }
-              onTouchStart={handleRoomMainMobileTouchStart}
-              onTouchMove={handleRoomMainMobileTouchMove}
-              onTouchEnd={handleRoomMainMobileTouchEnd}
-            >
-              <div
-                className={
-                  styles.mobileMapCardTrack
-                }
-                style={roomMainMobileCardTrackStyle}
-              >
-                {orderedMaps.map(
-                  (targetMap) => (
-                    <div
-                      key={targetMap}
-                      data-mobile-map-slide
-                      className={`${
-                        styles.mobileMapCardSlide
-                      } ${
-                        activeMobileMap ===
-                        targetMap
-                          ? styles.mobileMapCardSlideActive
-                          : ""
-                      }`}
-                    >
-                      <div
-                        className={
-                          styles.quickTableWrap
-                        }
-                      >
-                        <table
-                          className={
-                            styles.quickTable
-                          }
-                        >
-                          <thead>
-                            <tr>
-                              <th>
-                                {t(
-                                  "quick.server"
-                                )}
-                              </th>
-
-                              <th>
-                                {getMapLabel(
-                                  targetMap
-                                )}
-                              </th>
-                            </tr>
-                          </thead>
-
-                          <tbody>
-                            {serverRows.map(
-                              (
-                                targetServer
-                              ) => (
-                                <tr
-                                  key={`${targetMap}-${targetServer}`}
-                                >
-                                  <th>
-                                    {
-                                      targetServer
-                                    }
-                                  </th>
-
-                                  <td>
-                                    {renderCell(
-                                      targetServer,
-                                      targetMap
-                                    )}
-                                  </td>
-                                </tr>
-                              )
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-          </>
-        )}
+        <RoomMapPanel
+          t={t}
+          selectedMember={selectedMember}
+          orderedMaps={orderedMaps}
+          canSwitchMobileMap={canSwitchMobileMap}
+          activeMobileMap={activeMobileMap}
+          setActiveMobileMap={setActiveMobileMap}
+          setIsMobileDragging={setIsMobileDragging}
+          setMobileDragOffset={setMobileDragOffset}
+          getMapLabel={getMapLabel}
+          switchMobileMapByDirection={switchMobileMapByDirection}
+          isMobileTabReordering={isMobileTabReordering}
+          mobileDraggingMap={mobileDraggingMap}
+          mobileDragOverMap={mobileDragOverMap}
+          handleMobileTabPointerDown={handleMobileTabPointerDown}
+          handleMobileTabPointerMove={handleMobileTabPointerMove}
+          handleMobileTabPointerUp={handleMobileTabPointerUp}
+          handleMobileTabPointerCancel={handleMobileTabPointerCancel}
+          moveMapByDirection={moveMapByDirection}
+          canMoveActiveMapLeft={canMoveActiveMapLeft}
+          canMoveActiveMapRight={canMoveActiveMapRight}
+          draggingMap={draggingMap}
+          dragOverMap={dragOverMap}
+          handleMapDragStart={handleMapDragStart}
+          handleMapDragEnter={handleMapDragEnter}
+          handleMapDragOver={handleMapDragOver}
+          handleMapDrop={handleMapDrop}
+          handleMapDragEnd={handleMapDragEnd}
+          serverRows={serverRows}
+          renderCell={renderCell}
+          mobileCardViewportRef={mobileCardViewportRef}
+          handleMobileMapTouchStart={handleMobileMapTouchStart}
+          handleMobileMapTouchMove={handleMobileMapTouchMove}
+          handleMobileMapTouchEnd={handleMobileMapTouchEnd}
+          mobileCardTrackStyle={mobileCardTrackStyle}
+        />
       </div>
 
-      <div className={styles.card}>
-        <div className={styles.panelHead}>
-          <h2>{t("log.title")}</h2>
-          <span>{t("log.caption")}</span>
-        </div>
-
-        <div className={styles.reportList}>
-          {activeReports.length === 0 ? (
-            <p className={styles.empty}>
-              {t("log.empty")}
-            </p>
-          ) : (
-            activeReports.map((report) => {
-              const info = getRainbowInfo(
-                report,
-                now
-              );
-
-              const isDeleting =
-                busyAction ===
-                `delete-report-${report.id}`;
-
-              const isRed =
-                report.gauge_color === "赤";
-
-              return (
-                <article
-                  key={report.id}
-                  className={styles.reportItem}
-                >
-                  <button
-                    type="button"
-                    className={
-                      styles.reportUndoButton
-                    }
-                    onClick={() =>
-                      requestUndoReport(report.id)
-                    }
-                    aria-label={t(
-                      "log.undoLabel"
-                    )}
-                    disabled={
-                      Boolean(busyAction) ||
-                      report.isTemporary
-                    }
-                  >
-                    {isDeleting ? (
-                      <Spinner small />
-                    ) : (
-                      "×"
-                    )}
-                  </button>
-
-                  <div
-                    className={styles.reportMain}
-                  >
-                    <p
-                      className={
-                        styles.reportTopLine
-                      }
-                    >
-                      <span
-                        className={
-                          styles.reportServerBadge
-                        }
-                      >
-                        {report.server_no}
-                      </span>
-
-                      <strong>
-                        {getMapLabel(
-                          report.map_name
-                        )}
-                      </strong>
-
-                      <span
-                        className={`${
-                          styles.reportColorBadge
-                        } ${getColorClass(
-                          report.gauge_color,
-                          styles
-                        )}`}
-                      >
-                        {getGaugeLabel(
-                          report.gauge_color,
-                          t
-                        )}
-                      </span>
-                    </p>
-
-                    <p
-                      className={
-                        styles.reportBottomLine
-                      }
-                    >
-                      <span>
-                        {t(
-                          "log.registeredAt",
-                          {
-                            name:
-                              report.reported_by,
-                            time: formatTime(
-                              report.created_at
-                            ),
-                          }
-                        )}
-                      </span>
-
-                      {isRed && (
-                        <span>
-                          {t(
-                            "log.remaining",
-                            {
-                              minutes: info.isRainbow
-                                ? "虹"
-                                : info.remainingMinutes,
-                            }
-                          )}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </article>
-              );
-            })
-          )}
-        </div>
-      </div>
+      <RoomReportPanel
+        t={t}
+        activeReports={activeReports}
+        now={now}
+        busyAction={busyAction}
+        requestUndoReport={requestUndoReport}
+        getMapLabel={getMapLabel}
+      />
     </section>
   );
 }

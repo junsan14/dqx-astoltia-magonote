@@ -49,7 +49,7 @@ const DEFAULT_SELECTED_MAPS = [
 ];
 
 const RAINBOW_AFTER_MINUTES = 60;
-const RED_REPORT_KEEP_MINUTES = 70;
+const RED_REPORT_KEEP_MINUTES = 90;
 const IMPORTANT_BEFORE_MINUTES = 15;
 const TOAST_AUTO_DISMISS_MS = 20000;
 const MOBILE_CARD_GAP = 12;
@@ -1061,16 +1061,8 @@ export function QuickCell({
                 登録中
               </strong>
             ) : latest.gauge_color === "赤" ? (
-              <strong
-                className={`${styles.stateLine} ${
-                  info?.isRainbow ? styles.rainbowTime : ""
-                }`}
-              >
-                {info?.isRainbow
-                  ? "虹"
-                  : `${formatTime(latest.created_at)}〜${formatTime(
-                      info?.rainbowAt
-                    )}`}
+              <strong className={styles.stateLine}>
+                {formatTime(latest.created_at)}〜{formatTime(info.rainbowAt)}
               </strong>
             ) : (
               <strong className={styles.stateLine}>
@@ -1299,77 +1291,32 @@ function clampNumber(value, min, max) {
 
 export function getRainbowInfo(report, now) {
   const createdAt = new Date(report.created_at);
+  const rainbowAt = addMinutes(createdAt, RAINBOW_AFTER_MINUTES);
+  const expireAt = addMinutes(createdAt, RED_REPORT_KEEP_MINUTES);
+  const alertAt = addMinutes(rainbowAt, -IMPORTANT_BEFORE_MINUTES);
 
-  // 赤登録から60分後に虹
-  const rainbowAt = addMinutes(
-    createdAt,
-    RAINBOW_AFTER_MINUTES
-  );
+  const untilRainbowMs = rainbowAt.getTime() - now.getTime();
+  const untilExpireMs = expireAt.getTime() - now.getTime();
+  const elapsedMs = now.getTime() - createdAt.getTime();
 
-  // 赤登録から70分後に削除
-  // 虹になってから10分後
-  const expireAt = addMinutes(
-    createdAt,
-    RED_REPORT_KEEP_MINUTES
-  );
-
-  // 虹になる15分前から重要表示
-  const alertAt = addMinutes(
-    rainbowAt,
-    -IMPORTANT_BEFORE_MINUTES
-  );
-
-  const untilRainbowMs =
-    rainbowAt.getTime() - now.getTime();
-
-  const untilExpireMs =
-    expireAt.getTime() - now.getTime();
-
-  const elapsedMs =
-    now.getTime() - createdAt.getTime();
-
-  const elapsedMinutes =
-    elapsedMs / 1000 / 60;
-
+  const elapsedMinutes = elapsedMs / 1000 / 60;
   const progressPercent = Math.round(
-    clampNumber(
-      (elapsedMinutes / RAINBOW_AFTER_MINUTES) * 100,
-      0,
-      100
-    )
+    clampNumber((elapsedMinutes / RAINBOW_AFTER_MINUTES) * 100, 0, 100)
   );
 
-  const isRainbow =
-    untilRainbowMs <= 0 &&
-    untilExpireMs > 0;
-
-  const isExpired =
-    untilExpireMs <= 0;
+  const isRainbow = untilRainbowMs <= 0 && untilExpireMs > 0;
 
   return {
     createdAt,
     rainbowAt,
     expireAt,
     alertAt,
-
-    remainingMinutes: Math.max(
-      0,
-      Math.ceil(untilRainbowMs / 1000 / 60)
-    ),
-
-    remainingToExpireMinutes: Math.max(
-      0,
-      Math.ceil(untilExpireMs / 1000 / 60)
-    ),
-
+    remainingMinutes: Math.max(0, Math.ceil(untilRainbowMs / 1000 / 60)),
+    remainingToExpireMinutes: Math.max(0, Math.ceil(untilExpireMs / 1000 / 60)),
     progressPercent,
-
-    isImportant:
-      now >= alertAt &&
-      untilRainbowMs > 0,
-
+    isImportant: now >= alertAt && untilRainbowMs > 0,
     isRainbow,
-    isExpired,
+    isExpired: untilExpireMs <= 0,
   };
 }
 
