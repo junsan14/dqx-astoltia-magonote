@@ -1,0 +1,876 @@
+.empty {
+  margin: 0;
+  color: var(--text-muted, rgba(17, 24, 39, 0.55));
+}
+
+.quickCell {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding-block: 4px;
+}
+
+.quickColorButton {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  border: 0;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 0;
+}
+
+.latestState {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 4px 13px 4px 4px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, 0.035);
+}
+
+.stateLine {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  color: var(--page-text, #111827);
+  font-size: 10px;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  font-weight: 900;
+}
+
+.noData {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  color: var(--text-muted, rgba(17, 24, 39, 0.48));
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 900;
+  text-align: center;
+}
+
+.cellUndoButton {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.15);
+  color: #fff;
+  font-size: 8px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.yellowGauge {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.redGauge {
+  background: #dc2626;
+  color: #fff;
+}
+
+.unknownGauge {
+  background: rgba(107, 114, 128, 0.18);
+  color: var(--page-text, #111827);
+}
+
+.rainbowScheduleList {
+  display: grid;
+  gap: 6px;
+}
+
+.rainbowNoticeCard {
+  position: relative;
+  min-width: 0;
+  padding: 21px 8px 7px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.08));
+  border-radius: 13px;
+  background:
+    linear-gradient(135deg, rgba(220, 38, 38, 0.06), transparent 58%),
+    rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.rainbowNoticeImportant {
+  border-color: rgba(220, 38, 38, 0.28);
+  background:
+    linear-gradient(135deg, rgba(220, 38, 38, 0.12), transparent 58%),
+    rgba(15, 23, 42, 0.035);
+}
+
+.rainbowServerBadge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+}
+
+.rainbowNoticeAction {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--page-text, #111827);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rainbowNoticeAction:hover {
+  background: rgba(220, 38, 38, 0.14);
+  color: #dc2626;
+}
+
+.rainbowNoticeCard {
+  position: relative;
+  min-width: 0;
+  padding: 10px 32px 10px 10px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.08));
+  border-radius: 13px;
+  background:
+    linear-gradient(135deg, rgba(220, 38, 38, 0.06), transparent 58%),
+    rgba(15, 23, 42, 0.03);
+  overflow: hidden;
+}
+
+.rainbowNoticeMain {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rainbowNoticeTopLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.rainbowServerBadge {
+  position: static;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.18);
+}
+
+.rainbowNoticeTopLine strong {
+  min-width: 0;
+  color: var(--text-title, #111827);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.rainbowNoticeBottomLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0;
+  padding-left: 42px;
+  color: var(--text-muted, rgba(17, 24, 39, 0.58));
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.rainbowNoticeBottomLine span:first-child {
+  color: var(--text-sub, rgba(17, 24, 39, 0.72));
+}
+
+.rainbowNoticeBottomLine span:last-child {
+  color: #dc2626;
+}
+
+.rainbowNoticeAction {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--page-text, #111827);
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rainbowNoticeAction:hover {
+  background: rgba(220, 38, 38, 0.14);
+  color: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+
+  .latestState,
+  .noData {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .stateLine {
+    color: var(--page-text, #e5e7eb);
+  }
+
+  .cellUndoButton {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .rainbowNoticeCard {
+    background:
+      linear-gradient(135deg, rgba(220, 38, 38, 0.08), transparent 58%),
+      rgba(255, 255, 255, 0.05);
+  }
+
+  .rainbowNoticeImportant {
+    background:
+      linear-gradient(135deg, rgba(220, 38, 38, 0.15), transparent 58%),
+      rgba(255, 255, 255, 0.05);
+  }
+
+  .rainbowServerBadge {
+    background: rgba(248, 250, 252, 0.92);
+    color: #111827;
+  }
+
+  .rainbowNoticeAction {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+}
+
+@media (max-width: 900px) {
+
+  .quickCell {
+    gap: 3px;
+    padding-block: 4px;
+  }
+
+  .quickColorButton {
+    min-height: 38px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .latestState {
+    min-height: 38px;
+    padding: 4px 12px 4px 3px;
+    border-radius: 8px;
+  }
+
+  .stateLine {
+    font-size: 10px;
+    line-height: 1.12;
+  }
+
+  .noData {
+    font-size: 7px;
+  }
+
+  .cellUndoButton {
+    width: 11px;
+    height: 11px;
+    font-size: 7px;
+  }
+}
+
+@media (max-width: 520px) {
+
+  .quickCell {
+    gap: 2px;
+  }
+
+  .quickColorButton {
+    min-height: 36px;
+    font-size: 11px;
+  }
+
+  .latestState {
+    min-height: 36px;
+    padding-right: 10px;
+  }
+
+  .stateLine {
+    font-size: 11px;
+  }
+
+  .noData {
+    font-size: 6.5px;
+  }
+
+  .cellUndoButton {
+    width: 10px;
+    height: 10px;
+    font-size: 7px;
+  }
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: spin 0.72s linear infinite;
+  vertical-align: -2px;
+}
+
+.spinnerSmall {
+  width: 10px;
+  height: 10px;
+  border-width: 1.5px;
+}
+
+.quickButtonBusy {
+  opacity: 0.86;
+}
+
+.quickColorButton:disabled,
+.cellUndoButton:disabled,
+.confirmActions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.confirmBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.confirmModal {
+  width: min(420px, 100%);
+  padding: 22px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.08));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--card-bg, #fff) 96%, transparent);
+  color: var(--page-text, #111827);
+  box-shadow: 0 28px 90px rgba(15, 23, 42, 0.28);
+}
+
+.confirmModal h2 {
+  margin: 0 0 10px;
+  color: var(--text-title, #111827);
+  font-size: 20px;
+  letter-spacing: -0.04em;
+}
+
+.confirmModal p {
+  margin: 0;
+  color: var(--text-muted, rgba(17, 24, 39, 0.6));
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.confirmActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.confirmActions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.confirmCancelButton {
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--page-text, #111827);
+}
+
+.confirmDeleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #dc2626;
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+
+  .confirmModal {
+    background: color-mix(in srgb, var(--card-bg, #111827) 96%, transparent);
+  }
+
+  .confirmCancelButton {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+}
+
+@media (max-width: 520px) {
+  .confirmModal {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .confirmActions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.swipeableNotice {
+  touch-action: pan-y;
+}
+
+.toastAutoFade {
+  animation: toastAutoFade 20s ease forwards;
+}
+
+@media (prefers-color-scheme: dark) {
+  .rainbowNoticeAction {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .rainbowNoticeAction:hover {
+    background: rgba(248, 113, 113, 0.18);
+    color: #fca5a5;
+  }
+}
+
+.rainbowNoticeCard {
+  isolation: isolate;
+  padding: 8px 28px 8px 8px;
+}
+
+.rainbowProgressLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(220, 38, 38, 0.16) 0%,
+      rgba(220, 38, 38, 0.1) var(--rainbow-progress, 0%),
+      transparent var(--rainbow-progress, 0%),
+      transparent 100%
+    );
+  opacity: 0.9;
+}
+
+.rainbowNoticeRainbow .rainbowProgressLayer {
+  background:
+    linear-gradient(
+      120deg,
+      rgba(239, 68, 68, 0.16),
+      rgba(245, 158, 11, 0.16),
+      rgba(34, 197, 94, 0.14),
+      rgba(59, 130, 246, 0.16),
+      rgba(168, 85, 247, 0.16)
+    );
+}
+
+.rainbowNoticeMain {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 4px;
+}
+
+.rainbowNoticeTopLine {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding-right: 0;
+}
+
+.rainbowServerBadge {
+  min-width: 30px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.rainbowNoticeTopLine strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.rainbowGaugeTrack {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.rainbowGaugeFill {
+  display: block;
+  width: var(--rainbow-progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(248, 113, 113, 0.95),
+      rgba(220, 38, 38, 0.95)
+    );
+  transition: width 0.35s ease;
+}
+
+.rainbowNoticeRainbow .rainbowGaugeFill {
+  width: 100%;
+  background:
+    linear-gradient(
+      90deg,
+      #ef4444,
+      #f59e0b,
+      #22c55e,
+      #3b82f6,
+      #a855f7
+    );
+}
+
+.rainbowNoticeRainbow {
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.1);
+}
+
+.rainbowNoticeBottomLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0;
+  padding-left: 36px;
+  font-size: 10px;
+  line-height: 1.15;
+}
+
+.rainbowNoticeBottomLine span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rainbowNoticeBottomLine span:last-child {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 900px) {
+  .rainbowNoticeCard {
+    padding: 7px 28px 7px 7px;
+  }
+
+  .rainbowNoticeMain {
+    gap: 4px;
+  }
+
+  .rainbowServerBadge {
+    min-width: 28px;
+    height: 23px;
+    padding: 0 7px;
+    font-size: 12px;
+  }
+
+  .rainbowNoticeTopLine {
+    gap: 5px;
+  }
+
+  .rainbowNoticeTopLine strong {
+    font-size: 12px;
+  }
+
+  .rainbowGaugeTrack {
+    height: 4px;
+  }
+
+  .rainbowNoticeBottomLine {
+    padding-left: 34px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 520px) {
+  .rainbowNoticeCard {
+    padding: 7px 27px 7px 7px;
+  }
+
+  .rainbowNoticeTopLine {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .rainbowNoticeBottomLine {
+    padding-left: 0;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .rainbowProgressLayer {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(239, 68, 68, 0.15) 0%,
+        rgba(239, 68, 68, 0.1) var(--rainbow-progress, 0%),
+        transparent var(--rainbow-progress, 0%),
+        transparent 100%
+      );
+  }
+
+  .rainbowGaugeTrack {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+@media (min-width: 901px) {
+
+  .rainbowNoticeCard {
+    padding: 9px 30px 9px 9px;
+  }
+
+  .rainbowNoticeTopLine {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .rainbowNoticeTopLine strong {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .rainbowNoticeBottomLine {
+    padding-left: 38px;
+    font-size: 10px;
+  }
+}
+
+.rainbowNoticeTopLine {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.rainbowNoticeTopLine strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rainbowNoticeBottomLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.rainbowNoticeBottomLine span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rainbowTimeBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 21px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.rainbowTimeBadgeRainbow {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.92),
+      rgba(245, 158, 11, 0.92),
+      rgba(34, 197, 94, 0.88),
+      rgba(59, 130, 246, 0.92),
+      rgba(168, 85, 247, 0.92)
+    );
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.16);
+}
+
+.rainbowNoticeTopLine {
+  padding-right: 0;
+}
+
+@media (min-width: 901px) {
+  .rainbowNoticeTopLine strong {
+    font-size: 14px;
+  }
+
+  .rainbowNoticeBottomLine {
+    padding-left: 38px;
+  }
+}
+
+@media (max-width: 900px) {
+  .rainbowNoticeTopLine {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-right: 0;
+  }
+
+  .rainbowNoticeBottomLine {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-left: 34px;
+    font-size: 9px;
+  }
+
+  .rainbowTimeBadge {
+    min-height: 20px;
+    padding: 0 7px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 520px) {
+  .rainbowNoticeBottomLine {
+    padding-left: 0;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .rainbowTimeBadge {
+    background: rgba(248, 113, 113, 0.16);
+    color: #fca5a5;
+  }
+
+  .rainbowTimeBadgeRainbow {
+    color: #fff;
+  }
+}
+
+@media (max-width: 900px) {
+
+  .mobileMapCardSlide {
+    flex: 0 0 100%;
+    min-width: 0;
+    opacity: 0.55;
+    transform: scale(0.97);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .mobileMapCardSlide .quickTableWrap {
+    overflow: hidden;
+    border-radius: 18px;
+  }
+}
+
+@media (prefers-color-scheme: dark) and (max-width: 900px) {
+  .mobileMapCardSlide {
+    opacity: 0.62;
+  }
+}
+
+@media (max-width: 900px) {
+
+  .mobileMapCardSlide {
+    flex: 0 0 92%;
+    min-width: 0;
+    opacity: 0.55;
+    transform: scale(0.97);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .mobileMapCardSlide .quickTableWrap {
+    overflow: hidden;
+    border-radius: 18px;
+  }
+}
+
+@media (prefers-color-scheme: dark) and (max-width: 900px) {
+  .mobileMapCardSlide {
+    opacity: 0.62;
+  }
+}

@@ -1,0 +1,268 @@
+.formGrid button {
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary-bg, #111827);
+  color: var(--primary-text, #fff);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.side,
+.card {
+  overflow: visible;
+}
+
+.side {
+  min-width: 0;
+}
+
+.side {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.card {
+  min-width: 0;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.08));
+  background: color-mix(in srgb, var(--card-bg, #fff) 88%, transparent);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+}
+
+.card {
+  padding: 18px;
+  border-radius: 24px;
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.panelHead h2,
+.card h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  color: var(--text-title, #111827);
+}
+
+.panelHead span {
+  font-size: 12px;
+  color: var(--text-muted, rgba(17, 24, 39, 0.55));
+}
+
+.accordionCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.accordionHead {
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--page-text, #111827);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.accordionHead span {
+  font-size: 15px;
+}
+
+.accordionHead strong {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #f59e0b;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.accordionBody {
+  display: none;
+  padding: 0 14px 14px;
+}
+
+.accordionOpen {
+  display: block;
+}
+
+.formGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.formGrid label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-sub, rgba(17, 24, 39, 0.72));
+}
+
+.formGrid input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--input-border, rgba(0, 0, 0, 0.1));
+  border-radius: 14px;
+  background: var(--input-bg, #fff);
+  color: var(--input-text, #111827);
+  font-size: 16px;
+  outline: none;
+}
+
+.formGrid input:focus {
+  border-color: rgba(245, 158, 11, 0.8);
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.14);
+}
+
+.formGrid button {
+  height: 46px;
+}
+
+.twoCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mapCheckList {
+  display: grid;
+  gap: 8px;
+}
+
+.mapCheckButton {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--card-border, rgba(0, 0, 0, 0.1));
+  border-radius: 13px;
+  background: var(--card-bg, #fff);
+  color: var(--page-text, #111827);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mapSelected {
+  border-color: rgba(245, 158, 11, 0.7);
+  background: rgba(245, 158, 11, 0.13);
+}
+
+.sideScheduleCard {
+  display: block;
+}
+
+.sideScheduleCard .panelHead {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.sideScheduleCard .panelHead h2 {
+  font-size: 16px;
+}
+
+.sideScheduleCard .panelHead span {
+  font-size: 11px;
+}
+
+@media (prefers-color-scheme: dark) {
+
+  .formGrid input,
+  .mapCheckButton {
+    background: var(--input-bg, rgba(255, 255, 255, 0.06));
+  }
+
+  .mapSelected {
+    background: rgba(245, 158, 11, 0.16);
+  }
+}
+
+@media (max-width: 900px) {
+
+  .card,
+  .side {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .card {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .accordionCard {
+    padding: 0;
+  }
+
+  .sideScheduleCard {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+
+  .panelHead {
+    display: grid;
+    gap: 6px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .accordionCard {
+    padding: 0;
+  }
+
+  .twoCols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formGrid button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.formGrid button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tutorialTarget {
+  position: relative;
+  z-index: 7000;
+  outline: 4px solid rgba(245, 158, 11, 0.8);
+  outline-offset: 6px;
+  box-shadow:
+    0 0 0 10px rgba(245, 158, 11, 0.18),
+    0 30px 90px rgba(15, 23, 42, 0.26) !important;
+  animation: tutorialPulse 1.4s ease-in-out infinite;
+}
+
+@media (max-width: 900px) {
+
+  .tutorialTarget {
+    outline-offset: 4px;
+  }
+}

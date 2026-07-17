@@ -367,7 +367,7 @@
       "mapsTitle": "探査場所",
       "registerTitle": "プレイヤー名登録",
       "scheduleTitle": "虹化予定",
-      "scheduleCaption": "時間が来たら自動削除"
+      "scheduleCaption": "虹確定から10分で自動削除"
     },
     "form": {
       "name": "名前",
