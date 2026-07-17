@@ -23,6 +23,7 @@ export default function RoomMain({ controller: c }) {
     requestDeleteMember,
     selectedMember,
     selectedMaps,
+    setSelectedMaps,
     canSwitchMobileMap,
     activeMobileMap,
     setActiveMobileMap,
@@ -106,7 +107,11 @@ export default function RoomMain({ controller: c }) {
         (mapName) => !mapsFromSavedOrder.includes(mapName)
       );
 
-      return [...mapsFromSavedOrder, ...newlySelectedMaps];
+      const nextMaps = [...mapsFromSavedOrder, ...newlySelectedMaps];
+
+      queueMicrotask(() => syncControllerMapOrder(nextMaps));
+
+      return nextMaps;
     });
   }, [selectedMaps]);
 
@@ -145,6 +150,8 @@ export default function RoomMain({ controller: c }) {
         // localStorageを利用できない環境では何もしない
       }
 
+      queueMicrotask(() => syncControllerMapOrder(nextMaps));
+
       return nextMaps;
     });
   }, [selectedMaps]);
@@ -163,6 +170,26 @@ export default function RoomMain({ controller: c }) {
     } catch {
       // localStorageを利用できない環境では何もしない
     }
+  };
+
+
+  /*
+   * 表示順とコントローラー側のselectedMapsを同じ順番に保ちます。
+   *
+   * SPのスライド位置・スワイプ判定はRoomParts.jsのselectedMapsを
+   * 基準に計算されるため、ここがずれると並び替え後のタブ切り替えで
+   * 別の場所が表示されます。
+   */
+  const syncControllerMapOrder = (nextMaps) => {
+    if (typeof setSelectedMaps !== "function") return;
+
+    setSelectedMaps((currentMaps) => {
+      const isSameOrder =
+        currentMaps.length === nextMaps.length &&
+        currentMaps.every((mapName, index) => mapName === nextMaps[index]);
+
+      return isSameOrder ? currentMaps : nextMaps;
+    });
   };
 
   /*
@@ -186,6 +213,7 @@ export default function RoomMain({ controller: c }) {
       nextMaps.splice(targetIndex, 0, removedMap);
 
       saveMapOrder(nextMaps);
+      queueMicrotask(() => syncControllerMapOrder(nextMaps));
 
       return nextMaps;
     });
@@ -329,6 +357,7 @@ export default function RoomMain({ controller: c }) {
       ];
 
       saveMapOrder(nextMaps);
+      queueMicrotask(() => syncControllerMapOrder(nextMaps));
 
       return nextMaps;
     });

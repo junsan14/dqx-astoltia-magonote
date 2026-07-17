@@ -49,7 +49,7 @@ const DEFAULT_SELECTED_MAPS = [
 ];
 
 const RAINBOW_AFTER_MINUTES = 60;
-const RED_REPORT_KEEP_MINUTES = 90;
+const RED_REPORT_KEEP_MINUTES = 70;
 const IMPORTANT_BEFORE_MINUTES = 15;
 const TOAST_AUTO_DISMISS_MS = 20000;
 const MOBILE_CARD_GAP = 12;
@@ -987,7 +987,7 @@ export function useKishojuRoomController({ roomId }) {
   return {
     t, roomId, room, reports, members, playerName, setPlayerName,
     serverFrom, setServerFrom, serverTo, setServerTo, selectedMemberId,
-    setSelectedMemberId, selectedMaps, activeMobileMap, setActiveMobileMap,
+    setSelectedMemberId, selectedMaps, setSelectedMaps, activeMobileMap, setActiveMobileMap,
     message, error, now, openPanels, isScheduleDrawerOpen,
     setIsScheduleDrawerOpen, confirmAction, busyAction, tutorialPromptOpen,
     tutorialActive, tutorialStepIndex, tutorialStep, mapOptions, getMapLabel,
@@ -1165,12 +1165,12 @@ export function RainbowNoticeCard({
   };
 
   const timeLabel = info.isRainbow
-    ? `あと${info.remainingToExpireMinutes}分`
-    : `あと${info.remainingMinutes}分`;
+    ? `あと${info.remainingToExpireMinutes}分で自動削除`
+    : `あと${info.remainingMinutes}分で虹`;
 
   const subLabel = info.isRainbow
-    ? `${formatTime(info.rainbowAt)} 虹化 / 非表示まで`
-    : `${formatTime(info.rainbowAt)} 虹化予定`;
+    ? `虹になってから10分で自動削除`
+    : `${formatTime(info.rainbowAt)} 虹予定 / 虹後10分で自動削除`;
 
   return (
     <article
