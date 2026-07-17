@@ -48,6 +48,11 @@ const DEFAULT_SELECTED_MAPS = [
   "ベルヴァインの森",
 ];
 
+// 選択中の場所と表示順を同じlocalStorageキーで管理すると、
+// RoomMain側の並び順保存が初期3件で上書きしてしまうため分離します。
+const SELECTED_MAPS_STORAGE_KEY = "kishoju_enabled_maps";
+const LEGACY_SELECTED_MAPS_STORAGE_KEY = "kishoju_selected_maps";
+
 const RAINBOW_AFTER_MINUTES = 60;
 const RED_REPORT_KEEP_MINUTES = 70;
 const IMPORTANT_BEFORE_MINUTES = 15;
@@ -87,6 +92,70 @@ export function useKishojuRoomController({ roomId }) {
 
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [selectedMaps, setSelectedMaps] = useState(DEFAULT_SELECTED_MAPS);
+const hasLoadedSelectedMapsRef = useRef(false);
+
+useEffect(() => {
+  if (hasLoadedSelectedMapsRef.current) return;
+
+  hasLoadedSelectedMapsRef.current = true;
+
+  const readSavedMaps = (storageKey) => {
+    try {
+      const savedValue = localStorage.getItem(storageKey);
+
+      if (savedValue === null) {
+        return null;
+      }
+
+      const parsedValue = JSON.parse(savedValue);
+
+      if (!Array.isArray(parsedValue)) {
+        return null;
+      }
+
+      return parsedValue.filter(
+        (mapName, index) =>
+          typeof mapName === "string" &&
+          MAP_KEYS.some((map) => map.value === mapName) &&
+          parsedValue.indexOf(mapName) === index
+      );
+    } catch {
+      return null;
+    }
+  };
+
+  /*
+   * 現在の選択状態専用キーを優先して読み込みます。
+   */
+  const savedMaps = readSavedMaps(SELECTED_MAPS_STORAGE_KEY);
+
+  if (savedMaps !== null) {
+    setSelectedMaps(savedMaps);
+    return;
+  }
+
+  /*
+   * 旧バージョンの保存内容がある場合のみ移行します。
+   */
+  const legacyMaps = readSavedMaps(LEGACY_SELECTED_MAPS_STORAGE_KEY);
+
+  if (legacyMaps !== null && legacyMaps.length > 0) {
+    setSelectedMaps(legacyMaps);
+
+    try {
+      localStorage.setItem(
+        SELECTED_MAPS_STORAGE_KEY,
+        JSON.stringify(legacyMaps)
+      );
+    } catch {
+      // localStorageを利用できない環境では保存しない
+    }
+
+    return;
+  }
+
+  setSelectedMaps(DEFAULT_SELECTED_MAPS);
+}, []);
 
   const [activeMobileMap, setActiveMobileMap] = useState("");
   const [message, setMessage] = useState("");
@@ -529,27 +598,9 @@ export function useKishojuRoomController({ roomId }) {
     const savedName = localStorage.getItem("kishoju_player_name");
     const savedServerFrom = localStorage.getItem("kishoju_server_from");
     const savedServerTo = localStorage.getItem("kishoju_server_to");
-    const savedMaps = localStorage.getItem("kishoju_selected_maps");
-
     if (savedName) setPlayerName(savedName);
     if (savedServerFrom) setServerFrom(savedServerFrom);
     if (savedServerTo) setServerTo(savedServerTo);
-
-    if (!savedMaps) return;
-
-    try {
-      const parsed = JSON.parse(savedMaps);
-
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const sortedMaps = MAP_KEYS.map((map) => map.value).filter((map) =>
-          parsed.includes(map)
-        );
-
-        setSelectedMaps(sortedMaps);
-      }
-    } catch {
-      // ignore
-    }
   }, []);
 
   useEffect(() => {
@@ -763,13 +814,14 @@ export function useKishojuRoomController({ roomId }) {
         ? current.filter((map) => map !== targetMap)
         : [...current, targetMap];
 
-      const sortedNext = MAP_KEYS.map((map) => map.value).filter((map) =>
-        next.includes(map)
-      );
+      // 現在の並び順を保ったまま、選択状態専用のキーへ保存します。
+      try {
+        localStorage.setItem(SELECTED_MAPS_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // localStorageを利用できない環境では保存しない
+      }
 
-      localStorage.setItem("kishoju_selected_maps", JSON.stringify(sortedNext));
-
-      return sortedNext;
+      return next;
     });
   };
 
@@ -1169,8 +1221,8 @@ export function RainbowNoticeCard({
     : `あと${info.remainingMinutes}分で虹`;
 
   const subLabel = info.isRainbow
-    ? `虹になってから10分で自動削除`
-    : `${formatTime(info.rainbowAt)} 虹予定 / 虹後10分で自動削除`;
+    ? `虹発生`
+    : `${formatTime(info.rainbowAt)} 虹予定`;
 
   return (
     <article
