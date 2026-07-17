@@ -48,8 +48,7 @@ const DEFAULT_SELECTED_MAPS = [
   "ベルヴァインの森",
 ];
 
-// 選択中の場所と表示順を同じlocalStorageキーで管理すると、
-// RoomMain側の並び順保存が初期3件で上書きしてしまうため分離します。
+// 選択中の場所を配列で保存し、その配列順をクイック登録の表示順として使います。
 const SELECTED_MAPS_STORAGE_KEY = "kishoju_enabled_maps";
 const LEGACY_SELECTED_MAPS_STORAGE_KEY = "kishoju_selected_maps";
 
@@ -92,70 +91,76 @@ export function useKishojuRoomController({ roomId }) {
 
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [selectedMaps, setSelectedMaps] = useState(DEFAULT_SELECTED_MAPS);
-const hasLoadedSelectedMapsRef = useRef(false);
+  const [hasLoadedSelectedMaps, setHasLoadedSelectedMaps] = useState(false);
 
-useEffect(() => {
-  if (hasLoadedSelectedMapsRef.current) return;
+  useEffect(() => {
+    const readSavedMaps = (storageKey) => {
+      try {
+        const savedValue = localStorage.getItem(storageKey);
 
-  hasLoadedSelectedMapsRef.current = true;
+        if (savedValue === null) {
+          return null;
+        }
 
-  const readSavedMaps = (storageKey) => {
-    try {
-      const savedValue = localStorage.getItem(storageKey);
+        const parsedValue = JSON.parse(savedValue);
 
-      if (savedValue === null) {
+        if (!Array.isArray(parsedValue)) {
+          return null;
+        }
+
+        return parsedValue.filter(
+          (mapName, index) =>
+            typeof mapName === "string" &&
+            MAP_KEYS.some((map) => map.value === mapName) &&
+            parsedValue.indexOf(mapName) === index
+        );
+      } catch {
         return null;
       }
+    };
 
-      const parsedValue = JSON.parse(savedValue);
+    /*
+     * 選択中の場所は配列の順番も含めて保存します。
+     * この配列順がクイック登録の表示順になります。
+     */
+    const savedMaps = readSavedMaps(SELECTED_MAPS_STORAGE_KEY);
 
-      if (!Array.isArray(parsedValue)) {
-        return null;
-      }
-
-      return parsedValue.filter(
-        (mapName, index) =>
-          typeof mapName === "string" &&
-          MAP_KEYS.some((map) => map.value === mapName) &&
-          parsedValue.indexOf(mapName) === index
-      );
-    } catch {
-      return null;
+    if (savedMaps !== null) {
+      setSelectedMaps(savedMaps);
+      setHasLoadedSelectedMaps(true);
+      return;
     }
-  };
+
+    /*
+     * 旧バージョンの保存内容がある場合のみ移行します。
+     */
+    const legacyMaps = readSavedMaps(LEGACY_SELECTED_MAPS_STORAGE_KEY);
+
+    if (legacyMaps !== null && legacyMaps.length > 0) {
+      setSelectedMaps(legacyMaps);
+    } else {
+      setSelectedMaps(DEFAULT_SELECTED_MAPS);
+    }
+
+    setHasLoadedSelectedMaps(true);
+  }, []);
 
   /*
-   * 現在の選択状態専用キーを優先して読み込みます。
+   * 初回のlocalStorage読み込みが終わった後だけ保存します。
+   * これにより、リロード直後にデフォルト3件で保存順を上書きしません。
    */
-  const savedMaps = readSavedMaps(SELECTED_MAPS_STORAGE_KEY);
-
-  if (savedMaps !== null) {
-    setSelectedMaps(savedMaps);
-    return;
-  }
-
-  /*
-   * 旧バージョンの保存内容がある場合のみ移行します。
-   */
-  const legacyMaps = readSavedMaps(LEGACY_SELECTED_MAPS_STORAGE_KEY);
-
-  if (legacyMaps !== null && legacyMaps.length > 0) {
-    setSelectedMaps(legacyMaps);
+  useEffect(() => {
+    if (!hasLoadedSelectedMaps) return;
 
     try {
       localStorage.setItem(
         SELECTED_MAPS_STORAGE_KEY,
-        JSON.stringify(legacyMaps)
+        JSON.stringify(selectedMaps)
       );
     } catch {
       // localStorageを利用できない環境では保存しない
     }
-
-    return;
-  }
-
-  setSelectedMaps(DEFAULT_SELECTED_MAPS);
-}, []);
+  }, [hasLoadedSelectedMaps, selectedMaps]);
 
   const [activeMobileMap, setActiveMobileMap] = useState("");
   const [message, setMessage] = useState("");
@@ -809,20 +814,11 @@ useEffect(() => {
   };
 
   const toggleMap = (targetMap) => {
-    setSelectedMaps((current) => {
-      const next = current.includes(targetMap)
+    setSelectedMaps((current) =>
+      current.includes(targetMap)
         ? current.filter((map) => map !== targetMap)
-        : [...current, targetMap];
-
-      // 現在の並び順を保ったまま、選択状態専用のキーへ保存します。
-      try {
-        localStorage.setItem(SELECTED_MAPS_STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // localStorageを利用できない環境では保存しない
-      }
-
-      return next;
-    });
+        : [...current, targetMap]
+    );
   };
 
   const submitQuickReport = async ({
