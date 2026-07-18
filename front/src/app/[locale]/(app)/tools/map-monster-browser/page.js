@@ -18,7 +18,7 @@ export async function generateMetadata({ params }) {
     title,
     description,
     path: `/${locale}/tools/map-monster-browser`,
-    image: "/ogp/map-monster-browser.webp",
+    image: "/ogp/map-monster-browser.webp?v=20260718",
   });
 }
 

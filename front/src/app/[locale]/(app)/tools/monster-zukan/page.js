@@ -16,7 +16,7 @@ export async function generateMetadata({ params }) {
     title,
     description,
     path: `/${locale}/tools/monster-zukan`,
-    image: "/ogp/monster-zukan.webp",
+    image: "/ogp/monster-zukan.webp?v=20260718",
   });
 }
 

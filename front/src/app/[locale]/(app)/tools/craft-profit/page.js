@@ -16,7 +16,7 @@ export async function generateMetadata({ params }) {
     title,
     description,
     path: `/${locale}/tools/craft-profit`,
-    image: "/ogp/craft-profit.webp",
+    image: "/ogp/craft-profit.webp?v=20260718",
   });
 }
 

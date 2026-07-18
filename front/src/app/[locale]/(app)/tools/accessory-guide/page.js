@@ -18,7 +18,7 @@ export async function generateMetadata({ params }) {
     title,
     description,
     path: `/${locale}/tools/accessory-guide`,
-    image: "/ogp/accessory-guide.webp",
+    image: "/ogp/accessory-guide.webp?v=20260718",
   });
 }
 
