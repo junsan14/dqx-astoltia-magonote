@@ -3,8 +3,8 @@ import { routing } from "./i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
 
-export default function middleware(request) {
-  console.log("middleware running:", request.nextUrl.pathname);
+export default function proxy(request) {
+  console.log("proxy running:", request.nextUrl.pathname);
   return intlMiddleware(request);
 }
 

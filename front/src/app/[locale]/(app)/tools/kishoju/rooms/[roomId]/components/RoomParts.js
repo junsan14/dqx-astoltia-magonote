@@ -57,6 +57,7 @@ const RED_REPORT_KEEP_MINUTES = 70;
 const IMPORTANT_BEFORE_MINUTES = 15;
 const TOAST_AUTO_DISMISS_MS = 20000;
 const MOBILE_CARD_GAP = 12;
+const EXCLUDED_SERVER_NUMBERS = new Set([18, 19]);
 
 // 手動で赤・黄を押した直後に、自動更新で古いDB状態を拾って表示が戻るのを防ぐ
 const MANUAL_REPORT_REFRESH_PAUSE_MS = 1800;
@@ -230,7 +231,10 @@ export function useKishojuRoomController({ roomId }) {
 
     if (!from || !to || from > to) return [];
 
-    return Array.from({ length: to - from + 1 }, (_, index) => from + index);
+    return Array.from(
+      { length: to - from + 1 },
+      (_, index) => from + index
+    ).filter((serverNo) => !EXCLUDED_SERVER_NUMBERS.has(serverNo));
   }, [selectedMember]);
 
   const activeReports = useMemo(() => {
