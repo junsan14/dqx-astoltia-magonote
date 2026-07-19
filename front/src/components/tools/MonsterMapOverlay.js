@@ -5,7 +5,6 @@ import Link from "next/link";
 
 import Image from "next/image";
 import { getMonsterAssetUrl } from "@/lib/monsters";
-import styles from "./MonsterMapOverlay.module.css";
 
 const GRID_SIZE = 8;
 const ORIGINAL_IMAGE_WIDTH = 490;
@@ -20,6 +19,7 @@ const BUBBLE_OFFSET_X_PERCENT = 3;
 const BUBBLE_OFFSET_Y_PERCENT = 3;
 const BUBBLE_WIDTH_SCALE = 1;
 const BUBBLE_HEIGHT_SCALE = 1;
+const BUBBLE_BORDER_RADIUS_PX = 5;
 const BUBBLE_INNER_PADDING_CELLS = 0.08;
 
 const DESKTOP_BREAKPOINT = 920;
@@ -449,14 +449,201 @@ function getConnectorStyle(placement, lane = 0) {
   }
 }
 
-function BubbleNameLabel({ bubble }) {
+function BubbleNameLabel({ bubble, styles }) {
   if (!bubble?.monsterLabel) return null;
 
-  return (
-    <span className={styles.externalLabelMonster}>
-      {bubble.monsterLabel}
-    </span>
-  );
+  return <span style={styles.externalLabelMonster}>{bubble.monsterLabel}</span>;
+}
+
+export function getStyles() {
+  return {
+    mapCard: {
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      overflow: "visible",
+      height: "100%",
+    },
+    mapImageFrame: {
+      width: "100%",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      overflow: "visible",
+    },
+    linkWrap: {
+      display: "block",
+      textDecoration: "none",
+      overflow: "visible",
+    },
+    mapImageBox: {
+      position: "relative",
+      width: "100%",
+      aspectRatio: "1 / 1",
+      borderRadius: "18px",
+      overflow: "visible",
+      background: "transparent",
+      flexShrink: 0,
+    },
+    mapImageViewport: {
+      position: "absolute",
+      inset: 0,
+      overflow: "hidden",
+      borderRadius: "18px",
+      background: "var(--page-bg)",
+      border: "1px solid var(--panel-border)",
+      zIndex: 1,
+    },
+    loadingOverlay: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 3,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "10px",
+      background: "color-mix(in srgb, var(--page-bg) 92%, transparent)",
+    },
+    loadingShimmer: {
+      width: "100%",
+      height: "100%",
+      position: "absolute",
+      inset: 0,
+      background:
+        "linear-gradient(90deg, color-mix(in srgb, var(--soft-border) 88%, transparent) 0%, color-mix(in srgb, var(--soft-bg) 100%, white 0%) 50%, color-mix(in srgb, var(--soft-border) 88%, transparent) 100%)",
+      backgroundSize: "200% 100%",
+      animation: "monsterMapShimmer 1.2s ease-in-out infinite",
+    },
+    loadingText: {
+      position: "relative",
+      zIndex: 1,
+      fontSize: "13px",
+      fontWeight: 700,
+      color: "var(--text-sub)",
+      background: "var(--panel-bg)",
+      borderRadius: "999px",
+      padding: "6px 10px",
+      border: "1px solid var(--input-border)",
+    },
+    imageInner: {
+      position: "absolute",
+      inset: 0,
+      overflow: "hidden",
+      transition: "opacity 0.18s ease",
+      zIndex: 1,
+    },
+    imageCropInner: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+    },
+    mapImage: {
+      display: "block",
+      width: "100%",
+      height: "100%",
+      objectFit: "fill",
+    },
+    bubbleLayer: {
+      position: "absolute",
+      inset: 0,
+      zIndex: 4,
+      overflow: "visible",
+      pointerEvents: "none",
+    },
+    bubbleWrap: {
+      position: "absolute",
+      transform: "translate(-50%, -50%)",
+      pointerEvents: "auto",
+      overflow: "visible",
+    },
+    spawnBubble: {
+      position: "relative",
+      borderRadius: `${BUBBLE_BORDER_RADIUS_PX}px`,
+      border: "1px solid color-mix(in srgb, var(--page-text) 62%, transparent)",
+      background: "color-mix(in srgb, var(--panel-bg) 26%, transparent)",
+      backdropFilter: "blur(2px)",
+      WebkitBackdropFilter: "blur(2px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 0,
+      transition: "all 0.16s ease",
+      pointerEvents: "auto",
+      boxShadow:
+        "0 0 0 1px color-mix(in srgb, var(--page-bg) 16%, transparent), 0 4px 14px color-mix(in srgb, var(--page-text) 10%, transparent)",
+    },
+    bubbleInner: {
+      position: "relative",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "4px",
+      pointerEvents: "none",
+      minWidth: 0,
+      maxWidth: "100%",
+      paddingInline: "4px",
+    },
+    bubbleHintIcon: {
+      display: "none",
+    },
+    externalConnector: {
+      position: "absolute",
+      background:
+        "color-mix(in srgb, var(--page-text) 72%, color-mix(in srgb, var(--panel-bg) 18%, transparent))",
+      pointerEvents: "none",
+      zIndex: 1,
+      borderRadius: "999px",
+      boxShadow:
+        "0 0 0 1px color-mix(in srgb, var(--page-bg) 10%, transparent), 0 0 10px color-mix(in srgb, var(--page-text) 10%, transparent)",
+      opacity: 0.92,
+    },
+    externalLabel: {
+      position: "absolute",
+      zIndex: 2,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "max-content",
+      maxWidth: "170px",
+      minHeight: "26px",
+      padding: "5px 9px",
+      borderRadius: "10px",
+      background: "color-mix(in srgb, var(--panel-bg) 97%, transparent)",
+      border: "1px solid color-mix(in srgb, var(--soft-border) 82%, transparent)",
+      boxShadow:
+        "0 8px 20px color-mix(in srgb, var(--page-text) 10%, transparent)",
+      backdropFilter: "blur(4px)",
+      WebkitBackdropFilter: "blur(4px)",
+      pointerEvents: "none",
+      whiteSpace: "normal",
+    },
+    externalLabelMonster: {
+      display: "block",
+      width: "100%",
+      textAlign: "center",
+      fontSize: "11px",
+      fontWeight: 800,
+      lineHeight: 1.25,
+      color: "var(--text-main)",
+      whiteSpace: "normal",
+      overflowWrap: "anywhere",
+      wordBreak: "break-word",
+    },
+    noImageBox: {
+      width: "100%",
+      aspectRatio: "1 / 1",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: "18px",
+      background: "var(--soft-bg)",
+      border: "1px dashed var(--soft-border)",
+      color: "var(--text-muted)",
+      fontWeight: 700,
+    },
+  };
 }
 
 export default function MonsterMapOverlay({
@@ -467,6 +654,8 @@ export default function MonsterMapOverlay({
   showMonsterNameInBubble = false,
 }) {
   const isMobile = useIsMobile();
+  const styles = useMemo(() => getStyles(), []);
+
   const resolvedImageUrl = useMemo(
     () => getMonsterAssetUrl(imagePath),
     [imagePath]
@@ -492,31 +681,33 @@ export default function MonsterMapOverlay({
 
   if (!resolvedImageUrl) {
     return (
-      <div className={styles.mapCard}>
-        <div className={styles.noImageBox}>画像なし</div>
+      <div style={styles.mapCard}>
+        <div style={styles.noImageBox}>画像なし</div>
       </div>
     );
   }
 
   const content = (
-    <div className={styles.mapCard}>
-      <div className={styles.mapImageFrame}>
-        <div className={styles.mapImageBox}>
-          <div className={styles.mapImageViewport}>
+    <div style={styles.mapCard}>
+      <div style={styles.mapImageFrame}>
+        <div style={styles.mapImageBox}>
+          <div style={styles.mapImageViewport}>
             {!imageLoaded ? (
-              <div className={styles.loadingOverlay}>
-                <div className={styles.loadingShimmer} />
-                <span className={styles.loadingText}>読み込み中...</span>
+              <div style={styles.loadingOverlay}>
+                <div style={styles.loadingShimmer} />
+                <span style={styles.loadingText}>読み込み中...</span>
               </div>
             ) : null}
 
             <div
-              className={styles.imageInner}
-              style={{ opacity: imageLoaded ? 1 : 0 }}
+              style={{
+                ...styles.imageInner,
+                opacity: imageLoaded ? 1 : 0,
+              }}
             >
               <div
-                className={styles.imageCropInner}
                 style={{
+                  ...styles.imageCropInner,
                   width: `${MAP_CROP.widthPercent}%`,
                   height: `${MAP_CROP.heightPercent}%`,
                   left: `-${MAP_CROP.offsetXPercent}%`,
@@ -528,7 +719,7 @@ export default function MonsterMapOverlay({
                   alt="map"
                   fill
                   sizes="(max-width: 920px) 100vw, 430px"
-                  className={styles.mapImage}
+                  style={styles.mapImage}
                   onLoad={() => setImageLoaded(true)}
                   unoptimized
                 />
@@ -536,43 +727,48 @@ export default function MonsterMapOverlay({
             </div>
           </div>
 
-          <div className={styles.bubbleLayer}>
+          <div style={styles.bubbleLayer}>
             {bubbles.map((bubble) => {
               const wrapperStyle = {
+                ...styles.bubbleWrap,
                 left: `${bubble.left}%`,
                 top: `${bubble.top}%`,
                 width: `${bubble.width}%`,
                 height: `${bubble.height}%`,
               };
 
-              const labelStyle = getExternalPositionStyle(
-                bubble.labelPlacement,
-                bubble.lane
-              );
+              const bubbleStyle = {
+                ...styles.spawnBubble,
+                width: "100%",
+                height: "100%",
+              };
+
+              const labelStyle = {
+                ...styles.externalLabel,
+                ...getExternalPositionStyle(bubble.labelPlacement, bubble.lane),
+              };
 
               const connectorStyle =
                 bubble.labelPlacement === "center"
                   ? null
-                  : getConnectorStyle(bubble.labelPlacement, bubble.lane);
+                  : {
+                      ...styles.externalConnector,
+                      ...getConnectorStyle(bubble.labelPlacement, bubble.lane),
+                    };
 
               return (
-                <div key={bubble.key} className={styles.bubbleWrap} style={wrapperStyle}>
-                  <div className={styles.spawnBubble}>
-                    <span className={styles.bubbleInner}>
-                      {isMobile ? <span className={styles.bubbleHintIcon}>i</span> : null}
+                <div key={bubble.key} style={wrapperStyle}>
+                  <div style={bubbleStyle}>
+                    <span style={styles.bubbleInner}>
+                      {isMobile ? <span style={styles.bubbleHintIcon}>i</span> : null}
                     </span>
                   </div>
 
-                  {connectorStyle ? (
-                    <span
-                      className={styles.externalConnector}
-                      style={connectorStyle}
-                    />
-                  ) : null}
+                  {connectorStyle ? <span style={connectorStyle} /> : null}
 
                   {bubble.monsterLabel ? (
-                    <span className={styles.externalLabel} style={labelStyle}>
-                      <BubbleNameLabel bubble={bubble} />
+                    <span style={labelStyle}>
+                      <BubbleNameLabel bubble={bubble} styles={styles} />
                     </span>
                   ) : null}
                 </div>
@@ -582,12 +778,18 @@ export default function MonsterMapOverlay({
         </div>
       </div>
 
+      <style>{`
+        @keyframes monsterMapShimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   );
 
   if (href) {
     return (
-      <Link href={href} className={styles.linkWrap}>
+      <Link href={href} style={styles.linkWrap}>
         {content}
       </Link>
     );

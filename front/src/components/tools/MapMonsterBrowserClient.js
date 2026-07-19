@@ -12,11 +12,9 @@ import { fetchMaps, fetchMapOptions } from "@/lib/maps";
 import { fetchMonsterMapSpawns } from "@/lib/monsterMapSpawns";
 import { fetchMonsterDetail } from "@/lib/monsters";
 import MonsterMapOverlay from "./MonsterMapOverlay";
-import styles from "./MapMonsterBrowser.module.css";
 import PageHeroTitle from "@/components/PageHeroTitle";
 import MapMonsterBrowserSkeleton from "@/components/ui/MapMonsterBrowserSkeleton";
 import {
-  MdKeyboardArrowDown,
   MdOutlineSwipe,
   MdOutlineSwipeLeft,
   MdOutlineSwipeRight,
@@ -148,8 +146,347 @@ function getDisplayValue(row, keys = [], fallback = "") {
   return fallback;
 }
 
-function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
+function getMapMonsterBrowserStyles() {
+  return {
+    page: {
+      background: "var(--page-bg)",
+      color: "var(--page-text)",
+      marginBottom: "50px",
+    },
+    filterPanel: {
+      border: "1px solid var(--panel-border)",
+      background: "var(--soft-bg)",
+    },
+    labelText: {
+      color: "var(--text-sub)",
+    },
+    selectInput: {
+      border: "1px solid var(--input-border)",
+      background: "var(--input-bg)",
+      color: "var(--input-text)",
+    },
+    textInput: {
+      border: "1px solid var(--input-border)",
+      background: "var(--input-bg)",
+      color: "var(--input-text)",
+    },
+    dropdownPanel: {
+      border: "1px solid var(--card-border)",
+      background: "var(--card-bg)",
+      boxShadow: "0 20px 40px rgba(15, 23, 42, 0.14)",
+    },
+    dropdownEmpty: {
+      color: "var(--text-muted)",
+    },
+    dropdownItemActive: {
+      background: "var(--selected-bg)",
+      color: "var(--text-main)",
+    },
+    dropdownItemIdle: {
+      color: "var(--text-main)",
+    },
+    loadingBox: {
+      border: "1px solid var(--card-border)",
+      background: "var(--card-bg)",
+      color: "var(--text-muted)",
+    },
+    errorBox: {
+      border: "1px solid var(--soft-danger-border)",
+      background: "var(--soft-danger-bg)",
+      color: "var(--danger-text)",
+    },
+    asideCard: {
+      border: "1px solid var(--card-border)",
+      background: "var(--card-bg)",
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+    },
+    continentText: {
+      color: "var(--text-muted)",
+    },
+    mapTitle: {
+      color: "var(--text-title)",
+    },
+    countText: {
+      color: "var(--text-muted)",
+    },
+    sectionTitle: {
+      color: "var(--text-sub)",
+    },
+    selectedSystemText: {
+      color: "var(--secondary-text)",
+    },
+    emptyDashed: {
+      border: "1px dashed var(--soft-border)",
+      background: "var(--soft-bg)",
+      color: "var(--text-muted)",
+    },
+    card: {
+      border: "1px solid var(--card-border)",
+      background: "var(--card-bg)",
+    },
+    cardHeader: {
+      borderBottom: "1px solid var(--card-border)",
+    },
+    cardHeaderTitle: {
+      color: "var(--text-title)",
+    },
+    cardHeaderSub: {
+      color: "var(--text-muted)",
+    },
+
+    statGrid: {
+      display: "grid",
+      gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+      gap: "10px",
+    },
+    statBox: {
+      width: "100%",
+      borderRadius: "14px",
+      border: "1px solid var(--card-border)",
+      background: "color-mix(in srgb, var(--soft-bg) 92%, transparent)",
+      padding: "10px 12px",
+      display: "grid",
+      gap: "6px",
+      minWidth: 0,
+    },
+    statLabel: {
+      fontSize: "11px",
+      fontWeight: 800,
+      color: "var(--text-muted)",
+      letterSpacing: "0.02em",
+      whiteSpace: "nowrap",
+    },
+    statValue: {
+      fontSize: "14px",
+      lineHeight: 1.45,
+      color: "var(--text-main)",
+      wordBreak: "break-word",
+      whiteSpace: "pre-wrap",
+    },
+
+    areaWrap: {
+      border: "1px solid var(--card-border)",
+      background: "var(--soft-bg)",
+    },
+    areaTitle: {
+      color: "var(--secondary-text)",
+    },
+    areaEmpty: {
+      color: "var(--text-muted)",
+    },
+    areaBadge: {
+      border: "1px solid var(--tag-border)",
+      background: "var(--card-bg)",
+      color: "var(--tag-text)",
+      boxShadow: "0 2px 8px rgba(15, 23, 42, 0.06)",
+    },
+    areaMoreButton: {
+      border: "1px dashed var(--soft-border)",
+      background: "transparent",
+      color: "var(--secondary-text)",
+      cursor: "pointer",
+    },
+
+    spawnCardDesktop: {
+      border: "1px solid var(--card-border)",
+      background: "var(--card-bg)",
+      minWidth: "320px",
+      width: "320px",
+      maxWidth: "320px",
+      scrollSnapAlign: "start",
+      flexShrink: 0,
+    },
+    spawnCardMobile: {
+      border: "1px solid var(--card-border)",
+      background: "var(--card-bg)",
+      width: "100%",
+      minWidth: "100%",
+      maxWidth: "100%",
+      scrollSnapAlign: "start",
+      flexShrink: 0,
+      boxSizing: "border-box",
+    },
+    monsterName: {
+      color: "var(--text-title)",
+      lineHeight: 1.35,
+      wordBreak: "break-word",
+    },
+    monsterNameLine: {
+      display: "block",
+      whiteSpace: "normal",
+      wordBreak: "break-word",
+    },
+    badgeSystemActive: {
+      background: "var(--badge-bg)",
+      color: "var(--badge-text)",
+    },
+    badgeSystemIdle: {
+      background: "var(--soft-bg)",
+      color: "var(--text-sub)",
+    },
+    badgeReincarnated: {
+      background: "var(--warning-bg)",
+      color: "var(--warning-text)",
+    },
+    detailLink: {
+      border: "1px solid var(--secondary-border)",
+      background: "var(--secondary-bg)",
+      color: "var(--secondary-text)",
+    },
+
+    mapAndCardsDesktop: {
+      gridTemplateColumns: "minmax(320px, 410px) minmax(0, 1fr)",
+      gap: "16px",
+      alignItems: "center",
+      minWidth: 0,
+      minHeight: "100%",
+    },
+    mapDesktopBox: {
+      width: "100%",
+      maxWidth: "410px",
+      minWidth: 0,
+      alignSelf: "center",
+    },
+    mapMobileBox: {
+      width: "100%",
+      minWidth: 0,
+    },
+    cardsDesktopScrollerWrap: {
+      minWidth: 0,
+      overflow: "hidden",
+      alignSelf: "center",
+    },
+    cardsDesktopScroller: {
+      display: "flex",
+      gap: "14px",
+      width: "100%",
+      maxWidth: "100%",
+      overflowX: "auto",
+      paddingBottom: "8px",
+      paddingRight: "28px",
+      scrollSnapType: "x proximity",
+      WebkitOverflowScrolling: "touch",
+      boxSizing: "border-box",
+    },
+
+    cardsMobileScrollerOuter: {
+      width: "100%",
+      overflow: "hidden",
+    },
+    cardsMobileScroller: {
+      display: "flex",
+      gap: "12px",
+      overflowX: "auto",
+      paddingBottom: "6px",
+      scrollSnapType: "x mandatory",
+      WebkitOverflowScrolling: "touch",
+      width: "100%",
+      boxSizing: "border-box",
+    },
+
+    chipDefaultIdle: {
+      border: "1px solid var(--card-border)",
+      background: "var(--card-bg)",
+      color: "var(--text-main)",
+    },
+    chipDefaultEmphasized: {
+      border: "1px solid var(--selected-border)",
+      background: "var(--selected-bg)",
+      color: "var(--text-main)",
+    },
+    chipDefaultActive: {
+      border: "1px solid var(--primary-border)",
+      background: "var(--primary-bg)",
+      color: "var(--primary-text)",
+    },
+    chipSubtleIdle: {
+      border: "1px solid var(--soft-border)",
+      background: "var(--soft-bg)",
+      color: "var(--text-main)",
+    },
+    chipSubtleEmphasized: {
+      border: "1px solid var(--secondary-border)",
+      background: "var(--secondary-bg)",
+      color: "var(--secondary-text)",
+    },
+    chipSubtleActive: {
+      border: "1px solid var(--primary-border)",
+      background: "var(--primary-bg)",
+      color: "var(--primary-text)",
+    },
+    reincarnationMiniBadge: {
+      background: "var(--warning-border)",
+      color: "var(--primary-text)",
+    },
+    layerTabActive: {
+      border: "1px solid var(--primary-border)",
+      background: "var(--primary-bg)",
+      color: "var(--primary-text)",
+    },
+    layerTabIdle: {
+      border: "1px solid var(--card-border)",
+      background: "var(--card-bg)",
+      color: "var(--text-main)",
+    },
+    mobileLayerHeader: {
+      display: "grid",
+      gap: "12px",
+    },
+    mobileLayerTabs: {
+      display: "flex",
+      gap: "8px",
+      overflowX: "auto",
+      paddingBottom: "2px",
+      WebkitOverflowScrolling: "touch",
+    },
+    pageColumnsDesktop: {
+      alignItems: "stretch",
+    },
+    rightColumnDesktop: {
+      minHeight: "100%",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+    },
+
+    swipeHint: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "8px",
+      padding: "6px 12px",
+      borderRadius: "999px",
+      color: "var(--text-muted)",
+      fontSize: "12px",
+      fontWeight: 700,
+      lineHeight: 1,
+      whiteSpace: "nowrap",
+      width: "fit-content",
+      maxWidth: "100%",
+    },
+    swipeHintIcon: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "16px",
+      opacity: 0.95,
+      flexShrink: 0,
+    },
+    swipeHintText: {
+      display: "inline-block",
+      lineHeight: 1.2,
+    },
+    swipeHintWrap: {
+      display: "flex",
+      justifyContent: "flex-end",
+      marginBottom: "8px",
+    },
+  };
+}
+
+function getHoverBackground() {
+  return "var(--hover-bg)";
 }
 
 function MonsterChip({
@@ -159,43 +496,54 @@ function MonsterChip({
   variant = "default",
   emphasized = false,
   className = "",
+  styles,
 }) {
-  const stateClass =
+  const base =
+    "rounded-full border px-3 py-1.5 text-sm transition whitespace-nowrap";
+
+  const variantStyle =
     variant === "subtle"
       ? active
         ? styles.chipSubtleActive
         : emphasized
-          ? styles.chipSubtleEmphasized
-          : styles.chipSubtleIdle
+        ? styles.chipSubtleEmphasized
+        : styles.chipSubtleIdle
       : active
-        ? styles.chipDefaultActive
-        : emphasized
-          ? styles.chipDefaultEmphasized
-          : styles.chipDefaultIdle;
+      ? styles.chipDefaultActive
+      : emphasized
+      ? styles.chipDefaultEmphasized
+      : styles.chipDefaultIdle;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(styles.chip, active && styles.chipActive, stateClass, className)}
+      className={base + " " + className}
+      style={variantStyle}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.background = getHoverBackground();
+      }}
+      onMouseLeave={(e) => {
+        Object.assign(e.currentTarget.style, variantStyle);
+      }}
     >
       {children}
     </button>
   );
 }
 
-function StatBox({ label, value }) {
+function StatBox({ label, value, styles }) {
   if (!normalizeText(value)) return null;
 
   return (
-    <div className={styles.statBox}>
-      <div className={styles.statLabel}>{label}</div>
-      <div className={styles.statValue}>{value}</div>
+    <div style={styles.statBox}>
+      <div style={styles.statLabel}>{label}</div>
+      <div style={styles.statValue}>{value}</div>
     </div>
   );
 }
 
-function AreaBadgeList({ area, initialLimit = 4, t }) {
+function AreaBadgeList({ area, styles, initialLimit = 4, t }) {
   const [expanded, setExpanded] = useState(false);
 
   const cells = parseAreaList(area)
@@ -204,8 +552,8 @@ function AreaBadgeList({ area, initialLimit = 4, t }) {
 
   if (cells.length === 0) {
     return (
-      <div className={cn("rounded-2xl px-3 py-3", styles.areaWrap)}>
-        <div className={cn("text-sm", styles.areaEmpty)}>
+      <div className="rounded-2xl px-3 py-3" style={styles.areaWrap}>
+        <div className="text-sm" style={styles.areaEmpty}>
           {t("noAreaInfo")}
         </div>
       </div>
@@ -215,8 +563,8 @@ function AreaBadgeList({ area, initialLimit = 4, t }) {
   const visibleCells = expanded ? cells : cells.slice(0, initialLimit);
 
   return (
-    <div className={cn("rounded-2xl px-3 py-3", styles.areaWrap)}>
-      <div className={cn("mb-2 text-xs font-semibold", styles.areaTitle)}>
+    <div className="rounded-2xl px-3 py-3" style={styles.areaWrap}>
+      <div className="mb-2 text-xs font-semibold" style={styles.areaTitle}>
         {t("habitatArea")}
       </div>
 
@@ -224,10 +572,8 @@ function AreaBadgeList({ area, initialLimit = 4, t }) {
         {visibleCells.map((cell, index) => (
           <span
             key={`${cell}-${index}`}
-            className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-              styles.areaBadge
-            )}
+            className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+            style={styles.areaBadge}
           >
             {cell}
           </span>
@@ -236,10 +582,8 @@ function AreaBadgeList({ area, initialLimit = 4, t }) {
         {cells.length > initialLimit && !expanded ? (
           <button
             type="button"
-            className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-              styles.areaMoreButton
-            )}
+            className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+            style={styles.areaMoreButton}
             onClick={() => setExpanded(true)}
           >
             {t("showAll")}
@@ -249,10 +593,8 @@ function AreaBadgeList({ area, initialLimit = 4, t }) {
         {expanded && cells.length > initialLimit ? (
           <button
             type="button"
-            className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
-              styles.areaMoreButton
-            )}
+            className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+            style={styles.areaMoreButton}
             onClick={() => setExpanded(false)}
           >
             {t("close")}
@@ -269,11 +611,13 @@ function SearchableContinentSelect({
   onChange,
   options = [],
   placeholder,
+  styles,
   t,
 }) {
   const rootRef = useRef(null);
   const [inputValue, setInputValue] = useState("");
   const [open, setOpen] = useState(false);
+  const [hoveredOption, setHoveredOption] = useState(null);
 
   const selectedOption = useMemo(() => {
     return (
@@ -300,15 +644,15 @@ function SearchableContinentSelect({
   const filteredOptions = useMemo(() => {
     const keyword = normalizeKana(inputValue);
     const base = [...options].sort((a, b) => {
-      const aOrder = Number(a?.display_order ?? 0);
-      const bOrder = Number(b?.display_order ?? 0);
-      if (aOrder !== bOrder) return aOrder - bOrder;
+    const aOrder = Number(a?.display_order ?? 0);
+    const bOrder = Number(b?.display_order ?? 0);
+    if (aOrder !== bOrder) return aOrder - bOrder;
 
-      return sortJa(
-        getDisplayValue(a, ["continent_name", "name"]),
-        getDisplayValue(b, ["continent_name", "name"])
-      );
-    });
+    return sortJa(
+      getDisplayValue(a, ["continent_name", "name"]),
+      getDisplayValue(b, ["continent_name", "name"])
+    );
+  });
 
     if (!keyword) return base.slice(0, 30);
 
@@ -331,6 +675,7 @@ function SearchableContinentSelect({
     onChange?.(String(option.id));
     setInputValue(getDisplayValue(option, ["continent_name", "name"], ""));
     setOpen(false);
+    setHoveredOption(null);
   }
 
   function handleInputChange(next) {
@@ -358,32 +703,43 @@ function SearchableContinentSelect({
   }
 
   return (
-    <div ref={rootRef} className={styles.relative}>
+    <div ref={rootRef} className="relative">
       <input
         type="text"
         value={inputValue}
-        onChange={(event) => handleInputChange(event.target.value)}
+        onChange={(e) => handleInputChange(e.target.value)}
         onFocus={() => {
           if (!disabled) setOpen(true);
         }}
         placeholder={placeholder}
         disabled={disabled}
-        className={styles.textInput}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && filteredOptions.length > 0) {
-            event.preventDefault();
+        className="w-full rounded-xl px-3 py-2 text-base outline-none md:text-sm"
+        style={{
+          ...styles.textInput,
+          opacity: disabled ? 0.65 : 1,
+          cursor: disabled ? "not-allowed" : "text",
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && filteredOptions.length > 0) {
+            e.preventDefault();
             handleSelect(filteredOptions[0]);
           }
         }}
       />
 
       {open && !disabled ? (
-        <div className={styles.dropdownPanel}>
+        <div
+          className="absolute z-20 mt-2 max-h-80 w-full overflow-y-auto rounded-2xl p-2"
+          style={styles.dropdownPanel}
+        >
           {filteredOptions.length === 0 ? (
-            <div className={styles.dropdownEmpty}>{t("noCandidates")}</div>
+            <div className="px-3 py-2 text-sm" style={styles.dropdownEmpty}>
+              {t("noCandidates")}
+            </div>
           ) : (
             filteredOptions.map((option) => {
               const active = String(option?.id) === String(value);
+              const hovered = hoveredOption?.id === option?.id;
               const label = getDisplayValue(option, ["continent_name", "name"], "");
 
               return (
@@ -391,10 +747,17 @@ function SearchableContinentSelect({
                   key={option.id}
                   type="button"
                   onClick={() => handleSelect(option)}
-                  className={cn(
-                    styles.dropdownItem,
-                    active && styles.dropdownItemActive
-                  )}
+                  onMouseEnter={() => setHoveredOption(option)}
+                  onMouseLeave={() => setHoveredOption(null)}
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
+                  style={{
+                    ...(active
+                      ? styles.dropdownItemActive
+                      : styles.dropdownItemIdle),
+                    ...(!active && hovered
+                      ? { background: getHoverBackground() }
+                      : {}),
+                  }}
                 >
                   <span>{label}</span>
                 </button>
@@ -413,6 +776,7 @@ function SearchableMapSelect({
   onChange,
   options = [],
   placeholder,
+  styles,
   t,
 }) {
   const rootRef = useRef(null);
@@ -490,29 +854,39 @@ function SearchableMapSelect({
   }
 
   return (
-    <div ref={rootRef} className={styles.relative}>
+    <div ref={rootRef} className="relative">
       <input
         type="text"
         value={inputValue}
-        onChange={(event) => handleInputChange(event.target.value)}
+        onChange={(e) => handleInputChange(e.target.value)}
         onFocus={() => {
           if (!disabled) setOpen(true);
         }}
         placeholder={placeholder}
         disabled={disabled}
-        className={styles.textInput}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && filteredOptions.length > 0) {
-            event.preventDefault();
+        className="w-full rounded-xl px-3 py-2 text-base outline-none md:text-sm"
+        style={{
+          ...styles.textInput,
+          opacity: disabled ? 0.65 : 1,
+          cursor: disabled ? "not-allowed" : "text",
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && filteredOptions.length > 0) {
+            e.preventDefault();
             handleSelect(filteredOptions[0]);
           }
         }}
       />
 
       {open && !disabled ? (
-        <div className={styles.dropdownPanel}>
+        <div
+          className="absolute z-20 mt-2 max-h-80 w-full overflow-y-auto rounded-2xl p-2"
+          style={styles.dropdownPanel}
+        >
           {filteredOptions.length === 0 ? (
-            <div className={styles.dropdownEmpty}>{t("noCandidates")}</div>
+            <div className="px-3 py-2 text-sm" style={styles.dropdownEmpty}>
+              {t("noCandidates")}
+            </div>
           ) : (
             filteredOptions.map((option) => {
               const active = String(option.id) === String(value);
@@ -523,10 +897,17 @@ function SearchableMapSelect({
                   key={option.id}
                   type="button"
                   onClick={() => handleSelect(option)}
-                  className={cn(
-                    styles.dropdownItem,
-                    active && styles.dropdownItemActive
-                  )}
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition"
+                  style={active ? styles.dropdownItemActive : styles.dropdownItemIdle}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = getHoverBackground();
+                  }}
+                  onMouseLeave={(e) => {
+                    Object.assign(
+                      e.currentTarget.style,
+                      active ? styles.dropdownItemActive : styles.dropdownItemIdle
+                    );
+                  }}
                 >
                   <span>{label}</span>
                 </button>
@@ -539,99 +920,16 @@ function SearchableMapSelect({
   );
 }
 
-function SearchMethodSelect({
-  value = "map",
-  onChange,
-  options = [],
-  disabled = false,
-}) {
-  const rootRef = useRef(null);
-  const [open, setOpen] = useState(false);
-
-  const selectedOption = useMemo(() => {
-    return options.find((option) => option.value === value) ?? options[0] ?? null;
-  }, [options, value]);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(event.target)) setOpen(false);
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (disabled) setOpen(false);
-  }, [disabled]);
-
-  function handleSelect(nextValue) {
-    onChange?.(nextValue);
-    setOpen(false);
-  }
-
-  return (
-    <div ref={rootRef} className={styles.relative}>
-      <button
-        type="button"
-        className={cn(
-          styles.textInput,
-          styles.dropdownTrigger,
-          open && styles.dropdownTriggerOpen
-        )}
-        onClick={() => {
-          if (!disabled) setOpen((current) => !current);
-        }}
-        disabled={disabled}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <span>{selectedOption?.label ?? ""}</span>
-        <MdKeyboardArrowDown
-          aria-hidden="true"
-          className={cn(
-            styles.dropdownTriggerIcon,
-            open && styles.dropdownTriggerIconOpen
-          )}
-        />
-      </button>
-
-      {open ? (
-        <div className={styles.dropdownPanel} role="listbox">
-          {options.map((option) => {
-            const active = option.value === value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={active}
-                onClick={() => handleSelect(option.value)}
-                className={cn(
-                  styles.dropdownItem,
-                  active && styles.dropdownItemActive
-                )}
-              >
-                <span>{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function MonsterSpawnCard({
   spawn,
   monster,
   emphasized = false,
+  styles,
   mobile = false,
   backHref = "/tools/map-monster-browser",
   t,
 }) {
+  const cardStyle = mobile ? styles.spawnCardMobile : styles.spawnCardDesktop;
   const monsterName = getDisplayValue(
     monster,
     ["monster_name", "name"],
@@ -639,25 +937,18 @@ function MonsterSpawnCard({
   );
 
   return (
-    <article
-      className={cn(
-        "overflow-hidden rounded-2xl",
-        mobile ? styles.spawnCardMobile : styles.spawnCardDesktop
-      )}
-    >
+    <article className="overflow-hidden rounded-2xl" style={cardStyle}>
       <div className="flex items-start justify-between gap-3 px-4 py-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className={cn("text-base font-bold", styles.monsterName)}>
-              <span className={styles.monsterNameLine}>{monsterName}</span>
+            <h3 className="text-base font-bold" style={styles.monsterName}>
+              <span style={styles.monsterNameLine}>{monsterName}</span>
             </h3>
 
             {monster?.system_type ? (
               <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                  emphasized ? styles.badgeSystemActive : styles.badgeSystemIdle
-                )}
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={emphasized ? styles.badgeSystemActive : styles.badgeSystemIdle}
               >
                 {monster.system_type}
               </span>
@@ -665,10 +956,8 @@ function MonsterSpawnCard({
 
             {monster?.is_reincarnated ? (
               <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                  styles.badgeReincarnated
-                )}
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={styles.badgeReincarnated}
               >
                 {t("reincarnated")}
               </span>
@@ -679,10 +968,8 @@ function MonsterSpawnCard({
         {monster?.id ? (
           <ProgressIntlLink
             href={`/tools/monster-search/${monster.id}?back=${encodeURIComponent(backHref)}`}
-            className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition",
-              styles.detailLink
-            )}
+            className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition"
+            style={styles.detailLink}
           >
             {t("detail")}
           </ProgressIntlLink>
@@ -690,19 +977,19 @@ function MonsterSpawnCard({
       </div>
 
       <div className="px-4">
-        <div className={styles.statGrid}>
-          <StatBox label={t("spawnCount")} value={spawn?.spawn_count} />
-          <StatBox label={t("symbolCount")} value={spawn?.symbol_count} />
-          <StatBox label={t("spawnTime")} value={spawn?.spawn_time} />
+        <div style={styles.statGrid}>
+          <StatBox label={t("spawnCount")} value={spawn?.spawn_count} styles={styles} />
+          <StatBox label={t("symbolCount")} value={spawn?.symbol_count} styles={styles} />
+          <StatBox label={t("spawnTime")} value={spawn?.spawn_time} styles={styles} />
         </div>
       </div>
 
       <div className="px-4 pt-3">
-        <StatBox label={t("memo")} value={spawn?.note} />
+        <StatBox label={t("memo")} value={spawn?.note} styles={styles} />
       </div>
 
       <div className="px-4 pb-4 pt-3">
-        <AreaBadgeList area={spawn?.area} t={t} />
+        <AreaBadgeList area={spawn?.area} styles={styles} t={t} />
       </div>
     </article>
   );
@@ -712,6 +999,7 @@ function MonsterSpawnCarousel({
   spawns,
   monstersById,
   selectedSystemType,
+  styles,
   mobile = false,
   backHref = "/tools/map-monster-browser",
   t,
@@ -721,12 +1009,12 @@ function MonsterSpawnCarousel({
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   useEffect(() => {
-    const element = scrollerRef.current;
-    if (!element) return;
+    const el = scrollerRef.current;
+    if (!el) return;
 
     function updateScrollState() {
-      const maxScrollLeft = element.scrollWidth - element.clientWidth;
-      const currentLeft = element.scrollLeft;
+      const maxScrollLeft = el.scrollWidth - el.clientWidth;
+      const currentLeft = el.scrollLeft;
 
       setCanScrollLeft(currentLeft > 4);
       setCanScrollRight(currentLeft < maxScrollLeft - 4);
@@ -734,11 +1022,11 @@ function MonsterSpawnCarousel({
 
     updateScrollState();
 
-    element.addEventListener("scroll", updateScrollState, { passive: true });
+    el.addEventListener("scroll", updateScrollState, { passive: true });
     window.addEventListener("resize", updateScrollState);
 
     return () => {
-      element.removeEventListener("scroll", updateScrollState);
+      el.removeEventListener("scroll", updateScrollState);
       window.removeEventListener("resize", updateScrollState);
     };
   }, [spawns, mobile]);
@@ -760,9 +1048,8 @@ function MonsterSpawnCarousel({
   const scroller = (
     <div
       ref={scrollerRef}
-      className={
-        mobile ? styles.cardsMobileScroller : styles.cardsDesktopScroller
-      }
+      style={mobile ? styles.cardsMobileScroller : styles.cardsDesktopScroller}
+      className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {spawns.map((spawn, index) => {
         const monster = monstersById[spawn.monster_id];
@@ -776,6 +1063,7 @@ function MonsterSpawnCarousel({
             spawn={spawn}
             monster={monster}
             emphasized={Boolean(emphasized)}
+            styles={styles}
             mobile={mobile}
             backHref={backHref}
             t={t}
@@ -786,9 +1074,9 @@ function MonsterSpawnCarousel({
   );
 
   const hint = showSwipeHint ? (
-    <div className={styles.swipeHintWrap}>
-      <div className={styles.swipeHint}>
-        <span className={styles.swipeHintIcon}>
+    <div style={styles.swipeHintWrap}>
+      <div style={styles.swipeHint}>
+        <span style={styles.swipeHintIcon}>
           <HintIcon />
         </span>
       </div>
@@ -797,7 +1085,7 @@ function MonsterSpawnCarousel({
 
   if (mobile) {
     return (
-      <div className={styles.cardsMobileScrollerOuter}>
+      <div style={styles.cardsMobileScrollerOuter}>
         {hint}
         {scroller}
       </div>
@@ -805,7 +1093,7 @@ function MonsterSpawnCarousel({
   }
 
   return (
-    <div className={styles.cardsDesktopScrollerWrap}>
+    <div style={styles.cardsDesktopScrollerWrap}>
       {hint}
       {scroller}
     </div>
@@ -817,6 +1105,7 @@ function MapWithCards({
   spawns,
   monstersById,
   selectedSystemType,
+  styles,
   isMobile,
   backHref,
   t,
@@ -824,7 +1113,7 @@ function MapWithCards({
   if (isMobile) {
     return (
       <div className="grid gap-4">
-        <div className={styles.mapMobileBox}>
+        <div style={styles.mapMobileBox}>
           <MonsterMapOverlay
             imagePath={layer?.image_path || layer?.image_url || ""}
             spawns={spawns}
@@ -837,6 +1126,7 @@ function MapWithCards({
           spawns={spawns}
           monstersById={monstersById}
           selectedSystemType={selectedSystemType}
+          styles={styles}
           mobile
           backHref={backHref}
           t={t}
@@ -846,8 +1136,8 @@ function MapWithCards({
   }
 
   return (
-    <div className={styles.mapAndCardsDesktop}>
-      <div className={styles.mapDesktopBox}>
+    <div style={{ display: "grid", ...styles.mapAndCardsDesktop }}>
+      <div style={styles.mapDesktopBox}>
         <MonsterMapOverlay
           imagePath={layer?.image_path || layer?.image_url || ""}
           spawns={spawns}
@@ -860,6 +1150,7 @@ function MapWithCards({
         spawns={spawns}
         monstersById={monstersById}
         selectedSystemType={selectedSystemType}
+        styles={styles}
         backHref={backHref}
         t={t}
       />
@@ -874,6 +1165,7 @@ function LayerSection({
   selectedMonsterId,
   selectedSystemType,
   relatedSelectedMonsterIds,
+  styles,
   isMobile,
   backHref,
   t,
@@ -914,24 +1206,34 @@ function LayerSection({
 
   return (
     <section
-      className={cn(
-        "overflow-hidden rounded-2xl",
-        styles.layerSection,
-        isMobile ? styles.layerSectionMobile : styles.layerSectionDesktop
-      )}
+      className="overflow-hidden rounded-2xl"
+      style={{
+        ...styles.card,
+        height: isMobile ? "auto" : "100%",
+        display: isMobile ? "block" : "flex",
+        flexDirection: isMobile ? undefined : "column",
+      }}
     >
-      <div className={cn("px-4 py-3", styles.cardHeader)}>
-        <div className={cn("text-sm font-semibold", styles.cardHeaderTitle)}>
+      <div className="px-4 py-3" style={styles.cardHeader}>
+        <div className="text-sm font-semibold" style={styles.cardHeaderTitle}>
           {layerTitle}
         </div>
       </div>
 
-      <div className={cn("p-4", !isMobile && styles.layerBodyDesktop)}>
+      <div
+        className="p-4"
+        style={{
+          flex: isMobile ? undefined : 1,
+          display: isMobile ? "block" : "flex",
+          alignItems: isMobile ? undefined : "center",
+        }}
+      >
         <MapWithCards
           layer={layer}
           spawns={filteredLayerSpawns}
           monstersById={monstersById}
           selectedSystemType={selectedSystemType}
+          styles={styles}
           isMobile={isMobile}
           backHref={backHref}
           t={t}
@@ -945,6 +1247,7 @@ function LayerCarousel({
   sections,
   monstersById,
   selectedSystemType,
+  styles,
   isMobile,
   backHref,
   t,
@@ -962,14 +1265,17 @@ function LayerCarousel({
 
   if (isMobile) {
     return (
-      <section className={cn("overflow-hidden rounded-2xl", styles.card)}>
-        <div className={cn("px-4 py-3", styles.cardHeader)}>
-          <div className={styles.mobileLayerHeader}>
-            <div className={cn("text-xs", styles.cardHeaderSub)}>
+      <section className="overflow-hidden rounded-2xl" style={styles.card}>
+        <div className="px-4 py-3" style={styles.cardHeader}>
+          <div style={styles.mobileLayerHeader}>
+            <div className="text-xs" style={styles.cardHeaderSub}>
               {activeIndex + 1} / {sections.length}
             </div>
 
-            <div className={styles.mobileLayerTabs}>
+            <div
+              style={styles.mobileLayerTabs}
+              className="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
               {sections.map((section, index) => {
                 const active = index === activeIndex;
                 const layerTitle =
@@ -981,11 +1287,17 @@ function LayerCarousel({
                     key={section.layer.id}
                     type="button"
                     onClick={() => setActiveIndex(index)}
-                    className={cn(
-                      "shrink-0",
-                      styles.layerTab,
-                      active ? styles.layerTabActive : styles.layerTabIdle
-                    )}
+                    className="shrink-0 rounded-full px-3 py-1.5 text-sm transition"
+                    style={active ? styles.layerTabActive : styles.layerTabIdle}
+                    onMouseEnter={(e) => {
+                      if (!active) e.currentTarget.style.background = getHoverBackground();
+                    }}
+                    onMouseLeave={(e) => {
+                      Object.assign(
+                        e.currentTarget.style,
+                        active ? styles.layerTabActive : styles.layerTabIdle
+                      );
+                    }}
                   >
                     {layerTitle}
                   </button>
@@ -1001,6 +1313,7 @@ function LayerCarousel({
             spawns={current.spawns}
             monstersById={monstersById}
             selectedSystemType={selectedSystemType}
+            styles={styles}
             isMobile
             backHref={backHref}
             t={t}
@@ -1012,13 +1325,15 @@ function LayerCarousel({
 
   return (
     <section
-      className={cn(
-        "overflow-hidden rounded-2xl",
-        styles.card,
-        styles.layerSectionDesktop
-      )}
+      className="overflow-hidden rounded-2xl"
+      style={{
+        ...styles.card,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
     >
-      <div className={cn("px-4 py-3", styles.cardHeader)}>
+      <div className="px-4 py-3" style={styles.cardHeader}>
         <div className="flex flex-wrap items-center gap-2">
           {sections.map((section, index) => {
             const active = index === activeIndex;
@@ -1031,10 +1346,17 @@ function LayerCarousel({
                 key={section.layer.id}
                 type="button"
                 onClick={() => setActiveIndex(index)}
-                className={cn(
-                  styles.layerTab,
-                  active ? styles.layerTabActive : styles.layerTabIdle
-                )}
+                className="rounded-full px-3 py-1.5 text-sm transition"
+                style={active ? styles.layerTabActive : styles.layerTabIdle}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.background = getHoverBackground();
+                }}
+                onMouseLeave={(e) => {
+                  Object.assign(
+                    e.currentTarget.style,
+                    active ? styles.layerTabActive : styles.layerTabIdle
+                  );
+                }}
               >
                 {layerTitle}
               </button>
@@ -1043,12 +1365,13 @@ function LayerCarousel({
         </div>
       </div>
 
-      <div className={cn("p-4", styles.layerBodyDesktop)}>
+      <div className="p-4" style={{ flex: 1, display: "flex", alignItems: "center" }}>
         <MapWithCards
           layer={current.layer}
           spawns={current.spawns}
           monstersById={monstersById}
           selectedSystemType={selectedSystemType}
+          styles={styles}
           isMobile={false}
           backHref={backHref}
           t={t}
@@ -1058,95 +1381,31 @@ function LayerCarousel({
   );
 }
 
-async function fetchMonsterDetailsInBatches(ids, locale, batchSize = 12) {
-  const results = [];
-
-  for (let index = 0; index < ids.length; index += batchSize) {
-    const batch = ids.slice(index, index + batchSize);
-    const rows = await Promise.all(
-      batch.map(async (id) => {
-        try {
-          return await fetchMonsterDetail(id, locale);
-        } catch (error) {
-          console.error(`Failed to load monster ${id}`, error);
-          return null;
-        }
-      })
-    );
-
-    results.push(...rows.filter(Boolean));
-  }
-
-  return results;
-}
-
 export default function MapMonsterBrowser() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const locale = useLocale();
   const t = useTranslations("MapMonsterBrowser");
+
+  const styles = getMapMonsterBrowserStyles();
+  //const overlayStyles = getMonsterMapOverlayStyles();
   const isMobile = useIsMobile();
-
-  const labels = useMemo(() => {
-    const isJapanese = String(locale).toLowerCase().startsWith("ja");
-
-    return isJapanese
-      ? {
-          searchMethod: "検索方法",
-          searchByMap: "地名で探す",
-          searchBySystem: "モンスター系統で探す",
-          systemSearch: "モンスター系統",
-          selectSystem: "系統を選択してください",
-          loadingSystems: "系統データを読み込み中...",
-          noSystems: "この大陸には系統データがありません",
-          filteredMapSearch: "該当する地名",
-          selectSystemFirst: "先にモンスター系統を選択してください",
-          matchedMaps: (count) => `該当する地名 ${count}件`,
-          selectedSystem: (systemType) => `「${systemType}」が出現する地名だけを表示中`,
-        }
-      : {
-          searchMethod: "Search method",
-          searchByMap: "Search by map",
-          searchBySystem: "Search by monster family",
-          systemSearch: "Monster family",
-          selectSystem: "Select a monster family",
-          loadingSystems: "Loading monster families...",
-          noSystems: "No monster family data is available for this continent",
-          filteredMapSearch: "Matching maps",
-          selectSystemFirst: "Select a monster family first",
-          matchedMaps: (count) => `${count} matching maps`,
-          selectedSystem: (systemType) =>
-            `Showing only maps where “${systemType}” appears`,
-        };
-  }, [locale]);
 
   const [continents, setContinents] = useState([]);
   const [maps, setMaps] = useState([]);
   const [allSpawns, setAllSpawns] = useState([]);
   const [monsterMaster, setMonsterMaster] = useState({});
-  const [monsterMasterLocale, setMonsterMasterLocale] = useState(locale);
-  const [resolvedMonsterIds, setResolvedMonsterIds] = useState(
-    () => new Set()
-  );
   const [loading, setLoading] = useState(true);
-  const [loadingMonsterMaster, setLoadingMonsterMaster] = useState(false);
   const [error, setError] = useState("");
 
   const [selectedContinentId, setSelectedContinentId] = useState("");
-  const [searchMode, setSearchMode] = useState("map");
   const [selectedMapId, setSelectedMapId] = useState("");
   const [selectedLayerId, setSelectedLayerId] = useState("all");
   const [selectedMonsterId, setSelectedMonsterId] = useState("");
   const [selectedSystemType, setSelectedSystemType] = useState("");
 
-  function syncUrl({
-    continentId = selectedContinentId,
-    mapId = selectedMapId,
-    layerId = selectedLayerId,
-    mode = searchMode,
-    systemType = selectedSystemType,
-  } = {}) {
+  function syncUrl({ continentId, mapId, layerId }) {
     const params = new URLSearchParams(searchParams?.toString() || "");
 
     if (continentId) params.set("continentId", String(continentId));
@@ -1158,12 +1417,6 @@ export default function MapMonsterBrowser() {
     if (layerId && layerId !== "all") params.set("layerId", String(layerId));
     else params.delete("layerId");
 
-    if (mode === "system") params.set("searchMode", "system");
-    else params.delete("searchMode");
-
-    if (systemType) params.set("systemType", systemType);
-    else params.delete("systemType");
-
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
@@ -1172,25 +1425,12 @@ export default function MapMonsterBrowser() {
     const nextContinentId = searchParams?.get("continentId") ?? "";
     const nextMapId = searchParams?.get("mapId") ?? "";
     const nextLayerId = searchParams?.get("layerId") ?? "all";
-    const nextSearchMode =
-      searchParams?.get("searchMode") === "system" ? "system" : "map";
-    const nextSystemType = searchParams?.get("systemType") ?? "";
 
-    setSelectedContinentId((previous) =>
-      previous === nextContinentId ? previous : nextContinentId
+    setSelectedContinentId((prev) =>
+      prev === nextContinentId ? prev : nextContinentId
     );
-    setSelectedMapId((previous) =>
-      previous === nextMapId ? previous : nextMapId
-    );
-    setSelectedLayerId((previous) =>
-      previous === nextLayerId ? previous : nextLayerId
-    );
-    setSearchMode((previous) =>
-      previous === nextSearchMode ? previous : nextSearchMode
-    );
-    setSelectedSystemType((previous) =>
-      previous === nextSystemType ? previous : nextSystemType
-    );
+    setSelectedMapId((prev) => (prev === nextMapId ? prev : nextMapId));
+    setSelectedLayerId((prev) => (prev === nextLayerId ? prev : nextLayerId));
   }, [searchParams]);
 
   useEffect(() => {
@@ -1216,7 +1456,6 @@ export default function MapMonsterBrowser() {
                 const aOrder = Number(a?.display_id ?? 0);
                 const bOrder = Number(b?.display_id ?? 0);
                 if (aOrder !== bOrder) return aOrder - bOrder;
-
                 return sortJa(
                   getDisplayValue(a, ["continent_name", "name"]),
                   getDisplayValue(b, ["continent_name", "name"])
@@ -1228,19 +1467,20 @@ export default function MapMonsterBrowser() {
           ? mapRows.filter((row) => isBrowsableMapType(row?.map_type))
           : [];
 
+        if (ignore) return;
+
         setMaps(nextMaps);
         setAllSpawns(Array.isArray(spawnRows) ? spawnRows : []);
         setContinents(nextContinents);
-      } catch (bootstrapError) {
-        console.error(bootstrapError);
-        if (!ignore) setError(bootstrapError?.message || t("loadFailed"));
+      } catch (err) {
+        console.error(err);
+        if (!ignore) setError(err?.message || t("loadFailed"));
       } finally {
         if (!ignore) setLoading(false);
       }
     }
 
     bootstrap();
-
     return () => {
       ignore = true;
     };
@@ -1269,18 +1509,6 @@ export default function MapMonsterBrowser() {
     );
   }, [maps, selectedContinentId]);
 
-  const mapIdsInContinent = useMemo(() => {
-    return new Set(mapsInContinent.map((map) => Number(map.id)));
-  }, [mapsInContinent]);
-
-  const spawnsInContinent = useMemo(() => {
-    if (!selectedContinentId || mapIdsInContinent.size === 0) return [];
-
-    return allSpawns.filter((spawn) =>
-      mapIdsInContinent.has(Number(spawn.map_id))
-    );
-  }, [allSpawns, mapIdsInContinent, selectedContinentId]);
-
   const selectedMap = useMemo(() => {
     return maps.find((row) => Number(row.id) === Number(selectedMapId)) ?? null;
   }, [maps, selectedMapId]);
@@ -1289,143 +1517,9 @@ export default function MapMonsterBrowser() {
     return Array.isArray(selectedMap?.layers) ? selectedMap.layers : [];
   }, [selectedMap]);
 
-  const spawnsForSelectedMap = useMemo(() => {
-    if (!selectedMapId) return [];
-
-    return allSpawns.filter(
-      (row) => Number(row.map_id) === Number(selectedMapId)
-    );
-  }, [allSpawns, selectedMapId]);
-
-  const monsterIdsToLoad = useMemo(() => {
-    const source = searchMode === "system" ? spawnsInContinent : spawnsForSelectedMap;
-
-    return Array.from(
-      new Set(source.map((spawn) => Number(spawn.monster_id)).filter(Boolean))
-    );
-  }, [searchMode, spawnsInContinent, spawnsForSelectedMap]);
-
   useEffect(() => {
-    let ignore = false;
-    const localeChanged = monsterMasterLocale !== locale;
-
-    if (monsterIdsToLoad.length === 0) {
-      setLoadingMonsterMaster(false);
-
-      if (localeChanged) {
-        setMonsterMaster({});
-        setResolvedMonsterIds(new Set());
-        setMonsterMasterLocale(locale);
-      }
-
-      return undefined;
-    }
-
-    const resolvedIds = localeChanged ? new Set() : resolvedMonsterIds;
-    const missingIds = monsterIdsToLoad.filter(
-      (id) => !resolvedIds.has(Number(id))
-    );
-
-    if (missingIds.length === 0) {
-      setLoadingMonsterMaster(false);
-      return undefined;
-    }
-
-    async function fillMonsterDetails() {
-      setLoadingMonsterMaster(true);
-
-      try {
-        const results = await fetchMonsterDetailsInBatches(missingIds, locale);
-        if (ignore) return;
-
-        setMonsterMaster((previous) => {
-          const next = localeChanged ? {} : { ...previous };
-
-          for (const row of results) {
-            if (row?.id) next[row.id] = row;
-          }
-
-          return next;
-        });
-        setResolvedMonsterIds((previous) => {
-          const next = localeChanged ? new Set() : new Set(previous);
-          for (const id of missingIds) next.add(Number(id));
-          return next;
-        });
-        setMonsterMasterLocale(locale);
-      } finally {
-        if (!ignore) setLoadingMonsterMaster(false);
-      }
-    }
-
-    fillMonsterDetails();
-
-    return () => {
-      ignore = true;
-    };
-  }, [
-    locale,
-    monsterIdsToLoad,
-    monsterMasterLocale,
-    resolvedMonsterIds,
-  ]);
-
-  const monsterDetailsReady = useMemo(() => {
-    if (monsterMasterLocale !== locale) return false;
-
-    return monsterIdsToLoad.every((id) =>
-      resolvedMonsterIds.has(Number(id))
-    );
-  }, [
-    locale,
-    monsterIdsToLoad,
-    monsterMasterLocale,
-    resolvedMonsterIds,
-  ]);
-
-  const systemTypesInContinent = useMemo(() => {
-    return Array.from(
-      new Set(
-        spawnsInContinent
-          .map((spawn) => monsterMaster[spawn.monster_id]?.system_type)
-          .map(normalizeText)
-          .filter(Boolean)
-      )
-    ).sort((a, b) => sortJa(a, b));
-  }, [spawnsInContinent, monsterMaster]);
-
-  const mapIdsForSelectedSystem = useMemo(() => {
-    if (!selectedSystemType) return new Set();
-
-    const target = normalizeText(selectedSystemType);
-    const ids = new Set();
-
-    for (const spawn of spawnsInContinent) {
-      const monster = monsterMaster[spawn.monster_id];
-      if (normalizeText(monster?.system_type) === target) {
-        ids.add(Number(spawn.map_id));
-      }
-    }
-
-    return ids;
-  }, [spawnsInContinent, monsterMaster, selectedSystemType]);
-
-  const mapsForSearch = useMemo(() => {
-    if (searchMode !== "system") return mapsInContinent;
-    if (!selectedSystemType) return [];
-
-    return mapsInContinent.filter((map) =>
-      mapIdsForSelectedSystem.has(Number(map.id))
-    );
-  }, [
-    searchMode,
-    mapsInContinent,
-    selectedSystemType,
-    mapIdsForSelectedSystem,
-  ]);
-
-  useEffect(() => {
-    if (!selectedContinentId || continents.length === 0) return;
+    if (!selectedContinentId) return;
+    if (continents.length === 0) return;
 
     const exists = continents.some(
       (continent) => Number(continent.id) === Number(selectedContinentId)
@@ -1435,39 +1529,32 @@ export default function MapMonsterBrowser() {
       setSelectedContinentId("");
       setSelectedMapId("");
       setSelectedLayerId("all");
-      setSelectedMonsterId("");
-      setSelectedSystemType("");
       syncUrl({
         continentId: "",
         mapId: "",
         layerId: "all",
-        systemType: "",
       });
     }
   }, [continents, selectedContinentId]);
 
   useEffect(() => {
     if (!selectedMapId) return;
-    if (searchMode === "system" && !monsterDetailsReady) return;
-    if (searchMode === "system" && !selectedSystemType) return;
+    if (mapsInContinent.length === 0) return;
 
-    const exists = mapsForSearch.some(
+    const exists = mapsInContinent.some(
       (row) => Number(row.id) === Number(selectedMapId)
     );
 
     if (!exists) {
       setSelectedMapId("");
       setSelectedLayerId("all");
-      setSelectedMonsterId("");
-      syncUrl({ mapId: "", layerId: "all" });
+      syncUrl({
+        continentId: selectedContinentId,
+        mapId: "",
+        layerId: "all",
+      });
     }
-  }, [
-    mapsForSearch,
-    selectedMapId,
-    searchMode,
-    selectedSystemType,
-    monsterDetailsReady,
-  ]);
+  }, [mapsInContinent, selectedMapId, selectedContinentId]);
 
   useEffect(() => {
     if (!selectedLayerId || selectedLayerId === "all") return;
@@ -1478,10 +1565,63 @@ export default function MapMonsterBrowser() {
 
     if (!exists) {
       setSelectedLayerId("all");
-      setSelectedMonsterId("");
-      syncUrl({ layerId: "all" });
+      syncUrl({
+        continentId: selectedContinentId,
+        mapId: selectedMapId,
+        layerId: "all",
+      });
     }
-  }, [mapLayers, selectedLayerId]);
+  }, [mapLayers, selectedLayerId, selectedContinentId, selectedMapId]);
+
+  const spawnsForSelectedMap = useMemo(() => {
+    if (!selectedMapId) return [];
+    return allSpawns.filter((row) => Number(row.map_id) === Number(selectedMapId));
+  }, [allSpawns, selectedMapId]);
+
+  useEffect(() => {
+    if (!selectedMapId) return;
+
+    const ids = Array.from(
+      new Set(spawnsForSelectedMap.map((row) => row.monster_id).filter(Boolean))
+    );
+
+    const missingIds = ids.filter((id) => !monsterMaster[id]);
+    if (missingIds.length === 0) return;
+
+    let ignore = false;
+
+    async function fillMonsterDetails() {
+      try {
+        const results = await Promise.all(
+          missingIds.map(async (id) => {
+            try {
+              return await fetchMonsterDetail(id, locale);
+            } catch (error) {
+              console.error(error);
+              return null;
+            }
+          })
+        );
+
+        if (ignore) return;
+
+        setMonsterMaster((prev) => {
+          const next = { ...prev };
+          for (const row of results) {
+            if (row?.id) next[row.id] = row;
+          }
+          return next;
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    fillMonsterDetails();
+    return () => {
+      ignore = true;
+    };
+  }, [selectedMapId, spawnsForSelectedMap, monsterMaster, locale]);
 
   const candidateSpawns = useMemo(() => {
     if (!selectedMapId) return [];
@@ -1508,15 +1648,6 @@ export default function MapMonsterBrowser() {
       );
     });
   }, [candidateSpawns, monsterMaster]);
-
-  const monstersVisibleInAside = useMemo(() => {
-    if (!selectedSystemType) return monstersOnCurrentScope;
-
-    const target = normalizeText(selectedSystemType);
-    return monstersOnCurrentScope.filter(
-      (monster) => normalizeText(monster?.system_type) === target
-    );
-  }, [monstersOnCurrentScope, selectedSystemType]);
 
   const relatedSelectedMonsterIds = useMemo(() => {
     if (!selectedMonsterId) return new Set();
@@ -1596,25 +1727,15 @@ export default function MapMonsterBrowser() {
   }, [candidateSpawns, selectedMonsterId, relatedSelectedMonsterIds]);
 
   useEffect(() => {
-    if (!selectedSystemType || searchMode === "system" || loadingMonsterMaster) {
-      return;
-    }
+    if (!selectedSystemType) return;
 
     const exists = systemTypesOnCurrentScope.some(
       (systemType) =>
         normalizeText(systemType) === normalizeText(selectedSystemType)
     );
 
-    if (!exists) {
-      setSelectedSystemType("");
-      syncUrl({ systemType: "" });
-    }
-  }, [
-    systemTypesOnCurrentScope,
-    selectedSystemType,
-    searchMode,
-    loadingMonsterMaster,
-  ]);
+    if (!exists) setSelectedSystemType("");
+  }, [systemTypesOnCurrentScope, selectedSystemType]);
 
   function handleContinentChange(value) {
     setSelectedContinentId(value);
@@ -1627,60 +1748,20 @@ export default function MapMonsterBrowser() {
       continentId: value,
       mapId: "",
       layerId: "all",
-      systemType: "",
     });
   }
 
-  function handleSearchModeChange(nextMode) {
-    const normalizedMode = nextMode === "system" ? "system" : "map";
-
-    setSearchMode(normalizedMode);
-    setSelectedMapId("");
+  function handleMapChange(value) {
+    setSelectedMapId(value);
     setSelectedLayerId("all");
     setSelectedMonsterId("");
     setSelectedSystemType("");
 
     syncUrl({
-      mode: normalizedMode,
-      mapId: "",
-      layerId: "all",
-      systemType: "",
-    });
-  }
-
-  function handleSearchSystemChange(systemType) {
-    setSelectedSystemType(systemType);
-    setSelectedMapId("");
-    setSelectedLayerId("all");
-    setSelectedMonsterId("");
-
-    syncUrl({
-      mapId: "",
-      layerId: "all",
-      mode: "system",
-      systemType,
-    });
-  }
-
-  function handleMapChange(value) {
-    const nextSystemType = searchMode === "system" ? selectedSystemType : "";
-
-    setSelectedMapId(value);
-    setSelectedLayerId("all");
-    setSelectedMonsterId("");
-    setSelectedSystemType(nextSystemType);
-
-    syncUrl({
+      continentId: selectedContinentId,
       mapId: value,
       layerId: "all",
-      systemType: nextSystemType,
     });
-  }
-
-  function handleLayerChange(nextLayerId) {
-    setSelectedLayerId(nextLayerId);
-    setSelectedMonsterId("");
-    syncUrl({ layerId: nextLayerId });
   }
 
   function handleMonsterToggle(monsterId) {
@@ -1690,23 +1771,17 @@ export default function MapMonsterBrowser() {
     }
 
     setSelectedMonsterId(monsterId);
-
-    if (searchMode !== "system") {
-      setSelectedSystemType("");
-      syncUrl({ systemType: "" });
-    }
+    setSelectedSystemType("");
   }
 
   function handleSystemTypeToggle(systemType) {
-    const isActive =
-      normalizeText(selectedSystemType) === normalizeText(systemType);
+    if (normalizeText(selectedSystemType) === normalizeText(systemType)) {
+      setSelectedSystemType("");
+      return;
+    }
 
-    if (isActive && searchMode === "system") return;
-
-    const nextSystemType = isActive ? "" : systemType;
-    setSelectedSystemType(nextSystemType);
+    setSelectedSystemType(systemType);
     setSelectedMonsterId("");
-    syncUrl({ systemType: nextSystemType });
   }
 
   const shouldUseCarousel =
@@ -1714,9 +1789,7 @@ export default function MapMonsterBrowser() {
 
   const backHref = useMemo(() => {
     const query = searchParams?.toString?.() || "";
-    return query
-      ? `/tools/map-monster-browser?${query}`
-      : "/tools/map-monster-browser";
+    return query ? `/tools/map-monster-browser?${query}` : "/tools/map-monster-browser";
   }, [searchParams]);
 
   const continentLabel = getDisplayValue(
@@ -1727,26 +1800,21 @@ export default function MapMonsterBrowser() {
 
   const mapLabel = getDisplayValue(selectedMap, ["map_name", "name"], "");
 
-  const mapSearchDisabled =
-    !selectedContinentId ||
-    (searchMode === "system" &&
-      (!selectedSystemType || !monsterDetailsReady));
-
-  const mapPlaceholder = !selectedContinentId
-    ? t("selectContinentFirst")
-    : searchMode === "system" && !monsterDetailsReady
-      ? labels.loadingSystems
-      : searchMode === "system" && !selectedSystemType
-        ? labels.selectSystemFirst
-        : t("mapPlaceholder");
-
   return (
-    <main className={styles.page}>
-      <PageHeroTitle kicker="DQX MAP DATABASE" title={t("title")} />
+    <main style={styles.page}>
+      <PageHeroTitle
+        kicker="DQX MAP DATABASE"
+        title={t("title")}
+      />
 
-      <div className={styles.filterPanel}>
-        <div className={styles.filterField}>
-          <span className={styles.labelText}>{t("continent")}</span>
+      <div
+        className="grid gap-4 rounded-2xl p-4 md:grid-cols-2 xl:grid-cols-4"
+        style={styles.filterPanel}
+      >
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium" style={styles.labelText}>
+            {t("continent")}
+          </span>
           <SearchableContinentSelect
             disabled={loading}
             value={loading ? "" : selectedContinentId}
@@ -1755,80 +1823,50 @@ export default function MapMonsterBrowser() {
             placeholder={
               loading ? t("loadingContinentData") : t("continentPlaceholder")
             }
+            styles={styles}
             t={t}
           />
         </div>
 
-        <div className={styles.filterField}>
-          <span className={styles.labelText}>{labels.searchMethod}</span>
-          <SearchMethodSelect
-            value={searchMode}
-            onChange={handleSearchModeChange}
-            options={[
-              { value: "map", label: labels.searchByMap },
-              { value: "system", label: labels.searchBySystem },
-            ]}
-          />
-        </div>
-
-        {searchMode === "system" ? (
-          <div className={styles.filterField}>
-            <span className={styles.labelText}>{labels.systemSearch}</span>
-            <SearchMethodSelect
-              value={selectedSystemType}
-              onChange={handleSearchSystemChange}
-              disabled={!selectedContinentId || !monsterDetailsReady}
-              options={[
-                {
-                  value: "",
-                  label: !selectedContinentId
-                    ? labels.selectSystem
-                    : !monsterDetailsReady
-                      ? labels.loadingSystems
-                      : systemTypesInContinent.length === 0
-                        ? labels.noSystems
-                        : labels.selectSystem,
-                },
-                ...systemTypesInContinent.map((systemType) => ({
-                  value: systemType,
-                  label: systemType,
-                })),
-              ]}
-            />
-          </div>
-        ) : null}
-
-        <div
-          className={cn(
-            styles.filterField,
-            styles.mapField,
-            searchMode === "map" && styles.mapFieldWide
-          )}
-        >
-          <span className={styles.labelText}>
-            {searchMode === "system" ? labels.filteredMapSearch : t("mapSearch")}
+        <div className="flex flex-col gap-2 xl:col-span-2">
+          <span className="text-sm font-medium" style={styles.labelText}>
+            {t("mapSearch")}
           </span>
           <SearchableMapSelect
-            disabled={mapSearchDisabled}
+            disabled={!selectedContinentId}
             value={selectedMapId}
             onChange={handleMapChange}
-            options={mapsForSearch}
-            placeholder={mapPlaceholder}
+            options={mapsInContinent}
+            placeholder={
+              selectedContinentId
+                ? t("mapPlaceholder")
+                : t("selectContinentFirst")
+            }
+            styles={styles}
             t={t}
           />
-          {searchMode === "system" && selectedSystemType && monsterDetailsReady ? (
-            <div className={styles.searchInfo}>
-              {labels.matchedMaps(mapsForSearch.length)}
-            </div>
-          ) : null}
         </div>
 
-        <label className={styles.filterField}>
-          <span className={styles.labelText}>{t("displayLayer")}</span>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-medium" style={styles.labelText}>
+            {t("displayLayer")}
+          </span>
           <select
             value={selectedLayerId}
-            onChange={(event) => handleLayerChange(event.target.value)}
-            className={styles.selectInput}
+            onChange={(e) => {
+              const nextLayerId = e.target.value;
+              setSelectedLayerId(nextLayerId);
+              setSelectedMonsterId("");
+              setSelectedSystemType("");
+
+              syncUrl({
+                continentId: selectedContinentId,
+                mapId: selectedMapId,
+                layerId: nextLayerId,
+              });
+            }}
+            className="rounded-xl px-3 py-2 text-sm outline-none"
+            style={styles.selectInput}
             disabled={!selectedMap}
           >
             <option value="all">{t("all")}</option>
@@ -1847,15 +1885,9 @@ export default function MapMonsterBrowser() {
         </label>
       </div>
 
-      {searchMode === "system" && selectedSystemType ? (
-        <div className={styles.searchInfo}>
-          {labels.selectedSystem(selectedSystemType)}
-        </div>
-      ) : null}
-
       {loading ? (
         <>
-          <div className={cn("mt-6 p-4", styles.loadingBox)}>
+          <div className="mt-6 rounded-2xl p-4 text-sm" style={styles.loadingBox}>
             {t("loadingContinentData")}
           </div>
           <MapMonsterBrowserSkeleton />
@@ -1863,49 +1895,36 @@ export default function MapMonsterBrowser() {
       ) : null}
 
       {error ? (
-        <div className={cn("mt-6 p-4", styles.errorBox)}>{error}</div>
+        <div className="mt-6 rounded-2xl p-4 text-sm" style={styles.errorBox}>
+          {error}
+        </div>
       ) : null}
 
       {!loading && !error ? (
-        <div
-          className={cn(
-            "mt-6 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]",
-            styles.pageColumnsDesktop
-          )}
-        >
-          <aside className={cn("rounded-2xl p-4", styles.asideCard)}>
+        <div className="mt-6 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]" style={styles.pageColumnsDesktop}>
+          <aside className="rounded-2xl p-4" style={styles.asideCard}>
             {selectedMap ? (
               <>
-                <div className={cn("text-sm", styles.continentText)}>
+                <div className="text-sm" style={styles.continentText}>
                   {continentLabel}
                 </div>
 
-                <h2 className={cn("mt-1 text-xl font-bold", styles.mapTitle)}>
+                <h2 className="mt-1 text-xl font-bold" style={styles.mapTitle}>
                   {mapLabel}
                 </h2>
 
-                <div className={cn("mt-2 text-sm", styles.countText)}>
+                <div className="mt-2 text-sm" style={styles.countText}>
                   {t("countShown", { count: filteredSpawns.length })}
                 </div>
 
                 <div className="mt-6">
-                  <div
-                    className={cn(
-                      "mb-2 text-sm font-semibold",
-                      styles.sectionTitle
-                    )}
-                  >
+                  <div className="mb-2 text-sm font-semibold" style={styles.sectionTitle}>
                     {t("systemType")}
                   </div>
 
                   <div className="flex flex-wrap gap-2">
                     {systemTypesOnCurrentScope.length === 0 ? (
-                      <div
-                        className={cn(
-                          "rounded-2xl px-3 py-2 text-sm",
-                          styles.emptyDashed
-                        )}
-                      >
+                      <div className="rounded-2xl px-3 py-2 text-sm" style={styles.emptyDashed}>
                         {t("noSystemType")}
                       </div>
                     ) : (
@@ -1917,6 +1936,7 @@ export default function MapMonsterBrowser() {
                             normalizeText(selectedSystemType)
                           }
                           onClick={() => handleSystemTypeToggle(systemType)}
+                          styles={styles}
                         >
                           {systemType}
                         </MonsterChip>
@@ -1926,28 +1946,17 @@ export default function MapMonsterBrowser() {
                 </div>
 
                 <div className="mt-6">
-                  <div
-                    className={cn(
-                      "mb-2 text-sm font-semibold",
-                      styles.sectionTitle
-                    )}
-                  >
+                  <div className="mb-2 text-sm font-semibold" style={styles.sectionTitle}>
                     {t("monster")}
                   </div>
 
-                  <div className={styles.monsterGrid}>
-                    {monstersVisibleInAside.length === 0 ? (
-                      <div
-                        className={cn(
-                          "rounded-2xl px-3 py-2 text-sm",
-                          styles.emptyDashed,
-                          styles.monsterGridEmpty
-                        )}
-                      >
+                  <div className="flex flex-wrap gap-2">
+                    {monstersOnCurrentScope.length === 0 ? (
+                      <div className="rounded-2xl px-3 py-2 text-sm" style={styles.emptyDashed}>
                         {t("noMonster")}
                       </div>
                     ) : (
-                      monstersVisibleInAside.map((monster) => {
+                      monstersOnCurrentScope.map((monster) => {
                         const emphasized =
                           selectedMonsterId &&
                           relatedSelectedMonsterIds.has(Number(monster.id));
@@ -1961,24 +1970,17 @@ export default function MapMonsterBrowser() {
                         return (
                           <MonsterChip
                             key={monster.id}
-                            active={
-                              Number(selectedMonsterId) === Number(monster.id)
-                            }
+                            active={Number(selectedMonsterId) === Number(monster.id)}
                             emphasized={Boolean(emphasized)}
                             onClick={() => handleMonsterToggle(monster.id)}
-                            className={styles.monsterGridChip}
+                            styles={styles}
                           >
-                            <span className={styles.monsterGridChipContent}>
-                              <span className={styles.monsterGridChipName}>
-                                {monsterLabel}
-                              </span>
+                            <span className="inline-flex items-center gap-1.5">
+                              <span>{monsterLabel}</span>
                               {monster.is_reincarnated ? (
                                 <span
-                                  className={cn(
-                                    "rounded-full px-1.5 py-0.5 text-[10px] font-bold",
-                                    styles.reincarnationMiniBadge,
-                                    styles.monsterGridReincarnationBadge
-                                  )}
+                                  className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                                  style={styles.reincarnationMiniBadge}
                                 >
                                   {t("reincarnated")}
                                 </span>
@@ -1992,25 +1994,15 @@ export default function MapMonsterBrowser() {
                 </div>
               </>
             ) : (
-              <div
-                className={cn(
-                  "rounded-2xl px-4 py-5 text-sm",
-                  styles.emptyDashed
-                )}
-              >
+              <div className="rounded-2xl px-4 py-5 text-sm" style={styles.emptyDashed}>
                 {t("emptyGuide")}
               </div>
             )}
           </aside>
 
-          <div className={styles.rightColumnDesktop}>
+          <div style={styles.rightColumnDesktop}>
             {!selectedMap ? (
-              <div
-                className={cn(
-                  "rounded-2xl px-4 py-5 text-sm",
-                  styles.emptyDashed
-                )}
-              >
+              <div className="rounded-2xl px-4 py-5 text-sm" style={styles.emptyDashed}>
                 {t("selectMap")}
               </div>
             ) : selectedLayerId !== "all" ? (
@@ -2025,6 +2017,7 @@ export default function MapMonsterBrowser() {
                 selectedMonsterId={selectedMonsterId}
                 selectedSystemType={selectedSystemType}
                 relatedSelectedMonsterIds={relatedSelectedMonsterIds}
+                styles={styles}
                 isMobile={isMobile}
                 backHref={backHref}
                 t={t}
@@ -2034,6 +2027,7 @@ export default function MapMonsterBrowser() {
                 sections={layerSections}
                 monstersById={monsterMaster}
                 selectedSystemType={selectedSystemType}
+                styles={styles}
                 isMobile={isMobile}
                 backHref={backHref}
                 t={t}
@@ -2049,6 +2043,7 @@ export default function MapMonsterBrowser() {
                     selectedMonsterId={selectedMonsterId}
                     selectedSystemType={selectedSystemType}
                     relatedSelectedMonsterIds={relatedSelectedMonsterIds}
+                    styles={styles}
                     isMobile={isMobile}
                     backHref={backHref}
                     t={t}
@@ -2056,12 +2051,7 @@ export default function MapMonsterBrowser() {
                 ))}
               </div>
             ) : (
-              <div
-                className={cn(
-                  "rounded-2xl px-4 py-5 text-sm",
-                  styles.emptyDashed
-                )}
-              >
+              <div className="rounded-2xl px-4 py-5 text-sm" style={styles.emptyDashed}>
                 {t("noMatchedMonster")}
               </div>
             )}
