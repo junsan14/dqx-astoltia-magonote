@@ -309,13 +309,7 @@ export default function AccessoryGuideClient() {
     };
   }, []);
 
-  const slots = useMemo(() => {
-    const values = [
-      ...new Set(accessories.map((item) => item.slot).filter(Boolean)),
-    ];
 
-    return sortByCustomOrder(values, SLOT_ORDER);
-  }, [accessories]);
 
   const types = useMemo(() => {
     const values = [
@@ -370,9 +364,6 @@ export default function AccessoryGuideClient() {
     });
   }, [chainRows, q, slot, type, onlyInheritance, onlyObtainPlace]);
 
-  const visibleAccessoryCount = useMemo(() => {
-    return filteredRows.reduce((total, row) => total + row.chain.length, 0);
-  }, [filteredRows]);
 
   function resetFilters() {
     setQ("");
