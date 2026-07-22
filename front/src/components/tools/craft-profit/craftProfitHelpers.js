@@ -20,6 +20,12 @@ const collatorEn = new Intl.Collator("en");
 
 export const DEFAULT_FEE_RATE = 5;
 
+const CRYSTAL_UNIT_PRICE = 3200;
+const EXPENSIVE_ITEM_PRICE_RATE = 1.25;
+const CRYSTAL_ITEM_DISCOUNT = 10000;
+const BUYER_PROFIT_RATE = 0.2;
+const MARKET_PRICE_ROUND_UNIT = 100;
+
 function getCollator(locale = "ja") {
   return locale === "en" ? collatorEn : collatorJa;
 }
@@ -436,6 +442,77 @@ export function defaultStarPrices(setObj) {
       star3: 150000,
     }
   );
+}
+
+function roundMarketPrice(value) {
+  const safeValue = Math.max(0, Number(value) || 0);
+  return Math.round(safeValue / MARKET_PRICE_ROUND_UNIT) * MARKET_PRICE_ROUND_UNIT;
+}
+
+function buildCrystalValues(crystalByEquipLevel) {
+  if (!crystalByEquipLevel) return null;
+
+  return {
+    star0:
+      Math.max(0, Number(crystalByEquipLevel.plus0) || 0) *
+      CRYSTAL_UNIT_PRICE,
+    star1:
+      Math.max(0, Number(crystalByEquipLevel.plus1) || 0) *
+      CRYSTAL_UNIT_PRICE,
+    star2:
+      Math.max(0, Number(crystalByEquipLevel.plus2) || 0) *
+      CRYSTAL_UNIT_PRICE,
+    star3:
+      Math.max(0, Number(crystalByEquipLevel.plus3) || 0) *
+      CRYSTAL_UNIT_PRICE,
+  };
+}
+
+export function isCrystalEquipment({
+  costPerItem,
+  crystalByEquipLevel,
+}) {
+  const crystalValues = buildCrystalValues(crystalByEquipLevel);
+  if (!crystalValues) return false;
+
+  const cost = Math.max(0, Number(costPerItem) || 0);
+
+  // 原価が★3で取れる結晶価値以下なら結晶装備。
+  return cost <= crystalValues.star3;
+}
+
+export function calcRecommendedStarPrices({
+  costPerItem,
+  crystalByEquipLevel,
+}) {
+  const crystalValues = buildCrystalValues(crystalByEquipLevel);
+  if (!crystalValues) return null;
+
+  const cost = Math.max(0, Number(costPerItem) || 0);
+  const crystalEquipment = isCrystalEquipment({
+    costPerItem: cost,
+    crystalByEquipLevel,
+  });
+
+  if (!crystalEquipment) {
+    // 高額商材：購入者利益率は使わず、★3は原価の25%増し。
+    return {
+      star0: roundMarketPrice(crystalValues.star0 - CRYSTAL_ITEM_DISCOUNT),
+      star1: roundMarketPrice(crystalValues.star1 - CRYSTAL_ITEM_DISCOUNT),
+      star2: roundMarketPrice(crystalValues.star2 - CRYSTAL_ITEM_DISCOUNT),
+      star3: roundMarketPrice(cost * EXPENSIVE_ITEM_PRICE_RATE),
+    };
+  }
+
+  // 結晶装備だけ、購入者が20%利益を取れる価格にする。
+  const buyerPriceRate = 1 + BUYER_PROFIT_RATE;
+
+  return {
+    star0: roundMarketPrice(crystalValues.star0 / buyerPriceRate),
+    star1: roundMarketPrice(crystalValues.star1 / buyerPriceRate),
+    star2: roundMarketPrice(crystalValues.star2 / buyerPriceRate),
+    star3: roundMarketPrice(crystalValues.star3 / buyerPriceRate),
+  };
 }
 
 export function normalizeSlots(items) {

@@ -18,11 +18,12 @@ import {
   buildMatrix,
   buildSetsFromEquipments,
   calcMaterialCost,
+  calcRecommendedStarPrices,
   calcMinRatesToBreakEven,
   calcSlotTotals,
-  defaultStarPrices,
   getCrystalInfo,
   getDisplayJobs,
+  isCrystalEquipment,
   recommendFromP3,
 } from "./craftProfitHelpers";
 import styles from "./CraftProfitClient.module.css";
@@ -130,7 +131,6 @@ export default function CraftProfitClient() {
   const [openSetList, setOpenSetList] = useState(false);
 
   const [feeRatePct, setFeeRatePct] = useState(DEFAULT_FEE_RATE);
-  const [starPrice, setStarPrice] = useState(defaultStarPrices(null));
 
   const [toolId, setToolId] = useState("none");
   const [toolPriceOverride, setToolPriceOverride] = useState(null);
@@ -215,10 +215,8 @@ export default function CraftProfitClient() {
     if (selectedSet?.name) {
       setSetQuery(selectedSet.name);
       setUnitCostMap(buildInitialUnitCostMap(selectedSet, locale));
-      setStarPrice(defaultStarPrices(selectedSet));
     } else {
       setUnitCostMap({});
-      setStarPrice(defaultStarPrices(null));
     }
   }, [selectedSet, locale]);
 
@@ -454,16 +452,76 @@ export default function CraftProfitClient() {
     [avgMaterialCostPerPart, toolEnabled, toolCostPerCraft]
   );
 
+  const crystalByEquipLevel = useMemo(
+    () => getCrystalInfo(selectedSet, crystalRules),
+    [selectedSet, crystalRules]
+  );
+
+  const slotPricing = useMemo(() => {
+    const result = {};
+
+    for (const slot of slots) {
+      const slotCost = clamp0(slotTotalsWithTool?.amount?.[slot] ?? 0);
+      const prices = calcRecommendedStarPrices({
+        costPerItem: slotCost,
+        crystalByEquipLevel,
+      });
+
+      result[slot] = {
+        cost: slotCost,
+        prices,
+        isCrystalEquipment: isCrystalEquipment({
+          costPerItem: slotCost,
+          crystalByEquipLevel,
+        }),
+      };
+    }
+
+    return result;
+  }, [slots, slotTotalsWithTool, crystalByEquipLevel]);
+
+  const recommendedStarPrices = useMemo(
+    () =>
+      calcRecommendedStarPrices({
+        costPerItem,
+        crystalByEquipLevel,
+      }),
+    [costPerItem, crystalByEquipLevel]
+  );
+
+  const crystalEquipmentLabel = useMemo(() => {
+    if (!slots.length) return "";
+
+    const crystalCount = slots.filter(
+      (slot) => slotPricing?.[slot]?.isCrystalEquipment
+    ).length;
+
+    if (!crystalCount) return "";
+
+    if (crystalCount === slots.length) {
+      return locale === "en" ? "Crystal gear" : "結晶装備";
+    }
+
+    return locale === "en"
+      ? "Some crystal gear"
+      : "一部 結晶装備";
+  }, [slots, slotPricing, locale]);
+
   const minRates = useMemo(
     () =>
       calcMinRatesToBreakEven({
         feeRate,
         costPerItem,
-        starPrice,
+        starPrice: recommendedStarPrices ?? {
+          star0: 0,
+          star1: 0,
+          star2: 0,
+          star3: 0,
+        },
         stepPercent: 1,
         locale,
       }),
-    [feeRate, costPerItem, starPrice, locale]
+    [feeRate, costPerItem, recommendedStarPrices, locale]
   );
 
   const recommend = useMemo(() => {
@@ -494,11 +552,6 @@ export default function CraftProfitClient() {
   const displayJobs = useMemo(
     () => getDisplayJobs(selectedSet),
     [selectedSet]
-  );
-
-  const crystalByEquipLevel = useMemo(
-    () => getCrystalInfo(selectedSet, crystalRules),
-    [selectedSet, crystalRules]
   );
 
   return (
@@ -561,16 +614,16 @@ export default function CraftProfitClient() {
             slotTotalsWithTool={slotTotalsWithTool}
             avgMaterialCostPerPart={avgMaterialCostPerPart}
             costPerItem={costPerItem}
+            slotPricing={slotPricing}
           />
 
           <SalePriceCard
             feeRatePct={feeRatePct}
             setFeeRatePct={setFeeRatePct}
-            starPrice={starPrice}
-            setStarPrice={setStarPrice}
             minRates={minRates}
             recommend={recommend}
             recommendRate={recommendRate}
+            crystalEquipmentLabel={crystalEquipmentLabel}
           />
         </div>
       )}

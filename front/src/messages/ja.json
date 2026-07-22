@@ -132,9 +132,9 @@
       "material": "素材",
       "materialName": "素材名",
       "required": "必要",
-      "unitPrice": "単価",
+      "unitPrice": "単価目安",
       "amount": "金額",
-      "total": "合計",
+      "total": "原価合計",
       "tool": "道具",
       "noMaterials": "この項目で使う素材はない。",
       "averagePerSlot":"平均コスト"

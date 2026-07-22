@@ -1,17 +1,17 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import styles from "./SalePriceCard.module.css";
 
 export default function SalePriceCard({
   feeRatePct,
   setFeeRatePct,
-  starPrice,
-  setStarPrice,
   minRates,
   recommend,
   recommendRate,
+  crystalEquipmentLabel,
 }) {
+  const locale = useLocale();
   const t = useTranslations("CraftProfit");
 
   const recommendTone =
@@ -43,7 +43,19 @@ export default function SalePriceCard({
   return (
     <section className={styles.card}>
       <div className={styles.headingRow}>
-        <div className={styles.heading}>{t("salePrice.title")}</div>
+        <div className={styles.headingGroup}>
+          <div className={styles.heading}>
+            {locale === "en"
+              ? "Craft recommendation rate"
+              : "作成おすすめ率"}
+          </div>
+
+          {crystalEquipmentLabel && (
+            <span className={styles.crystalEquipmentBadge}>
+              {crystalEquipmentLabel}
+            </span>
+          )}
+        </div>
 
         <div className={styles.feeControl}>
           <span className={styles.feeLabel}>{t("salePrice.fee")}</span>
@@ -60,42 +72,10 @@ export default function SalePriceCard({
         </div>
       </div>
 
-      <div className={styles.priceGrid}>
-        {[
-          ["star0", t("salePrice.star0")],
-          ["star1", t("salePrice.star1")],
-          ["star2", t("salePrice.star2")],
-          ["star3", t("salePrice.star3")],
-        ].map(([key, label]) => (
-          <div key={key} className={styles.priceCard}>
-            <div className={styles.priceLabel}>{label}</div>
-
-            <input
-              type="number"
-              inputMode="numeric"
-              className={styles.priceInput}
-              value={starPrice[key]}
-              min={0}
-              onChange={(event) =>
-                setStarPrice((previous) => ({
-                  ...previous,
-                  [key]: Number(event.target.value),
-                }))
-              }
-            />
-          </div>
-        ))}
-      </div>
-
       <div className={styles.recommendPanel}>
         <div className={styles.recommendHeadingRow}>
-          <div>
-            <div className={styles.recommendHeading}>
-              {t("salePrice.recommendTitle")}
-            </div>
-            <div className={styles.recommendHelp}>
-              {t("salePrice.recommendHelp")}
-            </div>
+          <div className={styles.recommendHelp}>
+            {t("salePrice.recommendHelp")}
           </div>
 
           <div

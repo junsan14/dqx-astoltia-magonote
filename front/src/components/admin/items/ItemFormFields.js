@@ -66,7 +66,10 @@ export default function ItemFormFields({
             <input
               type="number"
               value={form.buy_price}
-              onChange={(e) => updateField("buy_price", e.target.value)}
+              onFocus={(event) => event.currentTarget.select()}
+              onChange={(event) =>
+                updateField("buy_price", event.target.value)
+              }
               style={inputStyle}
               placeholder="0"
             />

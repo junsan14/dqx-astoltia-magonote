@@ -123,15 +123,16 @@ export default function EquipmentDetailsPanel({
                   </div>
 
                   <div style={styles.materialCellCount}>
-                    <input
-                      type="number"
-                      style={styles.inputCompactXs}
-                      value={mat?.count ?? 1}
-                      onChange={(e) =>
-                        onUpdateMaterial(index, "count", e.target.value)
-                      }
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    style={styles.inputCompactXs}
+                    value={mat?.count ?? 1}
+                    onFocus={(event) => event.currentTarget.select()}
+                    onChange={(event) =>
+                      onUpdateMaterial(index, "count", event.target.value)
+                    }
+                  />
+                </div>
 
                   <div style={styles.materialCellAction}>
                     <button

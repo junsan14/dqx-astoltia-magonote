@@ -106,6 +106,14 @@ function parseMoneyValue(value) {
 }
 
 function MoneyInput({ value, onChange, className, ariaLabel }) {
+  const handleFocus = (event) => {
+    const input = event.currentTarget;
+
+    requestAnimationFrame(() => {
+      input.select();
+    });
+  };
+
   return (
     <input
       type="text"
@@ -115,6 +123,7 @@ function MoneyInput({ value, onChange, className, ariaLabel }) {
       className={className}
       value={formatMoneyValue(value)}
       aria-label={ariaLabel}
+      onFocus={handleFocus}
       onChange={(event) => onChange(parseMoneyValue(event.target.value))}
     />
   );
@@ -187,8 +196,10 @@ function MobileMaterialsList({
   unitCostMap,
   onChangeUnitCost,
   toolRow,
+  recommendedPrices,
 }) {
   const t = useTranslations("CraftProfit");
+  const locale = useLocale();
   const safeRows = Array.isArray(rows) ? rows : [];
 
   const items = useMemo(() => {
@@ -274,6 +285,24 @@ function MobileMaterialsList({
           {t("materials.total")}: {yen(totalAmount)}G
         </span>
       </div>
+
+      <div className={styles.mobileRecommendedPriceHeading}>
+        {locale === "en" ? "Recommended prices" : "販売目安価格"}
+      </div>
+
+      {[
+        ["star0", "☆☆☆"],
+        ["star1", "★☆☆"],
+        ["star2", "★★☆"],
+        ["star3", "★★★"],
+      ].map(([key, label]) => (
+        <div key={key} className={styles.mobileRecommendedPriceRow}>
+          <span className={styles.mobileRecommendedPriceLabel}>{label}</span>
+          <span className={styles.mobileRecommendedPriceValue}>
+            {recommendedPrices ? `${yen(recommendedPrices[key])}G` : "—"}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -522,8 +551,7 @@ export default function CraftProfitMaterialsCard({
   setToolPriceOverride,
   toolCostPerCraft,
   slotTotalsWithTool,
-  avgMaterialCostPerPart,
-  costPerItem,
+  slotPricing,
 }) {
   const t = useTranslations("CraftProfit");
   const locale = useLocale();
@@ -612,6 +640,7 @@ export default function CraftProfitMaterialsCard({
               unitCostMap={unitCostMap}
               onChangeUnitCost={updateUnitCost}
               toolRow={mobileToolRow}
+              recommendedPrices={slotPricing?.[slot]?.prices}
             />
           )}
         </MobileSlotCarousel>
@@ -748,7 +777,7 @@ export default function CraftProfitMaterialsCard({
               </tbody>
 
               <tfoot className={styles.desktopTableFoot}>
-                <tr>
+                <tr className={styles.totalRow}>
                   <td className={styles.materialCell}>
                     {t("materials.total")}
                   </td>
@@ -759,14 +788,41 @@ export default function CraftProfitMaterialsCard({
                     </td>
                   ))}
 
-                  <td />
-                  <td className={styles.averageLabel}>
-                    {t("materials.averagePerSlot")}
-                  </td>
-                  <td className={styles.strongNumberCell}>
-                    {yen(avgMaterialCostPerPart)} / {yen(costPerItem)}
+                  <td colSpan={3} />
+
+                </tr>
+
+                <tr className={styles.recommendedPriceHeadingRow}>
+                  <td
+                    colSpan={sortedSlots.length + 4}
+                    className={styles.recommendedPriceHeading}
+                  >
+                    {locale === "en"
+                      ? "Recommended prices"
+                      : "適正売値価格"}
                   </td>
                 </tr>
+
+                {[
+                  ["star0", "☆☆☆"],
+                  ["star1", "★☆☆"],
+                  ["star2", "★★☆"],
+                  ["star3", "★★★"],
+                ].map(([key, label]) => (
+                  <tr key={key} className={styles.recommendedPriceRow}>
+                    <td className={styles.recommendedPriceLabel}>{label}</td>
+
+                    {sortedSlots.map((slot) => (
+                      <td key={slot} className={styles.recommendedPriceValue}>
+                        {slotPricing?.[slot]?.prices
+                          ? yen(slotPricing[slot].prices[key])
+                          : "—"}
+                      </td>
+                    ))}
+
+                    <td colSpan={3} />
+                  </tr>
+                ))}
               </tfoot>
             </table>
           </div>
