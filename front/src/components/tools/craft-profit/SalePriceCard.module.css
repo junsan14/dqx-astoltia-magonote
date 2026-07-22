@@ -1,0 +1,238 @@
+.card {
+  padding: 1.25rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+.card > * + * {
+  margin-top: 1rem;
+}
+
+.headingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.heading {
+  color: var(--text-title);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.feeControl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feeLabel {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.feeInputWrap {
+  position: relative;
+  width: 5rem;
+}
+
+.feeInput {
+  width: 111.111%;
+  transform: scale(0.9);
+  transform-origin: right center;
+  border: 1px solid var(--input-border);
+  border-radius: 0.5rem;
+  background: var(--input-bg);
+  color: var(--input-text);
+  padding: 0.25rem 1.25rem 0.25rem 0.5rem;
+  font: inherit;
+  font-size: 1rem;
+  text-align: right;
+}
+
+.percentSign {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+
+.priceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.priceCard {
+  padding: 0.75rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--soft-bg);
+}
+
+.priceLabel {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.priceInput {
+  width: 100%;
+  margin-top: 0.25rem;
+  border: 1px solid var(--input-border);
+  border-radius: 0.75rem;
+  background: var(--input-bg);
+  color: var(--input-text);
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  text-align: right;
+}
+
+.feeInput:focus-visible,
+.priceInput:focus-visible {
+  outline: 2px solid var(--selected-border);
+  outline-offset: 1px;
+}
+
+.recommendPanel {
+  padding: 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--soft-bg);
+}
+
+.recommendPanel > * + * {
+  margin-top: 1rem;
+}
+
+.recommendHeadingRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.recommendHeading {
+  color: var(--text-main);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.recommendHelp {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.recommendBadge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.recommendBadgeDanger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.recommendRateCard {
+  padding: 1.25rem 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  text-align: center;
+}
+
+.recommendRate {
+  color: var(--recommend-tone, var(--text-main));
+  font-size: 3rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.rateGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.rateCard {
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  text-align: center;
+}
+
+.rateStar {
+  overflow: hidden;
+  color: var(--text-main);
+  font-size: 0.875rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rateValue {
+  margin-top: 0.25rem;
+  color: var(--text-main);
+  font-size: 1.5rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.rateNote {
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.note {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.noteDanger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+@media (min-width: 640px) {
+  .priceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rateGrid {
+    gap: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .priceGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

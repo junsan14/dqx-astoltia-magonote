@@ -1,0 +1,49 @@
+.page {
+  min-height: 100vh;
+  background: var(--page-bg);
+  color: var(--page-text);
+}
+
+.page > * + * {
+  margin-top: 1.25rem;
+}
+
+.content > * + * {
+  margin-top: 1.25rem;
+}
+
+.loadingArea > * + * {
+  margin-top: 1.25rem;
+}
+
+.errorMessage {
+  padding: 1rem;
+  border: 1px solid var(--danger-border);
+  border-radius: 0.75rem;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.infoColumn > * + * {
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .page > * + *,
+  .content > * + * {
+    margin-top: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .topGrid {
+    grid-template-columns: 26.25rem minmax(0, 1fr);
+  }
+}

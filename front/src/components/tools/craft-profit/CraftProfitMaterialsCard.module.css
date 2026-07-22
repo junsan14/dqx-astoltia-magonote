@@ -1,0 +1,468 @@
+.card {
+  padding: 1.25rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+.card > * + * {
+  margin-top: 0.75rem;
+}
+
+.headingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.heading {
+  margin: 0;
+  color: var(--text-title);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.mobileOnly > * + * {
+  margin-top: 0.75rem;
+}
+
+.desktopOnly {
+  display: none;
+}
+
+.slotGridViewport {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.slotGrid {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(var(--slot-grid-columns), minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.slotGridCell {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  background: var(--card-bg);
+  color: var(--text-main);
+  text-align: center;
+}
+
+.slotGridCellDisabled {
+  border-color: var(--soft-border);
+  background: var(--soft-bg);
+  color: var(--text-muted);
+}
+
+.slotGridValue {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.mobileTabsFullBleed,
+.mobileCarouselFullBleed {
+  margin-inline: -1.25rem;
+}
+
+.mobileTabsScroller {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.25rem 1.25rem;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobileTabsScroller::-webkit-scrollbar,
+.mobileCarousel::-webkit-scrollbar {
+  display: none;
+}
+
+.mobileTab {
+  flex: 0 0 auto;
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  padding: 0.25rem 0.75rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.mobileTab:active {
+  transform: scale(0.97);
+}
+
+.mobileTab:focus-visible {
+  outline: 2px solid var(--selected-border);
+  outline-offset: 2px;
+}
+
+.mobileTabActive {
+  border-color: var(--selected-border);
+  background: var(--primary-bg);
+  color: var(--primary-text);
+}
+
+.mobileCarousel {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding: 0 0 0.5rem;
+  scroll-behavior: smooth;
+  scroll-padding-inline: 0;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  touch-action: pan-x pan-y pinch-zoom;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobileSlide {
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  box-sizing: border-box;
+}
+
+.mobileSlideContent {
+  margin-inline: 1rem;
+}
+
+.mobileSlideContent > * + * {
+  margin-top: 0.75rem;
+}
+
+.mobileGridCard {
+  padding: 0.75rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--soft-bg);
+}
+
+.mobileGridCard > * + * {
+  margin-top: 0.5rem;
+}
+
+.mobileGridTitle {
+  overflow: hidden;
+  padding-inline: 0.5rem;
+  color: var(--text-sub);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobileGridBody {
+  display: flex;
+  min-height: 11.5rem;
+  align-items: center;
+}
+
+.mobileMaterialTable {
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 0.5rem;
+  background: var(--card-bg);
+  font-size: 0.6875rem;
+}
+
+.mobileMaterialHeader,
+.mobileMaterialRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.5rem 3.25rem 4.5rem;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.mobileMaterialHeader {
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--card-border);
+  background: var(--soft-bg);
+  color: var(--text-main);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.mobileMaterialNameHeader {
+  min-width: 0;
+  padding-inline: 0.4rem;
+  text-align: left;
+}
+
+.mobileMaterialRow {
+  min-height: 2.5rem;
+  padding-block: 0.3rem;
+  border-top: 1px solid var(--card-border);
+}
+
+.mobileMaterialRow:first-of-type {
+  border-top: 0;
+}
+
+.mobileMaterialName {
+  min-width: 0;
+  padding-inline: 0.4rem;
+  color: var(--text-main);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+}
+
+.mobileMutedCell,
+.mobileNumberCell {
+  min-width: 0;
+  font-size: 0.625rem;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mobileMutedCell {
+  color: var(--text-muted);
+}
+
+.mobileNumberCell {
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobileUnitInputWrap {
+  min-width: 0;
+  padding-right: 0.15rem;
+}
+
+.mobileUnitInput {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 2rem;
+  box-sizing: border-box;
+  border: 1px solid var(--input-border);
+  border-radius: 0.3rem;
+  background: var(--input-bg);
+  color: var(--input-text);
+  padding: 0.2rem;
+  font-family: inherit;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
+}
+
+.mobileUnitInput:focus-visible,
+.desktopInput:focus-visible {
+  outline: 2px solid var(--selected-border);
+  outline-offset: 1px;
+}
+
+.mobileEmpty {
+  padding: 1rem 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.mobileMaterialTotal {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.25rem 0.5rem;
+  background: var(--soft-bg);
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.baseValueLabel {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.desktopOnly > * + * {
+  margin-top: 0.75rem;
+}
+
+.desktopGridScroller,
+.desktopTableScroller {
+  overflow-x: auto;
+}
+
+.desktopGridList {
+  display: flex;
+  width: max-content;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.desktopGridCard {
+  flex: 0 0 13.75rem;
+  padding: 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--soft-bg);
+}
+
+.desktopGridCard > * + * {
+  margin-top: 0.5rem;
+}
+
+.desktopGridTitle {
+  color: var(--text-main);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.desktopTableCard {
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+}
+
+.desktopTable {
+  width: 100%;
+  min-width: 56.25rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.desktopTableHead {
+  border-bottom: 1px solid var(--card-border);
+  background: var(--soft-bg);
+}
+
+.desktopTable th,
+.desktopTable td {
+  padding: 0.5rem 0.75rem;
+}
+
+.leftHeader,
+.numberHeader {
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.leftHeader {
+  text-align: left;
+}
+
+.numberHeader {
+  text-align: right;
+}
+
+.toolRow,
+.bodyRow {
+  border-bottom: 1px solid var(--card-border);
+}
+
+.toolRow {
+  background: var(--soft-bg);
+}
+
+.materialCell {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.bodyRow .materialCell {
+  font-weight: 500;
+}
+
+.mutedNumberCell,
+.strongNumberCell,
+.inputCell,
+.averageLabel {
+  text-align: right;
+}
+
+.mutedNumberCell {
+  color: var(--text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.strongNumberCell {
+  color: var(--text-main);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.inputCell {
+  white-space: nowrap;
+}
+
+.desktopInput {
+  width: 7rem;
+  box-sizing: border-box;
+  border: 1px solid var(--input-border);
+  border-radius: 0.5rem;
+  background: var(--input-bg);
+  color: var(--input-text);
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.desktopTableFoot {
+  border-top: 1px solid var(--card-border);
+  background: var(--soft-bg);
+}
+
+.averageLabel {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+@media (min-width: 640px) {
+  .mobileOnly {
+    display: none;
+  }
+
+  .desktopOnly {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileTabsScroller,
+  .mobileCarousel {
+    scroll-behavior: auto;
+  }
+
+  .mobileTab {
+    transition: none;
+  }
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import ProgressIntlLink from "@/components/common/ProgressIntlLink";
+import SearchableSelect from "@/components/common/SearchableSelect";
+import DropdownSelect from "@/components/common/DropdownSelect";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   usePathname,
@@ -16,7 +18,6 @@ import styles from "./MapMonsterBrowser.module.css";
 import PageHeroTitle from "@/components/PageHeroTitle";
 import MapMonsterBrowserSkeleton from "@/components/ui/MapMonsterBrowserSkeleton";
 import {
-  MdKeyboardArrowDown,
   MdOutlineSwipe,
   MdOutlineSwipeLeft,
   MdOutlineSwipeRight,
@@ -37,16 +38,6 @@ function uniqBy(array, keyGetter) {
 
 function normalizeText(value) {
   return String(value ?? "").trim();
-}
-
-function normalizeKana(value) {
-  return String(value ?? "")
-    .normalize("NFKC")
-    .replace(/[\u30A1-\u30F6]/g, (char) =>
-      String.fromCharCode(char.charCodeAt(0) - 0x60)
-    )
-    .toLowerCase()
-    .trim();
 }
 
 function parseAreaList(area) {
@@ -259,367 +250,6 @@ function AreaBadgeList({ area, initialLimit = 4, t }) {
           </button>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function SearchableContinentSelect({
-  disabled = false,
-  value = "",
-  onChange,
-  options = [],
-  placeholder,
-  t,
-}) {
-  const rootRef = useRef(null);
-  const [inputValue, setInputValue] = useState("");
-  const [open, setOpen] = useState(false);
-
-  const selectedOption = useMemo(() => {
-    return (
-      options.find((option) => String(option?.id) === String(value)) ?? null
-    );
-  }, [options, value]);
-
-  useEffect(() => {
-    setInputValue(
-      getDisplayValue(selectedOption, ["continent_name", "name"], "")
-    );
-  }, [selectedOption]);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(event.target)) setOpen(false);
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filteredOptions = useMemo(() => {
-    const keyword = normalizeKana(inputValue);
-    const base = [...options].sort((a, b) => {
-      const aOrder = Number(a?.display_order ?? 0);
-      const bOrder = Number(b?.display_order ?? 0);
-      if (aOrder !== bOrder) return aOrder - bOrder;
-
-      return sortJa(
-        getDisplayValue(a, ["continent_name", "name"]),
-        getDisplayValue(b, ["continent_name", "name"])
-      );
-    });
-
-    if (!keyword) return base.slice(0, 30);
-
-    return base
-      .filter((option) => {
-        const label = getDisplayValue(option, ["continent_name", "name"], "");
-        const labelEn = normalizeText(
-          option?.continent_name_en ?? option?.name_en ?? ""
-        );
-
-        return (
-          normalizeKana(label).includes(keyword) ||
-          normalizeKana(labelEn).includes(keyword)
-        );
-      })
-      .slice(0, 30);
-  }, [options, inputValue]);
-
-  function handleSelect(option) {
-    onChange?.(String(option.id));
-    setInputValue(getDisplayValue(option, ["continent_name", "name"], ""));
-    setOpen(false);
-  }
-
-  function handleInputChange(next) {
-    setInputValue(next);
-    setOpen(true);
-
-    const exact = options.find((option) => {
-      const label = getDisplayValue(option, ["continent_name", "name"], "");
-      const labelEn = normalizeText(
-        option?.continent_name_en ?? option?.name_en ?? ""
-      );
-
-      return (
-        normalizeText(label) === normalizeText(next) ||
-        labelEn === normalizeText(next)
-      );
-    });
-
-    if (!next.trim()) {
-      onChange?.("");
-      return;
-    }
-
-    if (!exact) onChange?.("");
-  }
-
-  return (
-    <div ref={rootRef} className={styles.relative}>
-      <input
-        type="text"
-        value={inputValue}
-        onChange={(event) => handleInputChange(event.target.value)}
-        onFocus={() => {
-          if (!disabled) setOpen(true);
-        }}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={styles.textInput}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && filteredOptions.length > 0) {
-            event.preventDefault();
-            handleSelect(filteredOptions[0]);
-          }
-        }}
-      />
-
-      {open && !disabled ? (
-        <div className={styles.dropdownPanel}>
-          {filteredOptions.length === 0 ? (
-            <div className={styles.dropdownEmpty}>{t("noCandidates")}</div>
-          ) : (
-            filteredOptions.map((option) => {
-              const active = String(option?.id) === String(value);
-              const label = getDisplayValue(option, ["continent_name", "name"], "");
-
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => handleSelect(option)}
-                  className={cn(
-                    styles.dropdownItem,
-                    active && styles.dropdownItemActive
-                  )}
-                >
-                  <span>{label}</span>
-                </button>
-              );
-            })
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function SearchableMapSelect({
-  disabled = false,
-  value = "",
-  onChange,
-  options = [],
-  placeholder,
-  t,
-}) {
-  const rootRef = useRef(null);
-  const [inputValue, setInputValue] = useState("");
-  const [open, setOpen] = useState(false);
-
-  const selectedOption = useMemo(() => {
-    return options.find((option) => String(option.id) === String(value)) ?? null;
-  }, [options, value]);
-
-  useEffect(() => {
-    setInputValue(getDisplayValue(selectedOption, ["map_name", "name"], ""));
-  }, [selectedOption]);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(event.target)) setOpen(false);
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filteredOptions = useMemo(() => {
-    const keyword = normalizeKana(inputValue);
-    const base = [...options].sort((a, b) =>
-      sortJa(
-        getDisplayValue(a, ["map_name", "name"]),
-        getDisplayValue(b, ["map_name", "name"])
-      )
-    );
-
-    if (!keyword) return base.slice(0, 30);
-
-    return base
-      .filter((option) => {
-        const label = getDisplayValue(option, ["map_name", "name"], "");
-        const labelEn = normalizeText(option?.map_name_en ?? option?.name_en ?? "");
-
-        return (
-          normalizeKana(label).includes(keyword) ||
-          normalizeKana(labelEn).includes(keyword)
-        );
-      })
-      .slice(0, 30);
-  }, [options, inputValue]);
-
-  function handleSelect(option) {
-    onChange?.(String(option.id));
-    setInputValue(getDisplayValue(option, ["map_name", "name"], ""));
-    setOpen(false);
-  }
-
-  function handleInputChange(next) {
-    setInputValue(next);
-    setOpen(true);
-
-    const exact = options.find((option) => {
-      const label = getDisplayValue(option, ["map_name", "name"], "");
-      const labelEn = normalizeText(option?.map_name_en ?? option?.name_en ?? "");
-
-      return (
-        normalizeText(label) === normalizeText(next) ||
-        labelEn === normalizeText(next)
-      );
-    });
-
-    if (!next.trim()) {
-      onChange?.("");
-      return;
-    }
-
-    if (!exact) onChange?.("");
-  }
-
-  return (
-    <div ref={rootRef} className={styles.relative}>
-      <input
-        type="text"
-        value={inputValue}
-        onChange={(event) => handleInputChange(event.target.value)}
-        onFocus={() => {
-          if (!disabled) setOpen(true);
-        }}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={styles.textInput}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" && filteredOptions.length > 0) {
-            event.preventDefault();
-            handleSelect(filteredOptions[0]);
-          }
-        }}
-      />
-
-      {open && !disabled ? (
-        <div className={styles.dropdownPanel}>
-          {filteredOptions.length === 0 ? (
-            <div className={styles.dropdownEmpty}>{t("noCandidates")}</div>
-          ) : (
-            filteredOptions.map((option) => {
-              const active = String(option.id) === String(value);
-              const label = getDisplayValue(option, ["map_name", "name"], "");
-
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => handleSelect(option)}
-                  className={cn(
-                    styles.dropdownItem,
-                    active && styles.dropdownItemActive
-                  )}
-                >
-                  <span>{label}</span>
-                </button>
-              );
-            })
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function SearchMethodSelect({
-  value = "map",
-  onChange,
-  options = [],
-  disabled = false,
-}) {
-  const rootRef = useRef(null);
-  const [open, setOpen] = useState(false);
-
-  const selectedOption = useMemo(() => {
-    return options.find((option) => option.value === value) ?? options[0] ?? null;
-  }, [options, value]);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(event.target)) setOpen(false);
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (disabled) setOpen(false);
-  }, [disabled]);
-
-  function handleSelect(nextValue) {
-    onChange?.(nextValue);
-    setOpen(false);
-  }
-
-  return (
-    <div ref={rootRef} className={styles.relative}>
-      <button
-        type="button"
-        className={cn(
-          styles.textInput,
-          styles.dropdownTrigger,
-          open && styles.dropdownTriggerOpen
-        )}
-        onClick={() => {
-          if (!disabled) setOpen((current) => !current);
-        }}
-        disabled={disabled}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <span>{selectedOption?.label ?? ""}</span>
-        <MdKeyboardArrowDown
-          aria-hidden="true"
-          className={cn(
-            styles.dropdownTriggerIcon,
-            open && styles.dropdownTriggerIconOpen
-          )}
-        />
-      </button>
-
-      {open ? (
-        <div className={styles.dropdownPanel} role="listbox">
-          {options.map((option) => {
-            const active = option.value === value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={active}
-                onClick={() => handleSelect(option.value)}
-                className={cn(
-                  styles.dropdownItem,
-                  active && styles.dropdownItemActive
-                )}
-              >
-                <span>{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1747,23 +1377,49 @@ export default function MapMonsterBrowser() {
       <div className={styles.filterPanel}>
         <div className={styles.filterField}>
           <span className={styles.labelText}>{t("continent")}</span>
-          <SearchableContinentSelect
+          <SearchableSelect
             disabled={loading}
             value={loading ? "" : selectedContinentId}
             onChange={handleContinentChange}
             options={continents}
+            selectOnFocus
             placeholder={
               loading ? t("loadingContinentData") : t("continentPlaceholder")
             }
-            t={t}
+            emptyText={t("noCandidates")}
+            ariaLabel={t("continent")}
+            getOptionValue={(option) => option?.id}
+            getOptionLabel={(option) =>
+              getDisplayValue(option, ["continent_name", "name"], "")
+            }
+            getOptionSearchText={(option) =>
+              [
+                getDisplayValue(option, ["continent_name", "name"], ""),
+                normalizeText(option?.continent_name_en ?? option?.name_en),
+              ]
+                .filter(Boolean)
+                .join(" ")
+            }
+            sortOptions={(a, b) => {
+              const aOrder = Number(a?.display_order ?? 0);
+              const bOrder = Number(b?.display_order ?? 0);
+
+              if (aOrder !== bOrder) return aOrder - bOrder;
+
+              return sortJa(
+                getDisplayValue(a, ["continent_name", "name"]),
+                getDisplayValue(b, ["continent_name", "name"])
+              );
+            }}
           />
         </div>
 
         <div className={styles.filterField}>
           <span className={styles.labelText}>{labels.searchMethod}</span>
-          <SearchMethodSelect
+          <DropdownSelect
             value={searchMode}
             onChange={handleSearchModeChange}
+            ariaLabel={labels.searchMethod}
             options={[
               { value: "map", label: labels.searchByMap },
               { value: "system", label: labels.searchBySystem },
@@ -1774,10 +1430,11 @@ export default function MapMonsterBrowser() {
         {searchMode === "system" ? (
           <div className={styles.filterField}>
             <span className={styles.labelText}>{labels.systemSearch}</span>
-            <SearchMethodSelect
+            <DropdownSelect
               value={selectedSystemType}
               onChange={handleSearchSystemChange}
               disabled={!selectedContinentId || !monsterDetailsReady}
+              ariaLabel={labels.systemSearch}
               options={[
                 {
                   value: "",
@@ -1808,13 +1465,35 @@ export default function MapMonsterBrowser() {
           <span className={styles.labelText}>
             {searchMode === "system" ? labels.filteredMapSearch : t("mapSearch")}
           </span>
-          <SearchableMapSelect
+          <SearchableSelect
             disabled={mapSearchDisabled}
             value={selectedMapId}
             onChange={handleMapChange}
             options={mapsForSearch}
             placeholder={mapPlaceholder}
-            t={t}
+            selectOnFocus
+            emptyText={t("noCandidates")}
+            ariaLabel={
+              searchMode === "system" ? labels.filteredMapSearch : t("mapSearch")
+            }
+            getOptionValue={(option) => option?.id}
+            getOptionLabel={(option) =>
+              getDisplayValue(option, ["map_name", "name"], "")
+            }
+            getOptionSearchText={(option) =>
+              [
+                getDisplayValue(option, ["map_name", "name"], ""),
+                normalizeText(option?.map_name_en ?? option?.name_en),
+              ]
+                .filter(Boolean)
+                .join(" ")
+            }
+            sortOptions={(a, b) =>
+              sortJa(
+                getDisplayValue(a, ["map_name", "name"]),
+                getDisplayValue(b, ["map_name", "name"])
+              )
+            }
           />
           {searchMode === "system" && selectedSystemType && monsterDetailsReady ? (
             <div className={styles.searchInfo}>
@@ -1823,28 +1502,24 @@ export default function MapMonsterBrowser() {
           ) : null}
         </div>
 
-        <label className={styles.filterField}>
+        <div className={styles.filterField}>
           <span className={styles.labelText}>{t("displayLayer")}</span>
-          <select
+          <DropdownSelect
             value={selectedLayerId}
-            onChange={(event) => handleLayerChange(event.target.value)}
-            className={styles.selectInput}
+            onChange={handleLayerChange}
             disabled={!selectedMap}
-          >
-            <option value="all">{t("all")}</option>
-            {mapLayers.map((layer) => {
-              const layerTitle =
-                getDisplayValue(layer, ["map_layer_name", "layer_name"]) ||
-                t("floorLabel", { floor: layer.floor_no ?? "" });
-
-              return (
-                <option key={layer.id} value={layer.id}>
-                  {layerTitle}
-                </option>
-              );
-            })}
-          </select>
-        </label>
+            ariaLabel={t("displayLayer")}
+            options={[
+              { value: "all", label: t("all") },
+              ...mapLayers.map((layer) => ({
+                value: String(layer.id),
+                label:
+                  getDisplayValue(layer, ["map_layer_name", "layer_name"]) ||
+                  t("floorLabel", { floor: layer.floor_no ?? "" }),
+              })),
+            ]}
+          />
+        </div>
       </div>
 
       {searchMode === "system" && selectedSystemType ? (

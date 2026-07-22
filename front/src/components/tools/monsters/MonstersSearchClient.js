@@ -9,6 +9,7 @@ import MonsterDetailHero from "@/components/tools/monsters/detail/MonsterDetailH
 import MonsterDropSection from "@/components/tools/monsters/detail/MonsterDropSection";
 import MonsterMapSection from "@/components/tools/monsters/detail/MonsterMapSection";
 import PageHeroTitle from "@/components/PageHeroTitle";
+import SearchableSelect from "@/components/common/SearchableSelect";
 
 function MonstersSearchPageLoading() {
   const loadingStyles = getLoadingStyles();
@@ -233,7 +234,6 @@ export default function MonstersSearchClient() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [searched, setSearched] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [detailCache, setDetailCache] = useState({});
@@ -241,7 +241,6 @@ export default function MonstersSearchClient() {
   const [detailErrors, setDetailErrors] = useState({});
 
   const debounceRef = useRef(null);
-  const wrapperRef = useRef(null);
   const itemRefs = useRef({});
 
   const styles = useMemo(() => getStyles(), []);
@@ -528,25 +527,6 @@ export default function MonstersSearchClient() {
     openDetail(onlyMonster.id);
   }, [loading, searched, keyword, monsters]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!wrapperRef.current?.contains(event.target)) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSuggestionClick = (label) => {
-    setKeyword(label);
-    setShowSuggestions(false);
-    runSearch({
-      keyword: label,
-      searchType,
-    });
-  };
 
   if (initialLoading) {
     return (
@@ -589,7 +569,6 @@ export default function MonstersSearchClient() {
                   setSearchType(option.value);
                   setKeyword("");
                   setSuggestions([]);
-                  setShowSuggestions(true);
                 }}
                 style={{
                   ...styles.segmentButton,
@@ -601,47 +580,20 @@ export default function MonstersSearchClient() {
             ))}
           </div>
 
-          <div style={styles.searchArea} ref={wrapperRef}>
-            <span style={styles.searchIcon}>⌕</span>
-            <input
-              type="text"
-              placeholder={t("searchPlaceholder", { target: currentLabel })}
-              value={keyword}
-              onChange={(e) => {
-                setKeyword(e.target.value);
-                setShowSuggestions(true);
-              }}
-              onFocus={(e) => {
-                setShowSuggestions(true);
-                e.target.select();
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setShowSuggestions(false);
-                }
-              }}
-              style={styles.input}
-            />
-
-            {showSuggestions && suggestions.length > 0 && (
-              <div style={styles.suggestionBox}>
-                <div style={styles.suggestionHeader}>{t("suggestions")}</div>
-                <ul style={styles.suggestionList}>
-                  {suggestions.map((suggestion) => (
-                    <li key={`suggest-${suggestion.label}`}>
-                      <button
-                        type="button"
-                        style={styles.suggestionButton}
-                        onClick={() => handleSuggestionClick(suggestion.label)}
-                      >
-                        <div style={styles.suggestionMain}>{suggestion.label}</div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+          <SearchableSelect
+            value={keyword}
+            onChange={(nextValue) => setKeyword(nextValue)}
+            options={suggestions}
+            placeholder={t("searchPlaceholder", { target: currentLabel })}
+            emptyText={loading ? t("loading") : "候補がありません"}
+            getOptionValue={(option) => option.label}
+            getOptionLabel={(option) => option.label}
+            getOptionSearchText={(option) => option.label}
+            maxResults={8}
+            allowCustomValue
+            selectOnFocus
+            ariaLabel={t("searchPlaceholder", { target: currentLabel })}
+          />
 
           <div style={styles.statusRow}>
             <span style={styles.statusText}>
@@ -1093,79 +1045,6 @@ function getStyles() {
       background: "var(--primary-bg)",
       color: "var(--primary-text)",
       border: "1px solid var(--primary-border)",
-    },
-    searchArea: {
-      position: "relative",
-      minWidth: 0,
-    },
-    searchIcon: {
-      position: "absolute",
-      left: "16px",
-      top: "50%",
-      transform: "translateY(-50%)",
-      color: "var(--text-muted)",
-      fontSize: "18px",
-      zIndex: 2,
-    },
-    input: {
-      width: "100%",
-      height: "58px",
-      borderRadius: "18px",
-      border: "1px solid var(--input-border)",
-      background: "var(--input-bg)",
-      fontSize: "16px",
-      padding: "0 18px 0 46px",
-      outline: "none",
-      color: "var(--input-text)",
-      boxSizing: "border-box",
-      minWidth: 0,
-      maxWidth: "100%",
-    },
-    suggestionBox: {
-      position: "absolute",
-      top: "64px",
-      left: 0,
-      right: 0,
-      background: "var(--panel-bg)",
-      border: "1px solid var(--input-border)",
-      borderRadius: "18px",
-      overflow: "hidden",
-      zIndex: 999,
-      minWidth: 0,
-      maxWidth: "100%",
-      boxSizing: "border-box",
-    },
-    suggestionHeader: {
-      padding: "12px 14px 8px",
-      fontSize: "12px",
-      fontWeight: 800,
-      color: "var(--text-muted)",
-      letterSpacing: "0.08em",
-    },
-    suggestionList: {
-      margin: 0,
-      padding: "0 0 6px",
-      listStyle: "none",
-      minWidth: 0,
-    },
-    suggestionButton: {
-      width: "100%",
-      display: "block",
-      textAlign: "left",
-      padding: "12px 14px",
-      background: "transparent",
-      border: "none",
-      cursor: "pointer",
-      color: "inherit",
-      borderTop: "1px solid var(--soft-border)",
-      boxSizing: "border-box",
-    },
-    suggestionMain: {
-      fontSize: "15px",
-      fontWeight: 800,
-      color: "var(--text-title)",
-      overflowWrap: "anywhere",
-      wordBreak: "break-word",
     },
     statusRow: {
       marginTop: "12px",

@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { clamp0, yen } from "@/lib/money";
 import {
   getSlotItemName,
-  sortSlots,
   normalizeSlotKey,
+  sortSlots,
 } from "./craftProfitHelpers";
-import { useLocale, useTranslations } from "next-intl";
+import styles from "./CraftProfitMaterialsCard.module.css";
 
 function SlotGridView({ grid }) {
   if (!grid) return null;
@@ -20,33 +27,32 @@ function SlotGridView({ grid }) {
   const rows = grid.length;
   const cols = Math.max(...grid.map((row) => row.length), 0);
 
-  const normalized = Array.from({ length: rows }, (_, r) =>
-    Array.from({ length: cols }, (_, c) => grid?.[r]?.[c] ?? null)
+  if (!rows || !cols) return null;
+
+  const normalized = Array.from({ length: rows }, (_, rowIndex) =>
+    Array.from(
+      { length: cols },
+      (_, columnIndex) => grid?.[rowIndex]?.[columnIndex] ?? null
+    )
   );
 
   return (
-    <div className="w-full min-w-0 overflow-x-auto">
+    <div className={styles.slotGridViewport}>
       <div
-        className="grid gap-2 w-full min-w-0"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        className={styles.slotGrid}
+        style={{ "--slot-grid-columns": cols }}
       >
-        {normalized.flat().map((value, i) => {
+        {normalized.flat().map((value, index) => {
           const disabled = value == null || value === "";
+
           return (
             <div
-              key={i}
-              className="min-h-[48px] rounded-xl border px-2 py-2 flex items-center justify-center text-center"
-              style={{
-                border: `1px solid ${
-                  disabled ? "var(--soft-border)" : "var(--card-border)"
-                }`,
-                backgroundColor: disabled
-                  ? "var(--soft-bg)"
-                  : "var(--card-bg)",
-                color: disabled ? "var(--text-muted)" : "var(--text-main)",
-              }}
+              key={`${index}-${String(value ?? "empty")}`}
+              className={`${styles.slotGridCell} ${
+                disabled ? styles.slotGridCellDisabled : ""
+              }`}
             >
-              <div className="text-sm font-semibold leading-tight tabular-nums break-words">
+              <div className={styles.slotGridValue}>
                 {disabled ? "" : value}
               </div>
             </div>
@@ -79,6 +85,41 @@ function getAxisItemName(slot, slotGridMeta, selectedSet) {
   return slotGridMeta?.[slot]?.itemName || getSlotItemName(selectedSet, slot);
 }
 
+const moneyFormatter = new Intl.NumberFormat("ja-JP", {
+  maximumFractionDigits: 0,
+});
+
+function normalizeMoneyValue(value) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) return 0;
+  return Math.max(0, Math.trunc(numericValue));
+}
+
+function formatMoneyValue(value) {
+  return moneyFormatter.format(normalizeMoneyValue(value));
+}
+
+function parseMoneyValue(value) {
+  const digits = String(value ?? "").replace(/[^0-9]/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+function MoneyInput({ value, onChange, className, ariaLabel }) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9,]*"
+      autoComplete="off"
+      className={className}
+      value={formatMoneyValue(value)}
+      aria-label={ariaLabel}
+      onChange={(event) => onChange(parseMoneyValue(event.target.value))}
+    />
+  );
+}
+
 function MobileSlotTabs({
   slots,
   activeSlot,
@@ -87,30 +128,51 @@ function MobileSlotTabs({
   slotItemMap,
 }) {
   const safeSlots = Array.isArray(slots) ? slots : [];
+  const tabListRef = useRef(null);
+  const tabRefs = useRef(new Map());
+
+  useEffect(() => {
+    const activeButton = tabRefs.current.get(activeSlot);
+    const tabList = tabListRef.current;
+
+    if (!activeButton || !tabList) return;
+
+    const buttonCenter = activeButton.offsetLeft + activeButton.offsetWidth / 2;
+    const targetLeft = buttonCenter - tabList.clientWidth / 2;
+
+    tabList.scrollTo({
+      left: Math.max(0, targetLeft),
+      behavior: "smooth",
+    });
+  }, [activeSlot]);
 
   return (
-    <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
-      <div className="flex gap-2 py-1">
-        {safeSlots.map((s) => {
-          const isActive = s === activeSlot;
+    <div className={styles.mobileTabsFullBleed}>
+      <div
+        ref={tabListRef}
+        className={styles.mobileTabsScroller}
+        role="tablist"
+        aria-label="装備部位"
+      >
+        {safeSlots.map((slot) => {
+          const isActive = slot === activeSlot;
 
           return (
             <button
-              key={s}
-              type="button"
-              onClick={() => onChange(s)}
-              className="shrink-0 rounded-full border px-3 py-1 text-sm font-semibold"
-              style={{
-                border: `1px solid ${
-                  isActive ? "var(--selected-border)" : "var(--card-border)"
-                }`,
-                backgroundColor: isActive
-                  ? "var(--primary-bg)"
-                  : "var(--card-bg)",
-                color: isActive ? "var(--primary-text)" : "var(--text-main)",
+              key={slot}
+              ref={(node) => {
+                if (node) tabRefs.current.set(slot, node);
+                else tabRefs.current.delete(slot);
               }}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`${styles.mobileTab} ${
+                isActive ? styles.mobileTabActive : ""
+              }`}
+              onClick={() => onChange(slot)}
             >
-              {getAxisLabel(s, slotGridMeta, slotItemMap)}
+              {getAxisLabel(slot, slotGridMeta, slotItemMap)}
             </button>
           );
         })}
@@ -130,10 +192,10 @@ function MobileMaterialsList({
   const safeRows = Array.isArray(rows) ? rows : [];
 
   const items = useMemo(() => {
-    const out = [];
+    const result = [];
 
     if (toolRow) {
-      out.push({
+      result.push({
         key: "__tool__",
         name: toolRow.name,
         qty: null,
@@ -144,15 +206,15 @@ function MobileMaterialsList({
       });
     }
 
-    for (const r of safeRows) {
-      const qty = Number(r?.perSlotQty?.[slot] || 0);
+    for (const row of safeRows) {
+      const qty = Number(row?.perSlotQty?.[slot] || 0);
       if (!qty) continue;
 
-      const unit = clamp0(unitCostMap?.[r.materialKey] ?? 0);
+      const unit = clamp0(unitCostMap?.[row.materialKey] ?? 0);
 
-      out.push({
-        key: r.materialKey,
-        name: r.materialName,
+      result.push({
+        key: row.materialKey,
+        name: row.materialName,
         qty,
         unit,
         amount: qty * unit,
@@ -160,105 +222,104 @@ function MobileMaterialsList({
       });
     }
 
-    return out;
+    return result;
   }, [slot, safeRows, unitCostMap, toolRow]);
 
   const totalAmount = useMemo(
-    () => items.reduce((sum, x) => sum + clamp0(x.amount), 0),
+    () => items.reduce((sum, item) => sum + clamp0(item.amount), 0),
     [items]
   );
 
   return (
-    <div
-      className="rounded-lg overflow-hidden text-[11px]"
-      style={{
-        border: "1px solid var(--card-border)",
-        backgroundColor: "var(--card-bg)",
-      }}
-    >
-      <div
-        className="grid grid-cols-[minmax(120px,1fr)_32px_56px_56px] items-center gap-1 py-2 text-[11px] font-semibold text-center border-b"
-        style={{
-          backgroundColor: "var(--soft-bg)",
-          borderColor: "var(--card-border)",
-          color: "var(--text-main)",
-        }}
-      >
-        <div className="text-left px-2">{t("materials.materialName")}</div>
+    <div className={styles.mobileMaterialTable}>
+      <div className={styles.mobileMaterialHeader}>
+        <div className={styles.mobileMaterialNameHeader}>
+          {t("materials.materialName")}
+        </div>
         <div>{t("materials.required")}</div>
         <div>{t("materials.amount")}</div>
         <div>{t("materials.unitPrice")}</div>
       </div>
 
       {items.length ? (
-        items.map((x) => (
-          <div
-            key={x.key}
-            className="grid grid-cols-[minmax(120px,1fr)_32px_56px_56px] items-center gap-1 py-1 border-t"
-            style={{ borderColor: "var(--card-border)" }}
-          >
-            <div
-              className="truncate font-medium px-2"
-              style={{ color: "var(--text-main)" }}
-            >
-              {x.name}
+        items.map((item) => (
+          <div key={item.key} className={styles.mobileMaterialRow}>
+            <div className={styles.mobileMaterialName}>{item.name}</div>
+
+            <div className={styles.mobileMutedCell}>
+              {item.isTool ? "-" : item.qty}
             </div>
 
-            <div
-              className="text-center"
-              style={{ color: "var(--text-muted)" }}
-            >
-              {x.isTool ? "-" : x.qty}
-            </div>
+            <div className={styles.mobileNumberCell}>{yen(item.amount)}</div>
 
-            <div
-              className="text-center tabular-nums"
-              style={{ color: "var(--text-main)" }}
-            >
-              {yen(x.amount)}
-            </div>
-
-            <div className="pr-2">
-              <input
-                type="number"
-                inputMode="numeric"
-                className="h-7 w-full text-right rounded px-1 text-[16px] scale-[0.8] origin-right"
-                style={{
-                  border: "1px solid var(--input-border)",
-                  backgroundColor: "var(--input-bg)",
-                  color: "var(--input-text)",
-                }}
-                value={x.unit}
-                min={0}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  if (x.isTool) x.onChangeToolPrice(v);
-                  else onChangeUnitCost(x.key, v);
+            <div className={styles.mobileUnitInputWrap}>
+              <MoneyInput
+                className={styles.mobileUnitInput}
+                value={item.unit}
+                ariaLabel={`${item.name} ${t("materials.unitPrice")}`}
+                onChange={(value) => {
+                  if (item.isTool) item.onChangeToolPrice(value);
+                  else onChangeUnitCost(item.key, value);
                 }}
               />
             </div>
           </div>
         ))
       ) : (
-        <div
-          className="px-3 py-4 text-xs"
-          style={{ color: "var(--text-muted)" }}
-        >
-          {t("materials.noMaterials")}
-        </div>
+        <div className={styles.mobileEmpty}>{t("materials.noMaterials")}</div>
       )}
 
-      <div
-        className="flex justify-end items-center px-2 py-1 font-semibold"
-        style={{
-          backgroundColor: "var(--soft-bg)",
-          color: "var(--text-main)",
-        }}
-      >
-        <span>{t("materials.total")}: {yen(totalAmount)}G</span>
+      <div className={styles.mobileMaterialTotal}>
+        <span>
+          {t("materials.total")}: {yen(totalAmount)}G
+        </span>
       </div>
     </div>
   );
+}
+
+function getNearestSlot(scroller) {
+  if (!scroller) return null;
+
+  const cards = Array.from(scroller.querySelectorAll("[data-slot-card]"));
+  if (!cards.length) return null;
+
+  const center = scroller.scrollLeft + scroller.clientWidth / 2;
+  let nearestSlot = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  for (const card of cards) {
+    const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+    const distance = Math.abs(cardCenter - center);
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestSlot = card.getAttribute("data-slot-card");
+    }
+  }
+
+  return nearestSlot;
+}
+
+function getCardForSlot(scroller, slot) {
+  if (!scroller || slot == null) return null;
+
+  return Array.from(scroller.querySelectorAll("[data-slot-card]")).find(
+    (card) => card.getAttribute("data-slot-card") === String(slot)
+  );
+}
+
+function scrollCardToCenter(scroller, card, behavior = "smooth") {
+  if (!scroller || !card) return;
+
+  const targetLeft =
+    card.offsetLeft - (scroller.clientWidth - card.offsetWidth) / 2;
+  const maxLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+
+  scroller.scrollTo({
+    left: Math.min(maxLeft, Math.max(0, targetLeft)),
+    behavior,
+  });
 }
 
 function MobileSlotCarousel({
@@ -268,115 +329,168 @@ function MobileSlotCarousel({
   slotGrids,
   slotItemMap,
   slotGridMeta,
+  navigationSourceRef,
+  tabRequestVersion,
   children,
 }) {
   const safeSlots = Array.isArray(slots) ? slots : [];
   const scrollerRef = useRef(null);
-  const lastActiveRef = useRef(activeSlot);
-  const setByScrollRef = useRef(false);
+  const activeSlotRef = useRef(activeSlot);
+  const previousActiveRef = useRef(null);
+  const animationFrameRef = useRef(null);
   const scrollEndTimerRef = useRef(null);
+  const targetSlotRef = useRef(null);
 
   useEffect(() => {
-    const el = scrollerRef.current;
-    if (!el) return;
+    activeSlotRef.current = activeSlot;
+  }, [activeSlot]);
 
-    if (setByScrollRef.current) {
-      setByScrollRef.current = false;
-      lastActiveRef.current = activeSlot;
+  const syncActiveFromCenter = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const nearestSlot = getNearestSlot(scroller);
+    if (!nearestSlot || nearestSlot === activeSlotRef.current) return;
+
+    navigationSourceRef.current = "swipe";
+    activeSlotRef.current = nearestSlot;
+    onChange(nearestSlot);
+  }, [navigationSourceRef, onChange]);
+
+  const finishScrolling = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    const nearestSlot = getNearestSlot(scroller);
+
+    if (
+      navigationSourceRef.current !== "tab" &&
+      nearestSlot &&
+      nearestSlot !== activeSlotRef.current
+    ) {
+      navigationSourceRef.current = "swipe";
+      activeSlotRef.current = nearestSlot;
+      onChange(nearestSlot);
+    }
+
+    targetSlotRef.current = null;
+    navigationSourceRef.current = "idle";
+  }, [navigationSourceRef, onChange]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return undefined;
+
+    const handleNativeScrollEnd = () => finishScrolling();
+    scroller.addEventListener("scrollend", handleNativeScrollEnd);
+
+    return () => {
+      scroller.removeEventListener("scrollend", handleNativeScrollEnd);
+    };
+  }, [finishScrolling]);
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller || !activeSlot) return;
+
+    if (navigationSourceRef.current === "swipe") {
+      previousActiveRef.current = activeSlot;
       return;
     }
 
-    if (lastActiveRef.current === activeSlot) return;
-    lastActiveRef.current = activeSlot;
+    if (previousActiveRef.current === activeSlot) return;
 
-    const escapedSlot =
-      typeof CSS !== "undefined" && typeof CSS.escape === "function"
-        ? CSS.escape(activeSlot)
-        : String(activeSlot).replace(/"/g, '\\"');
-
-    const card = el.querySelector(`[data-slot="${escapedSlot}"]`);
+    const card = getCardForSlot(scroller, activeSlot);
     if (!card) return;
 
-    const targetLeft =
-      card.offsetLeft - (el.clientWidth / 2 - card.offsetWidth / 2);
+    const isInitialPosition = previousActiveRef.current == null;
+    previousActiveRef.current = activeSlot;
+    targetSlotRef.current = activeSlot;
 
-    el.scrollTo({
-      left: Math.max(0, targetLeft),
-      behavior: "smooth",
-    });
-  }, [activeSlot]);
+    scrollCardToCenter(
+      scroller,
+      card,
+      isInitialPosition ? "auto" : "smooth"
+    );
+  }, [activeSlot, navigationSourceRef, tabRequestVersion]);
 
-  const syncActiveFromCenter = () => {
-    const el = scrollerRef.current;
-    if (!el) return;
-
-    const cards = Array.from(el.querySelectorAll("[data-slot]"));
-    if (!cards.length) return;
-
-    const center = el.scrollLeft + el.clientWidth / 2;
-    let bestSlot = activeSlot;
-    let bestDist = Infinity;
-
-    for (const c of cards) {
-      const cCenter = c.offsetLeft + c.offsetWidth / 2;
-      const d = Math.abs(cCenter - center);
-      if (d < bestDist) {
-        bestDist = d;
-        bestSlot = c.getAttribute("data-slot");
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
-    }
+      if (scrollEndTimerRef.current) {
+        clearTimeout(scrollEndTimerRef.current);
+      }
+    };
+  }, []);
 
-    if (bestSlot && bestSlot !== activeSlot) {
-      setByScrollRef.current = true;
-      onChange(bestSlot);
+  const startUserSwipe = () => {
+    targetSlotRef.current = null;
+    navigationSourceRef.current = "swipe";
+
+    if (scrollEndTimerRef.current) {
+      clearTimeout(scrollEndTimerRef.current);
+      scrollEndTimerRef.current = null;
     }
   };
 
-  const onScroll = () => {
-    if (scrollEndTimerRef.current) clearTimeout(scrollEndTimerRef.current);
-    scrollEndTimerRef.current = setTimeout(() => {
-      syncActiveFromCenter();
-    }, 140);
+  const handleScroll = () => {
+    if (animationFrameRef.current) return;
+
+    animationFrameRef.current = requestAnimationFrame(() => {
+      animationFrameRef.current = null;
+
+      // A tab click may pass across several cards. Keep the clicked tab active
+      // until the programmatic smooth scroll finishes.
+      if (navigationSourceRef.current !== "tab") {
+        syncActiveFromCenter();
+      }
+    });
+
+    if (scrollEndTimerRef.current) {
+      clearTimeout(scrollEndTimerRef.current);
+    }
+
+    // Fallback for browsers where the scrollend event is unavailable or late.
+    scrollEndTimerRef.current = setTimeout(finishScrolling, 110);
   };
 
   return (
-    <div className="-mx-4 px-4">
+    <div className={styles.mobileCarouselFullBleed}>
       <div
         ref={scrollerRef}
-        onScroll={onScroll}
-        className="flex gap-3 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch]"
+        className={styles.mobileCarousel}
+        onPointerDown={startUserSwipe}
+        onTouchStart={startUserSwipe}
+        onScroll={handleScroll}
       >
-        <div className="shrink-0 w-4" />
-
         {safeSlots.map((slot) => {
           const grid = slotGrids?.[slot] ?? null;
+          const isActive = slot === activeSlot;
 
           return (
             <div
               key={slot}
-              data-slot={slot}
-              className="shrink-0 w-[92%] snap-center"
+              data-slot-card={slot}
+              role="tabpanel"
+              aria-hidden={!isActive}
+              className={styles.mobileSlide}
             >
-              <div className="space-y-3">
+              <div className={styles.mobileSlideContent}>
                 {grid ? (
-                  <div
-                    className="rounded-2xl p-3 space-y-2"
-                    style={{
-                      border: "1px solid var(--card-border)",
-                      backgroundColor: "var(--soft-bg)",
-                    }}
-                  >
-                    <div
-                      className="text-xs font-semibold text-center truncate px-2"
-                      style={{ color: "var(--text-sub)" }}
-                    >
+                  <div className={styles.mobileGridCard}>
+                    <div className={styles.mobileGridTitle}>
                       {getMobileAxisTitle(slot, slotGridMeta, slotItemMap)}
                     </div>
 
-                    <div className="min-h-[184px] flex items-center">
-                      <div className="w-full">
-                        <SlotGridView grid={grid} />
-                      </div>
+                    <div className={styles.mobileGridBody}>
+                      <SlotGridView grid={grid} />
                     </div>
                   </div>
                 ) : null}
@@ -386,8 +500,6 @@ function MobileSlotCarousel({
             </div>
           );
         })}
-
-        <div className="shrink-0 w-4" />
       </div>
     </div>
   );
@@ -415,53 +527,70 @@ export default function CraftProfitMaterialsCard({
 }) {
   const t = useTranslations("CraftProfit");
   const locale = useLocale();
+  const navigationSourceRef = useRef("idle");
+  const [tabRequestVersion, setTabRequestVersion] = useState(0);
 
   const slotItemMap = useMemo(() => {
     const map = {};
-    for (const it of selectedSet?.items || []) {
-      const keyById = String(it.id || it.slotKey || it.slot || it.name);
-      map[keyById] = it.name;
 
-      const slotKey = normalizeSlotKey(it.slotKey ?? it.slot);
-      map[slotKey] = it.name;
+    for (const item of selectedSet?.items || []) {
+      const keyById = String(
+        item.id || item.slotKey || item.slot || item.name
+      );
+      map[keyById] = item.name;
 
-      if (it.slot) {
-        map[it.slot] = it.name;
-      }
+      const slotKey = normalizeSlotKey(item.slotKey ?? item.slot);
+      map[slotKey] = item.name;
+
+      if (item.slot) map[item.slot] = item.name;
     }
+
     return map;
   }, [selectedSet]);
 
   const safeSlots = Array.isArray(slots) ? slots : [];
   const safeRows = Array.isArray(rows) ? rows : [];
-  const sortedSlots = useMemo(() => sortSlots(safeSlots, locale), [safeSlots, locale]);
+  const sortedSlots = useMemo(
+    () => sortSlots(safeSlots, locale),
+    [safeSlots, locale]
+  );
 
   useEffect(() => {
     if (!sortedSlots.length) return;
+
     if (!sortedSlots.includes(activeSlot)) {
+      navigationSourceRef.current = "idle";
       setActiveSlot(sortedSlots[0]);
     }
   }, [sortedSlots, activeSlot, setActiveSlot]);
 
+  const handleTabChange = useCallback(
+    (slot) => {
+      navigationSourceRef.current = "tab";
+      setActiveSlot(slot);
+      setTabRequestVersion((version) => version + 1);
+    },
+    [setActiveSlot]
+  );
+
+  const handleCarouselChange = useCallback(
+    (slot) => {
+      setActiveSlot(slot);
+    },
+    [setActiveSlot]
+  );
+
   return (
-    <section
-      className="rounded-2xl p-5 shadow-sm space-y-3"
-      style={{
-        border: "1px solid var(--card-border)",
-        backgroundColor: "var(--card-bg)",
-      }}
-    >
-      <div className="flex items-baseline justify-between gap-3 flex-wrap">
-        <h2 className="text-lg font-semibold" style={{ color: "var(--text-title)" }}>
-          {t("materials.title")}
-        </h2>
+    <section className={styles.card}>
+      <div className={styles.headingRow}>
+        <h2 className={styles.heading}>{t("materials.title")}</h2>
       </div>
 
-      <div className="sm:hidden space-y-3">
+      <div className={styles.mobileOnly}>
         <MobileSlotTabs
           slots={sortedSlots}
           activeSlot={activeSlot}
-          onChange={setActiveSlot}
+          onChange={handleTabChange}
           slotGridMeta={slotGridMeta}
           slotItemMap={slotItemMap}
         />
@@ -469,10 +598,12 @@ export default function CraftProfitMaterialsCard({
         <MobileSlotCarousel
           slots={sortedSlots}
           activeSlot={activeSlot}
-          onChange={setActiveSlot}
+          onChange={handleCarouselChange}
           slotGrids={slotGrids}
           slotItemMap={slotItemMap}
           slotGridMeta={slotGridMeta}
+          navigationSourceRef={navigationSourceRef}
+          tabRequestVersion={tabRequestVersion}
         >
           {(slot) => (
             <MobileMaterialsList
@@ -486,33 +617,27 @@ export default function CraftProfitMaterialsCard({
         </MobileSlotCarousel>
       </div>
 
-      <div className="hidden sm:block space-y-3">
-        <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+      <div className={styles.desktopOnly}>
+        <div className={styles.baseValueLabel}>
           {t("materials.baseValues")}
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="flex gap-3 min-w-max pb-2">
+        <div className={styles.desktopGridScroller}>
+          <div className={styles.desktopGridList}>
             {sortedSlots.map((slot) => {
               const grid = slotGrids?.[slot] ?? null;
               const label = getAxisLabel(slot, slotGridMeta, slotItemMap);
-              const itemName = getAxisItemName(slot, slotGridMeta, selectedSet);
+              const itemName = getAxisItemName(
+                slot,
+                slotGridMeta,
+                selectedSet
+              );
 
               if (!grid) return null;
 
               return (
-                <div
-                  key={slot}
-                  className="w-[220px] shrink-0 rounded-2xl p-4 space-y-2"
-                  style={{
-                    border: "1px solid var(--card-border)",
-                    backgroundColor: "var(--soft-bg)",
-                  }}
-                >
-                  <div
-                    className="text-sm font-semibold"
-                    style={{ color: "var(--text-main)" }}
-                  >
+                <div key={slot} className={styles.desktopGridCard}>
+                  <div className={styles.desktopGridTitle}>
                     {label}
                     {itemName && itemName !== label ? (
                       <>
@@ -529,56 +654,28 @@ export default function CraftProfitMaterialsCard({
           </div>
         </div>
 
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{
-            border: "1px solid var(--card-border)",
-            backgroundColor: "var(--card-bg)",
-          }}
-        >
-          <div className="overflow-x-auto">
-            <table className="min-w-[900px] w-full text-sm">
-              <thead
-                className="border-b"
-                style={{
-                  backgroundColor: "var(--soft-bg)",
-                  borderColor: "var(--card-border)",
-                }}
-              >
+        <div className={styles.desktopTableCard}>
+          <div className={styles.desktopTableScroller}>
+            <table className={styles.desktopTable}>
+              <thead className={styles.desktopTableHead}>
                 <tr>
-                  <th
-                    className="px-3 py-2 text-left font-semibold"
-                    style={{ color: "var(--text-sub)" }}
-                  >
+                  <th className={styles.leftHeader}>
                     {t("materials.material")}
                   </th>
 
                   {sortedSlots.map((slot) => (
-                    <th
-                      key={slot}
-                      className="px-3 py-2 text-right font-semibold"
-                      style={{ color: "var(--text-sub)" }}
-                    >
+                    <th key={slot} className={styles.numberHeader}>
                       {getAxisLabel(slot, slotGridMeta, slotItemMap)}
                     </th>
                   ))}
 
-                  <th
-                    className="px-3 py-2 text-right font-semibold"
-                    style={{ color: "var(--text-sub)" }}
-                  >
+                  <th className={styles.numberHeader}>
                     {t("materials.total")}
                   </th>
-                  <th
-                    className="px-3 py-2 text-right font-semibold"
-                    style={{ color: "var(--text-sub)" }}
-                  >
+                  <th className={styles.numberHeader}>
                     {t("materials.unitPrice")}
                   </th>
-                  <th
-                    className="px-3 py-2 text-right font-semibold"
-                    style={{ color: "var(--text-sub)" }}
-                  >
+                  <th className={styles.numberHeader}>
                     {t("materials.amount")}
                   </th>
                 </tr>
@@ -586,57 +683,29 @@ export default function CraftProfitMaterialsCard({
 
               <tbody>
                 {toolEnabled && selectedTool?.id !== "none" && (
-                  <tr
-                    className="border-b"
-                    style={{
-                      borderColor: "var(--card-border)",
-                      backgroundColor: "var(--soft-bg)",
-                    }}
-                  >
-                    <td
-                      className="px-3 py-2 font-semibold"
-                      style={{ color: "var(--text-main)" }}
-                    >
+                  <tr className={styles.toolRow}>
+                    <td className={styles.materialCell}>
                       【{t("materials.tool")}】{selectedTool.name}
                     </td>
 
                     {sortedSlots.map((slot) => (
-                      <td
-                        key={slot}
-                        className="px-3 py-2 text-right tabular-nums"
-                        style={{ color: "var(--text-sub)" }}
-                      >
+                      <td key={slot} className={styles.mutedNumberCell}>
                         —
                       </td>
                     ))}
 
-                    <td
-                      className="px-3 py-2 text-right font-semibold tabular-nums"
-                      style={{ color: "var(--text-main)" }}
-                    >
-                      —
-                    </td>
+                    <td className={styles.strongNumberCell}>—</td>
 
-                    <td className="px-3 py-2 text-right">
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        className="w-24 rounded-lg px-2 py-1 text-right focus:outline-none"
-                        style={{
-                          border: "1px solid var(--input-border)",
-                          backgroundColor: "var(--input-bg)",
-                          color: "var(--input-text)",
-                        }}
+                    <td className={styles.inputCell}>
+                      <MoneyInput
+                        className={styles.desktopInput}
                         value={toolPrice}
-                        min={0}
-                        onChange={(e) => setToolPriceOverride(Number(e.target.value))}
+                        ariaLabel={`${selectedTool.name} ${t("materials.unitPrice")}`}
+                        onChange={setToolPriceOverride}
                       />
                     </td>
 
-                    <td
-                      className="px-3 py-2 text-right font-semibold tabular-nums"
-                      style={{ color: "var(--text-main)" }}
-                    >
+                    <td className={styles.strongNumberCell}>
                       {yen(toolCostPerCraft)}
                     </td>
                   </tr>
@@ -648,99 +717,53 @@ export default function CraftProfitMaterialsCard({
                   const amount = totalQty * unit;
 
                   return (
-                    <tr
-                      key={row.materialKey}
-                      className="border-b"
-                      style={{ borderColor: "var(--card-border)" }}
-                    >
-                      <td
-                        className="px-3 py-2 font-medium"
-                        style={{ color: "var(--text-main)" }}
-                      >
+                    <tr key={row.materialKey} className={styles.bodyRow}>
+                      <td className={styles.materialCell}>
                         {row.materialName}
                       </td>
 
                       {sortedSlots.map((slot) => (
-                        <td
-                          key={slot}
-                          className="px-3 py-2 text-right tabular-nums"
-                          style={{ color: "var(--text-sub)" }}
-                        >
+                        <td key={slot} className={styles.mutedNumberCell}>
                           {row.perSlotQty?.[slot] || ""}
                         </td>
                       ))}
 
-                      <td
-                        className="px-3 py-2 text-right tabular-nums font-semibold"
-                        style={{ color: "var(--text-main)" }}
-                      >
-                        {totalQty}
-                      </td>
+                      <td className={styles.strongNumberCell}>{totalQty}</td>
 
-                      <td className="px-3 py-2 text-right">
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          className="w-24 rounded-lg px-2 py-1 text-right focus:outline-none"
-                          style={{
-                            border: "1px solid var(--input-border)",
-                            backgroundColor: "var(--input-bg)",
-                            color: "var(--input-text)",
-                          }}
+                      <td className={styles.inputCell}>
+                        <MoneyInput
+                          className={styles.desktopInput}
                           value={unit}
-                          min={0}
-                          onChange={(e) =>
-                            updateUnitCost(row.materialKey, Number(e.target.value))
+                          ariaLabel={`${row.materialName} ${t("materials.unitPrice")}`}
+                          onChange={(value) =>
+                            updateUnitCost(row.materialKey, value)
                           }
                         />
                       </td>
 
-                      <td
-                        className="px-3 py-2 text-right tabular-nums font-semibold"
-                        style={{ color: "var(--text-main)" }}
-                      >
-                        {yen(amount)}
-                      </td>
+                      <td className={styles.strongNumberCell}>{yen(amount)}</td>
                     </tr>
                   );
                 })}
               </tbody>
 
-              <tfoot
-                style={{
-                  backgroundColor: "var(--soft-bg)",
-                  borderTop: "1px solid var(--card-border)",
-                }}
-              >
+              <tfoot className={styles.desktopTableFoot}>
                 <tr>
-                  <td
-                    className="px-3 py-2 font-semibold"
-                    style={{ color: "var(--text-main)" }}
-                  >
+                  <td className={styles.materialCell}>
                     {t("materials.total")}
                   </td>
 
                   {sortedSlots.map((slot) => (
-                    <td
-                      key={slot}
-                      className="px-3 py-2 text-right tabular-nums font-semibold"
-                      style={{ color: "var(--text-main)" }}
-                    >
+                    <td key={slot} className={styles.strongNumberCell}>
                       {yen(slotTotalsWithTool?.amount?.[slot] || 0)}
                     </td>
                   ))}
 
                   <td />
-                  <td
-                    className="px-3 py-2 text-right text-xs font-semibold"
-                    style={{ color: "var(--text-muted)" }}
-                  >
+                  <td className={styles.averageLabel}>
                     {t("materials.averagePerSlot")}
                   </td>
-                  <td
-                    className="px-3 py-2 text-right tabular-nums font-semibold"
-                    style={{ color: "var(--text-main)" }}
-                  >
+                  <td className={styles.strongNumberCell}>
                     {yen(avgMaterialCostPerPart)} / {yen(costPerItem)}
                   </td>
                 </tr>

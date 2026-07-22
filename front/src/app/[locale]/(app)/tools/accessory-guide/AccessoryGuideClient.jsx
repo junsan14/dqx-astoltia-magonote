@@ -8,6 +8,8 @@ import {
 import styles from "./accessory-guide.module.css";
 import Image from "next/image";
 import PageHeroTitle from "@/components/PageHeroTitle";
+import SearchableSelect from "@/components/common/SearchableSelect";
+import DropdownSelect from "@/components/common/DropdownSelect";
 
 /**
  * 部位の表示順
@@ -329,6 +331,31 @@ export default function AccessoryGuideClient() {
     return buildChainRows(accessories);
   }, [accessories]);
 
+  const accessorySearchOptions = useMemo(() => {
+    return [...accessories]
+      .sort((a, b) => {
+        const slotCompare =
+          getSlotOrderValue(String(a?.slot ?? "")) -
+          getSlotOrderValue(String(b?.slot ?? ""));
+
+        if (slotCompare !== 0) return slotCompare;
+
+        return String(a?.name ?? "").localeCompare(
+          String(b?.name ?? ""),
+          "ja"
+        );
+      })
+      .map((item) => ({
+        value: String(item?.name ?? ""),
+        label: String(item?.name ?? ""),
+        description: [item?.slot, item?.accessory_type]
+          .filter(Boolean)
+          .join("・"),
+        searchText: getSearchTextFromAccessory(item),
+      }))
+      .filter((option) => option.value);
+  }, [accessories]);
+
   const filteredRows = useMemo(() => {
     const keyword = toSearchKanaText(q.trim());
 
@@ -364,38 +391,36 @@ export default function AccessoryGuideClient() {
       </section>
 
       <section className={styles.filters}>
-        <label className={styles.searchBox}>
+        <div className={`${styles.filterField} ${styles.searchBox}`}>
           <span>検索</span>
-          <input
+          <SearchableSelect
             value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="アクセ名・伝承チェーン・入手場所・効果で検索"
+            onChange={setQ}
+            options={accessorySearchOptions}
+            placeholder={
+              loading
+                ? "データを読み込んでいます..."
+                : "アクセ名・伝承で検索"
+            }
+            disabled={loading}
+            // ...
           />
-        </label>
+        </div>
 
-        <label>
-          <span>部位</span>
-          <select value={slot} onChange={(e) => setSlot(e.target.value)}>
-            <option value="">すべて</option>
-            {slots.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
 
-        <label>
+
+        <div className={styles.filterField}>
           <span>種類</span>
-          <select value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="">すべて</option>
-            {types.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <DropdownSelect
+            value={type}
+            onChange={setType}
+            ariaLabel="種類"
+            options={[
+              { value: "", label: "すべて" },
+              ...types.map((name) => ({ value: name, label: name })),
+            ]}
+          />
+        </div>
 
         <label className={styles.checkLabel}>
           <input
@@ -405,20 +430,16 @@ export default function AccessoryGuideClient() {
           />
           <span>伝承ありのみ</span>
         </label>
+        <div className={styles.resultBar}>
+          {(q || slot || type || onlyInheritance || onlyObtainPlace) && (
+            <button type="button" onClick={resetFilters}>
+              条件をリセット
+            </button>
+          )}
+        </div>
       </section>
 
-      <div className={styles.resultBar}>
-        <p>
-          表示中 <strong>{filteredRows.length}</strong> チェーン /{" "}
-          <strong>{visibleAccessoryCount}</strong> アクセ
-        </p>
 
-        {(q || slot || type || onlyInheritance || onlyObtainPlace) && (
-          <button type="button" onClick={resetFilters}>
-            条件をリセット
-          </button>
-        )}
-      </div>
 
       {loading && <p className={styles.status}>読み込み中...</p>}
 

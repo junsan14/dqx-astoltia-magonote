@@ -1,0 +1,117 @@
+.card {
+  padding: 1.25rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+.card > * + * {
+  margin-top: 0.75rem;
+}
+
+.headingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.heading {
+  margin: 0;
+  color: var(--text-title);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.equipLevel {
+  color: var(--text-sub);
+  font-size: 0.875rem;
+}
+
+.equipLevelValue {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.setContentsCard,
+.infoCard {
+  padding: 1rem;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+}
+
+.setContentsCard {
+  background: var(--soft-bg);
+}
+
+.infoCard {
+  background: var(--card-bg);
+}
+
+.sectionLabel {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.setTag,
+.jobTag {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.setTag {
+  border: 1px solid var(--tag-border);
+  background: var(--card-bg);
+  color: var(--text-main);
+}
+
+.jobTag {
+  border: 1px solid var(--tag-border);
+  background: var(--tag-bg);
+  color: var(--tag-text);
+}
+
+.jobTagOverride {
+  border-color: var(--selected-border);
+  background: var(--selected-bg);
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.crystalLabel {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.crystalText {
+  margin-top: 0.5rem;
+  color: var(--text-main);
+  font-size: 0.875rem;
+  line-height: 1.75;
+}
+
+.emptyText {
+  margin-top: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}

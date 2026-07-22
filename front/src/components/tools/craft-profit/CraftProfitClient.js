@@ -25,6 +25,7 @@ import {
   getDisplayJobs,
   recommendFromP3,
 } from "./craftProfitHelpers";
+import styles from "./CraftProfitClient.module.css";
 
 const TOOL_USES = 30;
 
@@ -59,8 +60,14 @@ function extractMaterialIds(rows) {
         }
 
         return materials
-          .map((m) =>
-            Number(m?.item_id ?? m?.itemId ?? m?.material_id ?? m?.id ?? 0)
+          .map((material) =>
+            Number(
+              material?.item_id ??
+                material?.itemId ??
+                material?.material_id ??
+                material?.id ??
+                0
+            )
           )
           .filter((id) => Number.isInteger(id) && id > 0);
       })
@@ -70,15 +77,15 @@ function extractMaterialIds(rows) {
 
 function localizeEquipmentRows(rows, locale) {
   return (Array.isArray(rows) ? rows : []).map((row) => {
-    const englishName = String(row?.itemNameEn ?? row?.item_name_en ?? "").trim();
+    const englishName = String(
+      row?.itemNameEn ?? row?.item_name_en ?? ""
+    ).trim();
     const japaneseName = row?.itemName ?? row?.item_name ?? row?.name ?? "";
 
     const englishGroupName = String(
       row?.groupNameEn ?? row?.group_name_en ?? ""
     ).trim();
-
-    const japaneseGroupName =
-      row?.groupName ?? row?.group_name ?? "";
+    const japaneseGroupName = row?.groupName ?? row?.group_name ?? "";
 
     const localizedName = locale === "en" ? englishName : japaneseName;
     const localizedGroupName =
@@ -96,8 +103,8 @@ function localizeEquipmentRows(rows, locale) {
 }
 
 function katakanaToHiragana(value) {
-  return String(value).replace(/[\u30a1-\u30f6]/g, (char) =>
-    String.fromCharCode(char.charCodeAt(0) - 0x60)
+  return String(value).replace(/[\u30a1-\u30f6]/g, (character) =>
+    String.fromCharCode(character.charCodeAt(0) - 0x60)
   );
 }
 
@@ -138,7 +145,7 @@ export default function CraftProfitClient() {
         setLoading(true);
         setLoadError("");
 
-        const [equipments, tools, crystalRulesRes] = await Promise.all([
+        const [equipments, tools, crystalRulesResponse] = await Promise.all([
           fetchEquipments(),
           fetchCraftTools(),
           fetchCrystalRules(),
@@ -152,31 +159,37 @@ export default function CraftProfitClient() {
         const toolRows = localizeEquipmentRows(
           extractEquipmentRows(tools).filter(
             (row) =>
-              String(row?.groupKind ?? row?.group_kind ?? "") === "craft_tool_set"
+              String(row?.groupKind ?? row?.group_kind ?? "") ===
+              "craft_tool_set"
           ),
           locale
         );
 
         const materialIds = extractMaterialIds(equipmentRows);
-
         const items = materialIds.length
           ? await fetchItemsByIds(materialIds, locale)
           : [];
+
         const itemMap = new Map(
           (Array.isArray(items) ? items : []).map((item) => [
             Number(item.id),
             item,
           ])
         );
-        
-        const nextSets = buildSetsFromEquipments(equipmentRows, itemMap, locale);
-        
+
+        const nextSets = buildSetsFromEquipments(
+          equipmentRows,
+          itemMap,
+          locale
+        );
 
         if (cancelled) return;
 
         setSets(Array.isArray(nextSets) ? nextSets : []);
         setCraftTools(Array.isArray(toolRows) ? toolRows : []);
-        setCrystalRules(Array.isArray(crystalRulesRes) ? crystalRulesRes : []);
+        setCrystalRules(
+          Array.isArray(crystalRulesResponse) ? crystalRulesResponse : []
+        );
       } catch (error) {
         if (cancelled) return;
         console.error("CraftProfit load error:", error);
@@ -194,7 +207,7 @@ export default function CraftProfitClient() {
   }, [locale]);
 
   const selectedSet = useMemo(
-    () => sets.find((s) => String(s.id) === String(setId)) || null,
+    () => sets.find((set) => String(set.id) === String(setId)) || null,
     [sets, setId]
   );
 
@@ -210,38 +223,40 @@ export default function CraftProfitClient() {
   }, [selectedSet, locale]);
 
   const filteredSets = useMemo(() => {
-    const q = normalizeSearchText(setQuery);
-    if (!q) return sets;
+    const query = normalizeSearchText(setQuery);
+    if (!query) return sets;
 
     const groupedMatches = [];
     const singleMatches = [];
 
-    for (const s of sets) {
-      const top = normalizeSearchText(s.name || "");
-      const itemNames = Array.isArray(s.items)
+    for (const set of sets) {
+      const top = normalizeSearchText(set.name || "");
+      const itemNames = Array.isArray(set.items)
         ? normalizeSearchText(
-            s.items.map((it) => String(it.name || "")).join(" ")
+            set.items.map((item) => String(item.name || "")).join(" ")
           )
         : "";
-      const equipLevelText = normalizeSearchText(s.equipLevel ?? "");
-      const itemEquipLevels = Array.isArray(s.items)
+      const equipLevelText = normalizeSearchText(set.equipLevel ?? "");
+      const itemEquipLevels = Array.isArray(set.items)
         ? normalizeSearchText(
-            s.items.map((it) => String(it.equipLevel ?? "")).join(" ")
+            set.items
+              .map((item) => String(item.equipLevel ?? ""))
+              .join(" ")
           )
         : "";
 
       const matched =
-        top.includes(q) ||
-        itemNames.includes(q) ||
-        equipLevelText.includes(q) ||
-        itemEquipLevels.includes(q);
+        top.includes(query) ||
+        itemNames.includes(query) ||
+        equipLevelText.includes(query) ||
+        itemEquipLevels.includes(query);
 
       if (!matched) continue;
 
-      if (Array.isArray(s.items) && s.items.length > 1) {
-        groupedMatches.push(s);
+      if (Array.isArray(set.items) && set.items.length > 1) {
+        groupedMatches.push(set);
       } else {
-        singleMatches.push(s);
+        singleMatches.push(set);
       }
     }
 
@@ -259,6 +274,7 @@ export default function CraftProfitClient() {
         defaultPrice: 0,
       },
     ];
+
     if (!craftType) return base;
 
     const matchersByCraftType = {
@@ -275,10 +291,16 @@ export default function CraftProfitClient() {
     const keywords = matchersByCraftType[String(craftType)] ?? [];
 
     const rows = craftTools.filter((row) => {
-      const slotGridType = String(row?.slotGridType ?? row?.slot_grid_type ?? "");
-      const itemName = String(row?.itemName ?? row?.item_name ?? row?.name ?? "");
+      const slotGridType = String(
+        row?.slotGridType ?? row?.slot_grid_type ?? ""
+      );
+      const itemName = String(
+        row?.itemName ?? row?.item_name ?? row?.name ?? ""
+      );
+
       return keywords.some(
-        (keyword) => slotGridType.includes(keyword) || itemName.includes(keyword)
+        (keyword) =>
+          slotGridType.includes(keyword) || itemName.includes(keyword)
       );
     });
 
@@ -296,7 +318,9 @@ export default function CraftProfitClient() {
         craftLevel: Number(row?.craftLevel ?? row?.craft_level ?? 0) || 0,
       }))
       .sort((a, b) => {
-        if (a.craftLevel !== b.craftLevel) return a.craftLevel - b.craftLevel;
+        if (a.craftLevel !== b.craftLevel) {
+          return a.craftLevel - b.craftLevel;
+        }
         return a.name.localeCompare(b.name, locale);
       });
 
@@ -308,37 +332,48 @@ export default function CraftProfitClient() {
     setToolPriceOverride(null);
   }, [craftType]);
 
-  const selectedTool = useMemo(() => {
-    return toolOptions.find((t) => t.id === toolId) ?? toolOptions[0];
-  }, [toolOptions, toolId]);
+  const selectedTool = useMemo(
+    () => toolOptions.find((tool) => tool.id === toolId) ?? toolOptions[0],
+    [toolOptions, toolId]
+  );
 
-  const toolPrice = useMemo(() => {
-    return toolPriceOverride == null
-      ? selectedTool?.defaultPrice ?? 0
-      : Number(toolPriceOverride);
-  }, [selectedTool, toolPriceOverride]);
+  const toolPrice = useMemo(
+    () =>
+      toolPriceOverride == null
+        ? selectedTool?.defaultPrice ?? 0
+        : Number(toolPriceOverride),
+    [selectedTool, toolPriceOverride]
+  );
 
-  const toolCostPerCraft = useMemo(() => {
-    return clamp0(toolPrice) / TOOL_USES;
-  }, [toolPrice]);
+  const toolCostPerCraft = useMemo(
+    () => clamp0(toolPrice) / TOOL_USES,
+    [toolPrice]
+  );
 
-  const toolEnabled = useMemo(() => {
-    return toolOptions.length > 1 && selectedTool?.id !== "none";
-  }, [toolOptions, selectedTool]);
+  const toolEnabled = useMemo(
+    () => toolOptions.length > 1 && selectedTool?.id !== "none",
+    [toolOptions, selectedTool]
+  );
 
   const mobileToolRow = useMemo(() => {
     if (toolOptions.length <= 1) return null;
     if (!selectedTool || selectedTool.id === "none") return null;
 
     return {
-      name: locale === "en" ? `[Tool] ${selectedTool.name}` : `【道具】${selectedTool.name}`,
+      name:
+        locale === "en"
+          ? `[Tool] ${selectedTool.name}`
+          : `【道具】${selectedTool.name}`,
       toolPrice,
       toolCostPerCraft,
-      onChangeToolPrice: (v) => setToolPriceOverride(v),
+      onChangeToolPrice: (value) => setToolPriceOverride(value),
     };
   }, [toolOptions, selectedTool, toolPrice, toolCostPerCraft, locale]);
 
-  const matrix = useMemo(() => buildMatrix(selectedSet, locale), [selectedSet, locale]);
+  const matrix = useMemo(
+    () => buildMatrix(selectedSet, locale),
+    [selectedSet, locale]
+  );
 
   const slots = Array.isArray(matrix?.slots) ? matrix.slots : [];
   const rows = Array.isArray(matrix?.rows) ? matrix.rows : [];
@@ -354,7 +389,9 @@ export default function CraftProfitClient() {
   const onChangeSet = (nextId) => {
     setSetId(nextId);
 
-    const nextSet = sets.find((s) => String(s.id) === String(nextId)) || null;
+    const nextSet =
+      sets.find((set) => String(set.id) === String(nextId)) || null;
+
     if (!nextSet) {
       setSetQuery("");
       return;
@@ -364,19 +401,21 @@ export default function CraftProfitClient() {
   };
 
   const updateUnitCost = (materialKey, value) => {
-    setUnitCostMap((prev) => ({
-      ...prev,
+    setUnitCostMap((previous) => ({
+      ...previous,
       [materialKey]: Number(value),
     }));
   };
 
-  const materialCost = useMemo(() => {
-    return calcMaterialCost(rows, unitCostMap);
-  }, [rows, unitCostMap]);
+  const materialCost = useMemo(
+    () => calcMaterialCost(rows, unitCostMap),
+    [rows, unitCostMap]
+  );
 
-  const slotTotals = useMemo(() => {
-    return calcSlotTotals(rows, slots, unitCostMap);
-  }, [rows, slots, unitCostMap]);
+  const slotTotals = useMemo(
+    () => calcSlotTotals(rows, slots, unitCostMap),
+    [rows, slots, unitCostMap]
+  );
 
   const slotTotalsWithTool = useMemo(() => {
     const amount = { ...(slotTotals?.amount ?? {}) };
@@ -387,7 +426,10 @@ export default function CraftProfitClient() {
       }
     }
 
-    const total = slots.reduce((sum, slot) => sum + (amount[slot] || 0), 0);
+    const total = slots.reduce(
+      (sum, slot) => sum + (amount[slot] || 0),
+      0
+    );
 
     return {
       qty: slotTotals?.qty ?? {},
@@ -396,30 +438,41 @@ export default function CraftProfitClient() {
     };
   }, [slotTotals, toolEnabled, toolCostPerCraft, slots]);
 
-  const partCount = useMemo(() => Math.max(1, slots.length || 0), [slots]);
+  const partCount = useMemo(
+    () => Math.max(1, slots.length || 0),
+    [slots]
+  );
 
-  const avgMaterialCostPerPart = useMemo(() => {
-    return materialCost / partCount;
-  }, [materialCost, partCount]);
+  const avgMaterialCostPerPart = useMemo(
+    () => materialCost / partCount,
+    [materialCost, partCount]
+  );
 
-  const costPerItem = useMemo(() => {
-    return avgMaterialCostPerPart + (toolEnabled ? toolCostPerCraft : 0);
-  }, [avgMaterialCostPerPart, toolEnabled, toolCostPerCraft]);
+  const costPerItem = useMemo(
+    () =>
+      avgMaterialCostPerPart + (toolEnabled ? toolCostPerCraft : 0),
+    [avgMaterialCostPerPart, toolEnabled, toolCostPerCraft]
+  );
 
-  const minRates = useMemo(() => {
-    return calcMinRatesToBreakEven({
-      feeRate,
-      costPerItem,
-      starPrice,
-      stepPercent: 1,
-      locale,
-    });
-  }, [feeRate, costPerItem, starPrice, locale]);
+  const minRates = useMemo(
+    () =>
+      calcMinRatesToBreakEven({
+        feeRate,
+        costPerItem,
+        starPrice,
+        stepPercent: 1,
+        locale,
+      }),
+    [feeRate, costPerItem, starPrice, locale]
+  );
 
   const recommend = useMemo(() => {
     if (minRates?.impossible) {
       return {
-        label: locale === "en" ? "★☆☆☆☆ (Not recommended)" : "★☆☆☆☆（非推奨）",
+        label:
+          locale === "en"
+            ? "★☆☆☆☆ (Not recommended)"
+            : "★☆☆☆☆（非推奨）",
         tone: "var(--danger-text)",
         sub:
           locale === "en"
@@ -438,35 +491,32 @@ export default function CraftProfitClient() {
     return Math.max(0, 100 - (Number(minRates.p3) || 0));
   }, [minRates]);
 
-  const displayJobs = useMemo(() => {
-    return getDisplayJobs(selectedSet);
-  }, [selectedSet]);
+  const displayJobs = useMemo(
+    () => getDisplayJobs(selectedSet),
+    [selectedSet]
+  );
 
-  const crystalByEquipLevel = useMemo(() => {
-    return getCrystalInfo(selectedSet, crystalRules);
-  }, [selectedSet, crystalRules]);
-
-  const pageStyle = {
-    backgroundColor: "var(--page-bg)",
-    color: "var(--page-text)",
-  };
+  const crystalByEquipLevel = useMemo(
+    () => getCrystalInfo(selectedSet, crystalRules),
+    [selectedSet, crystalRules]
+  );
 
   return (
-    <main className="space-y-5 sm:space-y-6 min-h-screen" style={pageStyle}>
+    <main className={styles.page}>
       <PageHeroTitle
         kicker="DQX CRAFT TOOL"
         title={locale === "en" ? "Craft Tool" : "職人ツール"}
       />
 
       {loading ? (
-        <div className="space-y-5">
+        <div className={styles.loadingArea}>
           <CraftProfitSkeleton />
         </div>
       ) : loadError ? (
-        <div>{loadError}</div>
+        <div className={styles.errorMessage}>{loadError}</div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 lg:grid-cols-[420px_minmax(0,1fr)] gap-5 items-start">
+        <div className={styles.content}>
+          <div className={styles.topGrid}>
             <CraftProfitHeaderCard
               setQuery={setQuery}
               setSetQuery={setSetQuery}
@@ -483,7 +533,7 @@ export default function CraftProfitClient() {
               setToolPriceOverride={setToolPriceOverride}
             />
 
-            <div className="space-y-5">
+            <div className={styles.infoColumn}>
               <EquipmentInfoCard
                 selectedSet={selectedSet}
                 displayJobs={displayJobs}
@@ -522,7 +572,7 @@ export default function CraftProfitClient() {
             recommend={recommend}
             recommendRate={recommendRate}
           />
-        </>
+        </div>
       )}
     </main>
   );
