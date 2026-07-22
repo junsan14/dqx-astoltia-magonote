@@ -30,7 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     */
         $middleware->validateCsrfTokens(except: [
-            'api/kishoju/*',
+       
         ]);
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,

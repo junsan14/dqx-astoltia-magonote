@@ -188,3 +188,47 @@ export async function deleteItem(id) {
     throw new Error("アイテム削除失敗");
   }
 }
+
+export async function updateMaterialPrices() {
+  try {
+    const res = await api.post(
+      `${API_URL}/api/admin/items/update-market-prices`,
+      {},
+      {
+        timeout: 120000,
+      }
+    );
+
+    return res.data;
+  } catch (error) {
+    console.error("updateMaterialPrices error:", error);
+
+    if (error?.code === "ECONNABORTED") {
+      throw new Error("価格取得がタイムアウトしました");
+    }
+
+    if (error?.response?.status === 401) {
+      throw new Error("ログインが必要です");
+    }
+
+    if (error?.response?.status === 403) {
+      throw new Error(
+        error?.response?.data?.message ||
+          "管理者だけが素材価格を更新できます"
+      );
+    }
+
+    if (error?.response?.status === 409) {
+      throw new Error(
+        error?.response?.data?.message ||
+          "別の価格更新処理が実行中です"
+      );
+    }
+
+    throw new Error(
+      error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "素材価格の更新に失敗しました"
+    );
+  }
+}

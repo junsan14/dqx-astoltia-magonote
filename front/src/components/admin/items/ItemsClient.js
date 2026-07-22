@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createItem,
   deleteItem,
   fetchItem,
   fetchItems,
   updateItem,
+  updateMaterialPrices,
 } from "@/lib/items";
 import ItemList from "./ItemList";
 import ItemForm from "./ItemForm";
@@ -85,6 +86,32 @@ function buildItemPayload(form) {
   };
 }
 
+function getProgressLabel(progress) {
+  if (progress >= 100) return "更新完了";
+  if (progress >= 72) return "取得結果を反映中";
+  if (progress >= 38) return "素材価格を確認中";
+  return "相場ページを取得中";
+}
+
+function formatFinishedAt(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export default function ItemsClient() {
   const [items, setItems] = useState([]);
   const [initialItems, setInitialItems] = useState([]);
@@ -98,6 +125,12 @@ export default function ItemsClient() {
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [updatingPrices, setUpdatingPrices] = useState(false);
+  const [priceProgress, setPriceProgress] = useState(0);
+  const [priceUpdateResult, setPriceUpdateResult] = useState(null);
+  const progressTimerRef = useRef(null);
+
   const [formErrors, setFormErrors] = useState({});
   const [message, setMessage] = useState("");
 
@@ -120,6 +153,33 @@ export default function ItemsClient() {
       ),
     ].sort((a, b) => a.localeCompare(b, "ja"));
   }, [initialItems]);
+
+  function clearPriceProgressTimer() {
+    if (progressTimerRef.current) {
+      window.clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
+    }
+  }
+
+  function startPriceProgressTimer() {
+    clearPriceProgressTimer();
+
+    progressTimerRef.current = window.setInterval(() => {
+      setPriceProgress((current) => {
+        if (current >= 92) return current;
+
+        if (current < 30) {
+          return Math.min(92, current + 4);
+        }
+
+        if (current < 65) {
+          return Math.min(92, current + 2);
+        }
+
+        return Math.min(92, current + 1);
+      });
+    }, 500);
+  }
 
   async function loadItems(q = "") {
     setLoading(true);
@@ -187,6 +247,12 @@ export default function ItemsClient() {
       setHideSearchList(false);
     }
   }, [isMobile]);
+
+  useEffect(() => {
+    return () => {
+      clearPriceProgressTimer();
+    };
+  }, []);
 
   async function handleSaved(saved, options = {}) {
     const { isEdit = false } = options;
@@ -317,6 +383,53 @@ export default function ItemsClient() {
     }
   }
 
+  async function handleUpdateMaterialPrices() {
+    const ok = window.confirm(
+      "相場サイトの全ページから素材価格を取得して、buy_priceを更新します。実行しますか？"
+    );
+
+    if (!ok) return;
+
+    try {
+      setUpdatingPrices(true);
+      setPriceProgress(4);
+      setPriceUpdateResult(null);
+      startPriceProgressTimer();
+
+      const result = await updateMaterialPrices();
+
+      clearPriceProgressTimer();
+      setPriceProgress(100);
+      setPriceUpdateResult(result);
+
+      await loadItems(keyword);
+
+      if (keyword) {
+        await loadItems("");
+      }
+
+      if (selectedId) {
+        await loadItemDetail(selectedId);
+      }
+
+      showToast(
+        `${Number(result?.updated_count ?? 0)}件の素材価格を更新した`
+      );
+    } catch (error) {
+      console.error(error);
+      clearPriceProgressTimer();
+      setPriceProgress(0);
+      setPriceUpdateResult(null);
+      showToast(
+        error.message || "素材価格の更新に失敗した",
+        "error"
+      );
+    } finally {
+      clearPriceProgressTimer();
+      setUpdatingPrices(false);
+    }
+  }
+
   return (
     <>
       <EditorShell
@@ -346,10 +459,14 @@ export default function ItemsClient() {
           categories={categories}
           saving={saving}
           deleting={deleting}
+          updatingPrices={updatingPrices}
+          priceProgress={priceProgress}
+          priceUpdateResult={priceUpdateResult}
           errors={formErrors}
           message={message}
           onSave={handleSave}
           onDelete={handleDelete}
+          onUpdateMaterialPrices={handleUpdateMaterialPrices}
           onChange={handleItemChange}
         />
       </EditorShell>
@@ -415,12 +532,19 @@ function ItemsWorkspaceSection({
   categories,
   saving,
   deleting,
+  updatingPrices,
+  priceProgress,
+  priceUpdateResult,
   errors,
   message,
   onSave,
   onDelete,
+  onUpdateMaterialPrices,
   onChange,
 }) {
+  const actionDisabled =
+    detailLoading || saving || deleting || updatingPrices;
+
   return (
     <>
       <EditorHeader
@@ -429,8 +553,16 @@ function ItemsWorkspaceSection({
         onSave={onSave}
         onDelete={onDelete}
         saving={saving}
-        saveDisabled={detailLoading || saving || deleting}
-        deleteDisabled={detailLoading || saving || deleting || !selectedId}
+        saveDisabled={actionDisabled}
+        deleteDisabled={actionDisabled || !selectedId}
+      />
+
+      <MaterialPriceUpdatePanel
+        updating={updatingPrices}
+        progress={priceProgress}
+        result={priceUpdateResult}
+        disabled={saving || deleting || detailLoading}
+        onUpdate={onUpdateMaterialPrices}
       />
 
       {detailLoading ? (
@@ -447,6 +579,94 @@ function ItemsWorkspaceSection({
         </div>
       )}
     </>
+  );
+}
+
+function MaterialPriceUpdatePanel({
+  updating,
+  progress,
+  result,
+  disabled,
+  onUpdate,
+}) {
+  const safeProgress = Math.max(
+    0,
+    Math.min(100, Number(progress) || 0)
+  );
+
+  const showProgress = updating || safeProgress > 0;
+
+  return (
+    <section style={styles.marketPanel}>
+      <div style={styles.marketContent}>
+        <div style={styles.marketTitle}>素材の相場価格</div>
+
+        <div style={styles.marketDescription}>
+          相場サイトの全ページから価格を取得し、名前が一致するアイテムの買値を更新します。
+        </div>
+
+        {showProgress ? (
+          <div style={styles.progressArea}>
+            <div style={styles.progressHeader}>
+              <span>{getProgressLabel(safeProgress)}</span>
+              <strong>{safeProgress}%</strong>
+            </div>
+
+            <div
+              style={styles.progressTrack}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={safeProgress}
+              aria-label="素材価格更新の進捗"
+            >
+              <div
+                style={{
+                  ...styles.progressBar,
+                  width: `${safeProgress}%`,
+                }}
+              />
+            </div>
+
+            {updating ? (
+              <div style={styles.progressNote}>
+                現在の割合は処理時間から算出した目安です。正確な件数は完了後に表示します。
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {result ? (
+          <div style={styles.resultGrid}>
+            <span>取得：{Number(result.fetched_count ?? 0)}件</span>
+            <span>更新：{Number(result.updated_count ?? 0)}件</span>
+            <span>変更なし：{Number(result.unchanged_count ?? 0)}件</span>
+            <span>DB未登録：{Number(result.not_found_count ?? 0)}件</span>
+            <span>同名重複：{Number(result.duplicate_count ?? 0)}件</span>
+
+            {result.fetched_at ? (
+              <span>
+                実行日時：{formatFinishedAt(result.fetched_at)}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        onClick={onUpdate}
+        disabled={disabled || updating}
+        style={{
+          ...styles.marketButton,
+          ...(disabled || updating
+            ? styles.marketButtonDisabled
+            : {}),
+        }}
+      >
+        {updating ? "価格を更新中..." : "素材価格を更新"}
+      </button>
+    </section>
   );
 }
 
@@ -480,5 +700,105 @@ const styles = {
     color: "var(--text-sub)",
     cursor: "pointer",
     fontWeight: 700,
+  },
+
+  marketPanel: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 16,
+    border: "1px solid var(--panel-border)",
+    borderRadius: 12,
+    background: "var(--panel-bg)",
+    padding: 16,
+    boxSizing: "border-box",
+    color: "var(--page-text)",
+    minWidth: 0,
+  },
+
+  marketContent: {
+    display: "grid",
+    gap: 8,
+    flex: "1 1 380px",
+    minWidth: 0,
+  },
+
+  marketTitle: {
+    color: "var(--text-title, var(--page-text))",
+    fontSize: 16,
+    fontWeight: 800,
+  },
+
+  marketDescription: {
+    color: "var(--text-muted)",
+    fontSize: 13,
+    lineHeight: 1.6,
+  },
+
+  progressArea: {
+    display: "grid",
+    gap: 7,
+    marginTop: 4,
+  },
+
+  progressHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    color: "var(--text-main)",
+    fontSize: 13,
+  },
+
+  progressTrack: {
+    width: "100%",
+    height: 10,
+    overflow: "hidden",
+    border: "1px solid var(--soft-border)",
+    borderRadius: 999,
+    background: "var(--soft-bg)",
+    boxSizing: "border-box",
+  },
+
+  progressBar: {
+    height: "100%",
+    borderRadius: 999,
+    background:
+      "var(--primary-bg, var(--selected-bg, var(--text-main)))",
+    transition: "width 0.35s ease",
+  },
+
+  progressNote: {
+    color: "var(--text-muted)",
+    fontSize: 11,
+    lineHeight: 1.5,
+  },
+
+  resultGrid: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "6px 14px",
+    color: "var(--text-sub)",
+    fontSize: 13,
+    fontWeight: 700,
+  },
+
+  marketButton: {
+    flex: "0 0 auto",
+    minWidth: 150,
+    padding: "11px 16px",
+    border: "1px solid var(--primary-border, var(--selected-border))",
+    borderRadius: 10,
+    background: "var(--primary-bg, var(--selected-bg))",
+    color: "var(--primary-text, var(--text-main))",
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 800,
+  },
+
+  marketButtonDisabled: {
+    cursor: "not-allowed",
+    opacity: 0.55,
   },
 };

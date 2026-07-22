@@ -21,6 +21,8 @@ use App\Http\Controllers\Api\BossController;
 use App\Http\Controllers\Api\CraftTypeController;
 
 
+use App\Http\Controllers\Api\UpdateItemMarketPricesController;
+
 
 Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
@@ -95,8 +97,19 @@ Route::Resource('/orbs', OrbController::class);
 Route::get('/items/by-ids', [ItemController::class, 'byIds']);
 Route::Resource('/items', ItemController::class);
 
+// 既存の Route::Resource('/items', ItemController::class); より前後どちらでもOK
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post(
+        '/admin/items/update-market-prices',
+        UpdateItemMarketPricesController::class
+    );
+});
+
+
 Route::Resource('/equipments', EquipmentController::class);
 Route::get('/monsters/zukan', [MonsterController::class, 'zukan']);
 
 Route::Resource('/monster-search', MonsterController::class);
 Route::get('/monsters/around-display-order', [MonsterController::class, 'aroundDisplayOrder']);
+
+
