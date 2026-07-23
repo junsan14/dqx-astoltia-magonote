@@ -50,7 +50,6 @@ export default function SearchableSelect({
   maxResults = 30,
   allowCustomValue = false,
   selectOnFocus = false,
-  selectSingleOnEnter = false,
   className = "",
   inputClassName = "",
   ariaLabel,
