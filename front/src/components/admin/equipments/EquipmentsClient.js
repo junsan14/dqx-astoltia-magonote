@@ -864,7 +864,30 @@ export default function EquipmentsClient() {
     const next = effects.filter((_, i) => i !== index);
     setSelectedRowPatch({ effectsJson: toJsonString(next, "[]") });
   }
+  function getSidebarSlotOrder(row) {
+    const slot = str(row?.slot).trim();
 
+    const order = {
+      頭: 1,
+      あたま: 1,
+
+      体上: 2,
+      からだ上: 2,
+      身体上: 2,
+
+      体下: 3,
+      からだ下: 3,
+      身体下: 3,
+
+      腕: 4,
+      うで: 4,
+
+      足: 5,
+      あし: 5,
+    };
+
+    return order[slot] ?? 999;
+  }
   const isCreateTab = activeTab === "create";
   const createAction =
     newMode === "single" ? handleCreateItem : handleCreateGroup;
@@ -934,7 +957,9 @@ export default function EquipmentsClient() {
                       </button>
 
                       <div style={styles.childList}>
-                        {entry.rows.map((row) => {
+                        {[...entry.rows]
+                          .sort((a, b) => getSidebarSlotOrder(a) - getSidebarSlotOrder(b))
+                          .map((row) => {
                           const active = row.__key === selectedKey;
 
                           return (

@@ -124,7 +124,7 @@ export default function SlotGridEditor({ row, onPatch }) {
                   key={`${r}-${c}`}
                   style={gridCellStyle(disabled)}
                   value={grid2d?.[r]?.[c] ?? ""}
-                  disabled={disabled}
+          
                   onChange={(e) => updateGridCell(r, c, e.target.value)}
                   onPaste={(e) => {
                     const text = e.clipboardData?.getData("text") ?? "";
