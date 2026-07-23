@@ -61,9 +61,6 @@ export default function EquipmentEditorPanel({
     safeRow.__key ?? safeRow.id ?? "row"
   }`;
 
-  const fabricTypeListId = `fabric-type-list-${
-    safeRow.__key ?? safeRow.id ?? "row"
-  }`;
 
   const selectedEquipmentType = useMemo(() => {
     if (!row) return null;
