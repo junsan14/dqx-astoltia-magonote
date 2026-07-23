@@ -244,13 +244,15 @@ const tabs = isEquipmentSet(selectedSet)
 
   return (
     <div className={styles.tabsFullBleed}>
-      <div
-        ref={tabListRef}
-        className={styles.tabsScroller}
-        role="tablist"
-        aria-label={locale === "en" ? "Equipment part" : "装備部位"}
-        style={{ "--tab-count": tabs.length }}
-      >
+        <div
+          ref={tabListRef}
+          className={`${styles.tabsScroller} ${
+            tabs.length > 6 ? styles.tabsScrollable : ""
+          }`}
+          role="tablist"
+          aria-label={locale === "en" ? "Equipment part" : "装備部位"}
+          style={{ "--tab-count": tabs.length }}
+        >
         {tabs.map((slot) => {
           const isActive = slot === activeSlot;
          const label = getTabLabel({

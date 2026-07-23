@@ -464,11 +464,24 @@
 
   .tabsScroller {
     display: grid;
-    grid-template-columns: repeat(var(--tab-count), minmax(0, 1fr));
+    grid-template-columns: repeat(calc(var(--tab-count)), minmax(0, 1fr));
     gap: 0.25rem;
     overflow: visible;
     padding: 0;
   }
+  .tabs {
+  display: grid;
+  grid-template-columns: repeat(var(--tab-count), minmax(0, 1fr));
+}
+
+/* タブが6個以上の場合 */
+.tabsScrollable {
+  grid-template-columns: repeat(var(--tab-count), minmax(120px, 1fr));
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
 
   .tabButton {
     width: 100%;

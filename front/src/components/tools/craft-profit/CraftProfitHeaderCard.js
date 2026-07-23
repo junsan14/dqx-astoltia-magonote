@@ -19,7 +19,9 @@ export default function CraftProfitHeaderCard({
   setToolPriceOverride,
 }) {
   const t = useTranslations("CraftProfit");
-  const hasToolOptions = Array.isArray(toolOptions) && toolOptions.length > 1;
+
+  const hasToolOptions =
+    Array.isArray(toolOptions) && toolOptions.length > 1;
 
   return (
     <section className={styles.card}>
@@ -58,19 +60,25 @@ export default function CraftProfitHeaderCard({
                 maxResults={30}
                 allowCustomValue
                 selectOnFocus
+                selectSingleOnEnter
                 ariaLabel={t("header.equipmentSet")}
                 getOptionValue={(option) => option.name}
                 getOptionLabel={(option) => option.name}
                 getOptionDescription={() => ""}
                 getOptionSearchText={(option) => {
                   const itemNames = Array.isArray(option.items)
-                    ? option.items.map((item) => item?.name).filter(Boolean)
+                    ? option.items
+                        .map((item) => item?.name)
+                        .filter(Boolean)
                     : [];
 
                   const itemEquipLevels = Array.isArray(option.items)
                     ? option.items
                         .map((item) => item?.equipLevel)
-                        .filter((level) => level != null && level !== "")
+                        .filter(
+                          (level) =>
+                            level != null && level !== ""
+                        )
                     : [];
 
                   return [
@@ -79,16 +87,22 @@ export default function CraftProfitHeaderCard({
                     option.equipLevel,
                     ...itemEquipLevels,
                   ]
-                    .filter((value) => value != null && value !== "")
+                    .filter(
+                      (value) =>
+                        value != null && value !== ""
+                    )
                     .join(" ");
                 }}
               />
             </div>
           </div>
         </div>
+
         {hasToolOptions && (
           <div className={styles.field}>
-            <label className={styles.label}>{t("header.toolUsage")}</label>
+            <label className={styles.label}>
+              {t("header.toolUsage")}
+            </label>
 
             <div className={styles.toolControls}>
               <DropdownSelect
@@ -110,7 +124,9 @@ export default function CraftProfitHeaderCard({
                 value={toolPrice}
                 min={0}
                 onChange={(event) =>
-                  setToolPriceOverride(Number(event.target.value))
+                  setToolPriceOverride(
+                    Number(event.target.value)
+                  )
                 }
                 title={t("header.toolPriceTitle")}
               />

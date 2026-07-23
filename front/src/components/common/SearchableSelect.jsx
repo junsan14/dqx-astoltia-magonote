@@ -50,12 +50,14 @@ export default function SearchableSelect({
   maxResults = 30,
   allowCustomValue = false,
   selectOnFocus = false,
+  selectSingleOnEnter = false,
   className = "",
   inputClassName = "",
   ariaLabel,
 }) {
   const rootRef = useRef(null);
   const listboxId = useId();
+
   const [inputValue, setInputValue] = useState("");
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -87,11 +89,16 @@ export default function SearchableSelect({
     }
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
-    if (disabled) setOpen(false);
+    if (disabled) {
+      setOpen(false);
+    }
   }, [disabled]);
 
   const filteredOptions = useMemo(() => {
@@ -105,7 +112,13 @@ export default function SearchableSelect({
       : base;
 
     return matched.slice(0, maxResults);
-  }, [getOptionSearchText, inputValue, maxResults, options, sortOptions]);
+  }, [
+    getOptionSearchText,
+    inputValue,
+    maxResults,
+    options,
+    sortOptions,
+  ]);
 
   useEffect(() => {
     setHighlightedIndex(0);
@@ -113,14 +126,20 @@ export default function SearchableSelect({
 
   function selectAll(event) {
     if (!selectOnFocus || disabled) return;
+
     event.currentTarget.select();
   }
 
   function handleSelect(option) {
+    if (!option) return;
+
     const nextValue = String(getOptionValue(option));
-    setInputValue(String(getOptionLabel(option)));
+    const nextLabel = String(getOptionLabel(option));
+
+    setInputValue(nextLabel);
     onChange?.(nextValue, option);
     setOpen(false);
+    setHighlightedIndex(0);
   }
 
   function handleInputChange(next) {
@@ -133,6 +152,7 @@ export default function SearchableSelect({
     }
 
     const normalizedNext = normalizeKana(next);
+
     const exact = options.find((option) => {
       const label = String(getOptionLabel(option));
       const optionValue = String(getOptionValue(option));
@@ -155,8 +175,70 @@ export default function SearchableSelect({
     }
   }
 
+  function handleKeyDown(event) {
+  // 日本語変換中のEnterでは確定しない
+  if (event.nativeEvent.isComposing) {
+    return;
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    setOpen(true);
+
+    setHighlightedIndex((current) =>
+      Math.min(
+        current + 1,
+        Math.max(filteredOptions.length - 1, 0)
+      )
+    );
+
+    return;
+  }
+
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    setOpen(true);
+
+    setHighlightedIndex((current) =>
+      Math.max(current - 1, 0)
+    );
+
+    return;
+  }
+
+  if (event.key === "Enter") {
+    if (filteredOptions.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+
+    // 候補が1件なら、その候補をそのまま確定
+    if (filteredOptions.length === 1) {
+      handleSelect(filteredOptions[0]);
+      return;
+    }
+
+    // 候補が複数なら、選択中の候補を確定
+    const selectedOption =
+      filteredOptions[highlightedIndex] ??
+      filteredOptions[0];
+
+    handleSelect(selectedOption);
+    return;
+  }
+
+  if (event.key === "Escape") {
+    setOpen(false);
+    setHighlightedIndex(0);
+  }
+}
+
   return (
-    <div ref={rootRef} className={cn(styles.root, className)}>
+    <div
+      ref={rootRef}
+      className={cn(styles.root, className)}
+    >
       <input
         type="text"
         role="combobox"
@@ -165,36 +247,17 @@ export default function SearchableSelect({
         aria-controls={open ? listboxId : undefined}
         aria-expanded={open}
         value={inputValue}
-        onChange={(event) => handleInputChange(event.target.value)}
+        onChange={(event) =>
+          handleInputChange(event.target.value)
+        }
         onFocus={(event) => {
           if (disabled) return;
+
           setOpen(true);
           selectAll(event);
         }}
         onClick={selectAll}
-        onKeyDown={(event) => {
-          if (event.key === "ArrowDown") {
-            event.preventDefault();
-            setOpen(true);
-            setHighlightedIndex((current) =>
-              Math.min(current + 1, Math.max(filteredOptions.length - 1, 0))
-            );
-          }
-
-          if (event.key === "ArrowUp") {
-            event.preventDefault();
-            setHighlightedIndex((current) => Math.max(current - 1, 0));
-          }
-
-          if (event.key === "Enter" && filteredOptions.length > 0) {
-            event.preventDefault();
-            handleSelect(filteredOptions[highlightedIndex] ?? filteredOptions[0]);
-          }
-
-          if (event.key === "Escape") {
-            setOpen(false);
-          }
-        }}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
         className={cn(
@@ -205,14 +268,26 @@ export default function SearchableSelect({
       />
 
       {open && !disabled ? (
-        <div id={listboxId} className={styles.dropdown} role="listbox">
+        <div
+          id={listboxId}
+          className={styles.dropdown}
+          role="listbox"
+        >
           {filteredOptions.length === 0 ? (
-            <div className={styles.empty}>{emptyText}</div>
+            <div className={styles.empty}>
+              {emptyText}
+            </div>
           ) : (
             filteredOptions.map((option, index) => {
-              const optionValue = String(getOptionValue(option));
-              const active = optionValue === String(value);
-              const description = getOptionDescription(option);
+              const optionValue = String(
+                getOptionValue(option)
+              );
+
+              const active =
+                optionValue === String(value);
+
+              const description =
+                getOptionDescription(option);
 
               return (
                 <button
@@ -220,12 +295,15 @@ export default function SearchableSelect({
                   type="button"
                   role="option"
                   aria-selected={active}
-                  onMouseEnter={() => setHighlightedIndex(index)}
+                  onMouseEnter={() =>
+                    setHighlightedIndex(index)
+                  }
                   onClick={() => handleSelect(option)}
                   className={cn(
                     styles.option,
                     active && styles.optionActive,
-                    index === highlightedIndex && styles.optionHighlighted
+                    index === highlightedIndex &&
+                      styles.optionHighlighted
                   )}
                 >
                   <span className={styles.optionContent}>
@@ -234,7 +312,11 @@ export default function SearchableSelect({
                     </span>
 
                     {description ? (
-                      <span className={styles.optionDescription}>
+                      <span
+                        className={
+                          styles.optionDescription
+                        }
+                      >
                         {description}
                       </span>
                     ) : null}
