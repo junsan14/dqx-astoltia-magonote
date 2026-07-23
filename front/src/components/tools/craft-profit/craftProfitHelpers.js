@@ -245,12 +245,26 @@ function toItemSummary(item) {
     jobOverrideMode: item.jobOverrideMode,
     jobOverrides: item.jobOverrides,
     equipmentType: item.equipmentType,
+    equipmentTypeName: item.equipmentTypeName,
 
     craftLevel: item.craftLevel,
     equipLevel: item.equipLevel,
     recipeBook: item.recipeBook,
     recipePlace: item.recipePlace,
     description: item.description,
+    fabricType: item.fabricType,
+
+    maxHp: item.maxHp,
+    maxMp: item.maxMp,
+    attack: item.attack,
+    defense: item.defense,
+    charm: item.charm,
+    agility: item.agility,
+    dexterity: item.dexterity,
+    magicAttack: item.magicAttack,
+    healingPower: item.healingPower,
+    weight: item.weight,
+
     effects: item.effects,
   };
 }
@@ -337,6 +351,19 @@ export function normalizeEquipmentRow(row, itemMap = new Map(), locale = "ja") {
     recipeBook: row?.recipeBook ?? row?.recipe_book ?? "",
     recipePlace: row?.recipePlace ?? row?.recipe_place ?? "",
     description: row?.description ?? "",
+    fabricType: String(row?.fabricType ?? row?.fabric_type ?? "").trim(),
+
+    maxHp: Number(row?.maxHp ?? row?.max_hp ?? 0) || 0,
+    maxMp: Number(row?.maxMp ?? row?.max_mp ?? 0) || 0,
+    attack: Number(row?.attack ?? 0) || 0,
+    defense: Number(row?.defense ?? 0) || 0,
+    charm: Number(row?.charm ?? 0) || 0,
+    agility: Number(row?.agility ?? 0) || 0,
+    dexterity: Number(row?.dexterity ?? 0) || 0,
+    magicAttack: Number(row?.magicAttack ?? row?.magic_attack ?? 0) || 0,
+    healingPower:
+      Number(row?.healingPower ?? row?.healing_power ?? 0) || 0,
+    weight: Number(row?.weight ?? 0) || 0,
 
     materials: normalizedMaterials,
     slotGrid,
@@ -345,6 +372,9 @@ export function normalizeEquipmentRow(row, itemMap = new Map(), locale = "ja") {
     jobOverrideMode,
     jobOverrides,
     equipmentType,
+    equipmentTypeName: String(
+      equipmentType?.name ?? row?.equipmentTypeName ?? row?.equipment_type_name ?? ""
+    ).trim(),
 
     groupId:
       row?.groupId ??

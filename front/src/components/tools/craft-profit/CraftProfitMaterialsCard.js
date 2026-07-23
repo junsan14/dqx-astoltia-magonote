@@ -1,13 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { MdSwipe } from "react-icons/md";
 import { clamp0, yen } from "@/lib/money";
 import {
   getSlotItemName,
@@ -15,6 +10,14 @@ import {
   sortSlots,
 } from "./craftProfitHelpers";
 import styles from "./CraftProfitMaterialsCard.module.css";
+
+const ALL_SLOT = "__all__";
+const STAR_ROWS = [
+  ["star0", "☆☆☆"],
+  ["star1", "★☆☆"],
+  ["star2", "★★☆"],
+  ["star3", "★★★"],
+];
 
 function SlotGridView({ grid }) {
   if (!grid) return null;
@@ -72,17 +75,72 @@ function getAxisLabel(slot, slotGridMeta, slotItemMap) {
   );
 }
 
-function getMobileAxisTitle(slot, slotGridMeta, slotItemMap) {
+function getSelectedItem(slot, selectedSet) {
+  const items = Array.isArray(selectedSet?.items) ? selectedSet.items : [];
+
+  const exactItem = items.find(
+    (item) =>
+      String(item?.id ?? item?.name ?? "") === String(slot) ||
+      String(item?.slotKey ?? "") === String(slot) ||
+      String(item?.slot ?? "") === String(slot)
+  );
+
+  if (exactItem) return exactItem;
+
+  const normalizedSlot = normalizeSlotKey(slot);
+
   return (
-    slotGridMeta?.[slot]?.itemName ||
-    slotItemMap?.[slot] ||
-    slotGridMeta?.[slot]?.label ||
-    slot
+    items.find(
+      (item) =>
+        normalizeSlotKey(item?.slotKey ?? item?.slot ?? "other") ===
+        normalizedSlot
+    ) ?? null
   );
 }
 
 function getAxisItemName(slot, slotGridMeta, selectedSet) {
-  return slotGridMeta?.[slot]?.itemName || getSlotItemName(selectedSet, slot);
+  return (
+    slotGridMeta?.[slot]?.itemName ||
+    getSelectedItem(slot, selectedSet)?.name ||
+    getSlotItemName(selectedSet, slot)
+  );
+}
+
+function isEquipmentSet(selectedSet) {
+  const items = Array.isArray(selectedSet?.items) ? selectedSet.items : [];
+  const groupKind = String(
+    selectedSet?.groupKind ?? selectedSet?.group_kind ?? ""
+  );
+
+  return items.length > 1 || groupKind.endsWith("_set");
+}
+
+function getEquipmentTypeName(item) {
+  return String(
+    item?.equipmentTypeName ??
+      item?.equipment_type_name ??
+      item?.equipmentType?.name ??
+      item?.equipment_type?.name ??
+      ""
+  ).trim();
+}
+
+function getFabricTypeTagClass(fabricType) {
+  const normalized = String(fabricType ?? "").trim();
+
+  if (normalized.includes("再生")) {
+    return styles.detailTagRegenerated;
+  }
+
+  if (normalized.includes("虹")) {
+    return styles.detailTagRainbow;
+  }
+
+  if (normalized.includes("ピンク")) {
+    return styles.detailTagPink;
+  }
+
+  return "";
 }
 
 const moneyFormatter = new Intl.NumberFormat("ja-JP", {
@@ -128,15 +186,39 @@ function MoneyInput({ value, onChange, className, ariaLabel }) {
     />
   );
 }
+function getTabLabel({
+    slot,
+    slotGridMeta,
+    slotItemMap,
+    selectedSet,
+    locale,
+  }) {
+    if (slot === ALL_SLOT) {
+      return locale === "en" ? "All" : "全て";
+    }
 
-function MobileSlotTabs({
+    const defaultLabel = getAxisLabel(slot, slotGridMeta, slotItemMap);
+
+    // セット装備は「頭・体上・体下」などを表示
+    if (isEquipmentSet(selectedSet)) {
+      return defaultLabel;
+    }
+
+    // 単体装備は「弓・片手剣・小盾」などを表示
+    const selectedItem = getSelectedItem(slot, selectedSet);
+    const equipmentTypeName = getEquipmentTypeName(selectedItem);
+
+    return equipmentTypeName || defaultLabel;
+  }
+function SlotTabs({
   slots,
   activeSlot,
   onChange,
   slotGridMeta,
   slotItemMap,
+  selectedSet,
+  locale,
 }) {
-  const safeSlots = Array.isArray(slots) ? slots : [];
   const tabListRef = useRef(null);
   const tabRefs = useRef(new Map());
 
@@ -155,16 +237,29 @@ function MobileSlotTabs({
     });
   }, [activeSlot]);
 
+const safeSlots = Array.isArray(slots) ? slots : [];
+const tabs = isEquipmentSet(selectedSet)
+  ? [ALL_SLOT, ...safeSlots]
+  : safeSlots;
+
   return (
-    <div className={styles.mobileTabsFullBleed}>
+    <div className={styles.tabsFullBleed}>
       <div
         ref={tabListRef}
-        className={styles.mobileTabsScroller}
+        className={styles.tabsScroller}
         role="tablist"
-        aria-label="装備部位"
+        aria-label={locale === "en" ? "Equipment part" : "装備部位"}
+        style={{ "--tab-count": tabs.length }}
       >
-        {safeSlots.map((slot) => {
+        {tabs.map((slot) => {
           const isActive = slot === activeSlot;
+         const label = getTabLabel({
+            slot,
+            slotGridMeta,
+            slotItemMap,
+            selectedSet,
+            locale,
+          });
 
           return (
             <button
@@ -176,12 +271,12 @@ function MobileSlotTabs({
               type="button"
               role="tab"
               aria-selected={isActive}
-              className={`${styles.mobileTab} ${
-                isActive ? styles.mobileTabActive : ""
+              className={`${styles.tabButton} ${
+                isActive ? styles.tabButtonActive : ""
               }`}
               onClick={() => onChange(slot)}
             >
-              {getAxisLabel(slot, slotGridMeta, slotItemMap)}
+              {label}
             </button>
           );
         })}
@@ -190,51 +285,172 @@ function MobileSlotTabs({
   );
 }
 
-function MobileMaterialsList({
+function SectionTitle({ children }) {
+  return <h3 className={styles.sectionTitle}>{children}</h3>;
+}
+
+function SwipeHint() {
+  return (
+    <div className={styles.swipeHint} aria-hidden="true">
+      <MdSwipe className={styles.swipeHintIcon} />
+    </div>
+  );
+}
+
+function BaseValuePanel({
   slot,
+  slotGrids,
+  slotGridMeta,
+  slotItemMap,
+  selectedSet,
+  locale,
+}) {
+  const grid = slotGrids?.[slot] ?? null;
+  const label = getAxisLabel(slot, slotGridMeta, slotItemMap);
+  const selectedItem = getSelectedItem(slot, selectedSet);
+  const itemName =
+    getAxisItemName(slot, slotGridMeta, selectedSet) || label;
+  const fabricType = String(
+    selectedItem?.fabricType ?? selectedItem?.fabric_type ?? ""
+  ).trim();
+
+  const detailTag = fabricType;
+
+  return (
+    <div className={styles.sectionBlock}>
+      <SectionTitle>
+        {locale === "en" ? "Critical success target" : "大成功基準値"}
+      </SectionTitle>
+
+      <div className={styles.baseValueCard}>
+        <div className={styles.baseValueHeading}>
+          <div className={styles.baseValueName}>{itemName}</div>
+
+          {detailTag ? (
+            <span
+              className={`${styles.detailTag} ${getFabricTypeTagClass(
+                detailTag
+              )}`}
+            >
+              {detailTag}
+            </span>
+          ) : null}
+        </div>
+
+        {grid ? (
+          <SlotGridView grid={grid} />
+        ) : (
+          <div className={styles.emptyPanel}>
+            {locale === "en" ? "No target values" : "基準値情報がありません"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function buildMaterialItems({
+  selectedSlot,
   rows,
   unitCostMap,
-  onChangeUnitCost,
-  toolRow,
-  recommendedPrices,
+  toolEnabled,
+  selectedTool,
+  toolPrice,
+  setToolPriceOverride,
+  toolCostPerCraft,
+  mobileToolRow,
+  slotCount,
+}) {
+  const isAll = selectedSlot === ALL_SLOT;
+  const result = [];
+
+  const hasTool =
+    toolEnabled && selectedTool?.id && selectedTool.id !== "none";
+  const toolName = selectedTool?.name ?? mobileToolRow?.name ?? "";
+  const resolvedToolPrice = Number(toolPrice ?? mobileToolRow?.toolPrice ?? 0);
+  const resolvedToolCost = Number(
+    toolCostPerCraft ?? mobileToolRow?.toolCostPerCraft ?? 0
+  );
+  const resolvedToolChange =
+    setToolPriceOverride ?? mobileToolRow?.onChangeToolPrice;
+
+  if (hasTool && toolName) {
+    result.push({
+      key: "__tool__",
+      name: toolName,
+      qty: null,
+      unit: resolvedToolPrice,
+      amount: resolvedToolCost * (isAll ? Math.max(1, slotCount) : 1),
+      isTool: true,
+      onChange: resolvedToolChange,
+    });
+  }
+
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const qty = isAll
+      ? Number(row?.totalQty || 0)
+      : Number(row?.perSlotQty?.[selectedSlot] || 0);
+
+    if (!qty) continue;
+
+    const unit = clamp0(unitCostMap?.[row.materialKey] ?? 0);
+
+    result.push({
+      key: row.materialKey,
+      name: row.materialName,
+      qty,
+      unit,
+      amount: qty * unit,
+      isTool: false,
+    });
+  }
+
+  return result;
+}
+
+function MaterialsPanel({
+  selectedSlot,
+  rows,
+  unitCostMap,
+  updateUnitCost,
+  toolEnabled,
+  selectedTool,
+  toolPrice,
+  setToolPriceOverride,
+  toolCostPerCraft,
+  mobileToolRow,
+  slotCount,
+  locale,
 }) {
   const t = useTranslations("CraftProfit");
-  const locale = useLocale();
-  const safeRows = Array.isArray(rows) ? rows : [];
 
-  const items = useMemo(() => {
-    const result = [];
-
-    if (toolRow) {
-      result.push({
-        key: "__tool__",
-        name: toolRow.name,
-        qty: null,
-        unit: toolRow.toolPrice,
-        amount: toolRow.toolCostPerCraft,
-        isTool: true,
-        onChangeToolPrice: toolRow.onChangeToolPrice,
-      });
-    }
-
-    for (const row of safeRows) {
-      const qty = Number(row?.perSlotQty?.[slot] || 0);
-      if (!qty) continue;
-
-      const unit = clamp0(unitCostMap?.[row.materialKey] ?? 0);
-
-      result.push({
-        key: row.materialKey,
-        name: row.materialName,
-        qty,
-        unit,
-        amount: qty * unit,
-        isTool: false,
-      });
-    }
-
-    return result;
-  }, [slot, safeRows, unitCostMap, toolRow]);
+  const items = useMemo(
+    () =>
+      buildMaterialItems({
+        selectedSlot,
+        rows,
+        unitCostMap,
+        toolEnabled,
+        selectedTool,
+        toolPrice,
+        setToolPriceOverride,
+        toolCostPerCraft,
+        mobileToolRow,
+        slotCount,
+      }),
+    [
+      selectedSlot,
+      rows,
+      unitCostMap,
+      toolEnabled,
+      selectedTool,
+      toolPrice,
+      setToolPriceOverride,
+      toolCostPerCraft,
+      mobileToolRow,
+      slotCount,
+    ]
+  );
 
   const totalAmount = useMemo(
     () => items.reduce((sum, item) => sum + clamp0(item.amount), 0),
@@ -242,293 +458,109 @@ function MobileMaterialsList({
   );
 
   return (
-    <div className={styles.mobileMaterialTable}>
-      <div className={styles.mobileMaterialHeader}>
-        <div className={styles.mobileMaterialNameHeader}>
-          {t("materials.materialName")}
+    <div className={styles.sectionBlock}>
+      <SectionTitle>
+        {locale === "en" ? "Required materials and cost" : "必要素材と原価"}
+      </SectionTitle>
+
+      <div className={styles.materialTableCard}>
+        <div className={styles.materialTableScroller}>
+          <table className={styles.materialTable}>
+            <thead>
+              <tr>
+                <th className={styles.materialNameHeader}>
+                  {t("materials.materialName")}
+                </th>
+                <th>{t("materials.required")}</th>
+                <th>{t("materials.unitPrice")}</th>
+                <th>{t("materials.amount")}</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {items.length ? (
+                items.map((item) => (
+                  <tr key={item.key} className={item.isTool ? styles.toolRow : ""}>
+                    <td className={styles.materialNameCell}>
+                      {item.name}
+                    </td>
+                    <td className={styles.numberCell}>
+                      {item.isTool ? 1 : item.qty}
+                    </td>
+                    <td className={styles.inputCell}>
+                      <MoneyInput
+                        className={styles.moneyInput}
+                        value={item.unit}
+                        ariaLabel={`${item.name} ${t("materials.unitPrice")}`}
+                        onChange={(value) => {
+                          if (item.isTool) item.onChange?.(value);
+                          else updateUnitCost(item.key, value);
+                        }}
+                      />
+                    </td>
+                    <td className={styles.amountCell}>{yen(item.amount)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className={styles.emptyTableCell}>
+                    {t("materials.noMaterials")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+
+            <tfoot>
+              <tr>
+                <td colSpan={3}>{t("materials.total")}</td>
+                <td className={styles.totalAmount}>{yen(totalAmount)}G</td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
-        <div>{t("materials.required")}</div>
-        <div>{t("materials.amount")}</div>
-        <div>{t("materials.unitPrice")}</div>
       </div>
-
-      {items.length ? (
-        items.map((item) => (
-          <div key={item.key} className={styles.mobileMaterialRow}>
-            <div className={styles.mobileMaterialName}>{item.name}</div>
-
-            <div className={styles.mobileMutedCell}>
-              {item.isTool ? "-" : item.qty}
-            </div>
-
-            <div className={styles.mobileNumberCell}>{yen(item.amount)}</div>
-
-            <div className={styles.mobileUnitInputWrap}>
-              <MoneyInput
-                className={styles.mobileUnitInput}
-                value={item.unit}
-                ariaLabel={`${item.name} ${t("materials.unitPrice")}`}
-                onChange={(value) => {
-                  if (item.isTool) item.onChangeToolPrice(value);
-                  else onChangeUnitCost(item.key, value);
-                }}
-              />
-            </div>
-          </div>
-        ))
-      ) : (
-        <div className={styles.mobileEmpty}>{t("materials.noMaterials")}</div>
-      )}
-
-      <div className={styles.mobileMaterialTotal}>
-        <span>
-          {t("materials.total")}: {yen(totalAmount)}G
-        </span>
-      </div>
-
-      <div className={styles.mobileRecommendedPriceHeading}>
-        {locale === "en" ? "Recommended prices" : "販売目安価格"}
-      </div>
-
-      {[
-        ["star0", "☆☆☆"],
-        ["star1", "★☆☆"],
-        ["star2", "★★☆"],
-        ["star3", "★★★"],
-      ].map(([key, label]) => (
-        <div key={key} className={styles.mobileRecommendedPriceRow}>
-          <span className={styles.mobileRecommendedPriceLabel}>{label}</span>
-          <span className={styles.mobileRecommendedPriceValue}>
-            {recommendedPrices ? `${yen(recommendedPrices[key])}G` : "—"}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }
 
-function getNearestSlot(scroller) {
-  if (!scroller) return null;
-
-  const cards = Array.from(scroller.querySelectorAll("[data-slot-card]"));
-  if (!cards.length) return null;
-
-  const center = scroller.scrollLeft + scroller.clientWidth / 2;
-  let nearestSlot = null;
-  let nearestDistance = Number.POSITIVE_INFINITY;
-
-  for (const card of cards) {
-    const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-    const distance = Math.abs(cardCenter - center);
-
-    if (distance < nearestDistance) {
-      nearestDistance = distance;
-      nearestSlot = card.getAttribute("data-slot-card");
-    }
+function getRecommendedPrices(selectedSlot, sortedSlots, slotPricing) {
+  if (selectedSlot !== ALL_SLOT) {
+    return slotPricing?.[selectedSlot]?.prices ?? null;
   }
 
-  return nearestSlot;
-}
-
-function getCardForSlot(scroller, slot) {
-  if (!scroller || slot == null) return null;
-
-  return Array.from(scroller.querySelectorAll("[data-slot-card]")).find(
-    (card) => card.getAttribute("data-slot-card") === String(slot)
+  const hasAnyPrice = sortedSlots.some(
+    (slot) => slotPricing?.[slot]?.prices
   );
-}
 
-function scrollCardToCenter(scroller, card, behavior = "smooth") {
-  if (!scroller || !card) return;
+  if (!hasAnyPrice) return null;
 
-  const targetLeft =
-    card.offsetLeft - (scroller.clientWidth - card.offsetWidth) / 2;
-  const maxLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
-
-  scroller.scrollTo({
-    left: Math.min(maxLeft, Math.max(0, targetLeft)),
-    behavior,
-  });
-}
-
-function MobileSlotCarousel({
-  slots,
-  activeSlot,
-  onChange,
-  slotGrids,
-  slotItemMap,
-  slotGridMeta,
-  navigationSourceRef,
-  tabRequestVersion,
-  children,
-}) {
-  const safeSlots = Array.isArray(slots) ? slots : [];
-  const scrollerRef = useRef(null);
-  const activeSlotRef = useRef(activeSlot);
-  const previousActiveRef = useRef(null);
-  const animationFrameRef = useRef(null);
-  const scrollEndTimerRef = useRef(null);
-  const targetSlotRef = useRef(null);
-
-  useEffect(() => {
-    activeSlotRef.current = activeSlot;
-  }, [activeSlot]);
-
-  const syncActiveFromCenter = useCallback(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-
-    const nearestSlot = getNearestSlot(scroller);
-    if (!nearestSlot || nearestSlot === activeSlotRef.current) return;
-
-    navigationSourceRef.current = "swipe";
-    activeSlotRef.current = nearestSlot;
-    onChange(nearestSlot);
-  }, [navigationSourceRef, onChange]);
-
-  const finishScrolling = useCallback(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    const nearestSlot = getNearestSlot(scroller);
-
-    if (
-      navigationSourceRef.current !== "tab" &&
-      nearestSlot &&
-      nearestSlot !== activeSlotRef.current
-    ) {
-      navigationSourceRef.current = "swipe";
-      activeSlotRef.current = nearestSlot;
-      onChange(nearestSlot);
-    }
-
-    targetSlotRef.current = null;
-    navigationSourceRef.current = "idle";
-  }, [navigationSourceRef, onChange]);
-
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return undefined;
-
-    const handleNativeScrollEnd = () => finishScrolling();
-    scroller.addEventListener("scrollend", handleNativeScrollEnd);
-
-    return () => {
-      scroller.removeEventListener("scrollend", handleNativeScrollEnd);
-    };
-  }, [finishScrolling]);
-
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller || !activeSlot) return;
-
-    if (navigationSourceRef.current === "swipe") {
-      previousActiveRef.current = activeSlot;
-      return;
-    }
-
-    if (previousActiveRef.current === activeSlot) return;
-
-    const card = getCardForSlot(scroller, activeSlot);
-    if (!card) return;
-
-    const isInitialPosition = previousActiveRef.current == null;
-    previousActiveRef.current = activeSlot;
-    targetSlotRef.current = activeSlot;
-
-    scrollCardToCenter(
-      scroller,
-      card,
-      isInitialPosition ? "auto" : "smooth"
+  return STAR_ROWS.reduce((result, [key]) => {
+    result[key] = sortedSlots.reduce(
+      (sum, slot) => sum + Number(slotPricing?.[slot]?.prices?.[key] || 0),
+      0
     );
-  }, [activeSlot, navigationSourceRef, tabRequestVersion]);
+    return result;
+  }, {});
+}
 
-  useEffect(() => {
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (scrollEndTimerRef.current) {
-        clearTimeout(scrollEndTimerRef.current);
-      }
-    };
-  }, []);
-
-  const startUserSwipe = () => {
-    targetSlotRef.current = null;
-    navigationSourceRef.current = "swipe";
-
-    if (scrollEndTimerRef.current) {
-      clearTimeout(scrollEndTimerRef.current);
-      scrollEndTimerRef.current = null;
-    }
-  };
-
-  const handleScroll = () => {
-    if (animationFrameRef.current) return;
-
-    animationFrameRef.current = requestAnimationFrame(() => {
-      animationFrameRef.current = null;
-
-      // A tab click may pass across several cards. Keep the clicked tab active
-      // until the programmatic smooth scroll finishes.
-      if (navigationSourceRef.current !== "tab") {
-        syncActiveFromCenter();
-      }
-    });
-
-    if (scrollEndTimerRef.current) {
-      clearTimeout(scrollEndTimerRef.current);
-    }
-
-    // Fallback for browsers where the scrollend event is unavailable or late.
-    scrollEndTimerRef.current = setTimeout(finishScrolling, 110);
-  };
-
+function RecommendedPricePanel({ prices, locale }) {
   return (
-    <div className={styles.mobileCarouselFullBleed}>
-      <div
-        ref={scrollerRef}
-        className={styles.mobileCarousel}
-        onPointerDown={startUserSwipe}
-        onTouchStart={startUserSwipe}
-        onScroll={handleScroll}
-      >
-        {safeSlots.map((slot) => {
-          const grid = slotGrids?.[slot] ?? null;
-          const isActive = slot === activeSlot;
+    <div className={styles.sectionBlock}>
+      <SectionTitle>
+        {locale === "en" ? "Recommended selling prices" : "販売目安価格"}
+      </SectionTitle>
 
-          return (
-            <div
-              key={slot}
-              data-slot-card={slot}
-              role="tabpanel"
-              aria-hidden={!isActive}
-              className={styles.mobileSlide}
-            >
-              <div className={styles.mobileSlideContent}>
-                {grid ? (
-                  <div className={styles.mobileGridCard}>
-                    <div className={styles.mobileGridTitle}>
-                      {getMobileAxisTitle(slot, slotGridMeta, slotItemMap)}
-                    </div>
-
-                    <div className={styles.mobileGridBody}>
-                      <SlotGridView grid={grid} />
-                    </div>
-                  </div>
-                ) : null}
-
-                {children(slot)}
-              </div>
-            </div>
-          );
-        })}
+      <div className={styles.priceTableCard}>
+        <table className={styles.priceTable}>
+          <tbody>
+            {STAR_ROWS.map(([key, label]) => (
+              <tr key={key}>
+                <th>{label}</th>
+                <td>{prices ? `${yen(prices[key])}G` : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -550,21 +582,27 @@ export default function CraftProfitMaterialsCard({
   toolPrice,
   setToolPriceOverride,
   toolCostPerCraft,
-  slotTotalsWithTool,
   slotPricing,
 }) {
   const t = useTranslations("CraftProfit");
   const locale = useLocale();
-  const navigationSourceRef = useRef("idle");
-  const [tabRequestVersion, setTabRequestVersion] = useState(0);
+
+  const safeSlots = Array.isArray(slots) ? slots : [];
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const sortedSlots = useMemo(
+    () => sortSlots(safeSlots, locale),
+    [safeSlots, locale]
+  );
+  const equipmentIsSet = useMemo(
+    () => isEquipmentSet(selectedSet),
+    [selectedSet]
+  );
 
   const slotItemMap = useMemo(() => {
     const map = {};
 
     for (const item of selectedSet?.items || []) {
-      const keyById = String(
-        item.id || item.slotKey || item.slot || item.name
-      );
+      const keyById = String(item.id || item.slotKey || item.slot || item.name);
       map[keyById] = item.name;
 
       const slotKey = normalizeSlotKey(item.slotKey ?? item.slot);
@@ -576,256 +614,220 @@ export default function CraftProfitMaterialsCard({
     return map;
   }, [selectedSet]);
 
-  const safeSlots = Array.isArray(slots) ? slots : [];
-  const safeRows = Array.isArray(rows) ? rows : [];
-  const sortedSlots = useMemo(
-    () => sortSlots(safeSlots, locale),
-    [safeSlots, locale]
-  );
+  const initialSlot = sortedSlots.includes(activeSlot)
+    ? activeSlot
+    : sortedSlots[0] ?? ALL_SLOT;
+  const [selectedTab, setSelectedTab] = useState(initialSlot);
 
   useEffect(() => {
-    if (!sortedSlots.length) return;
-
-    if (!sortedSlots.includes(activeSlot)) {
-      navigationSourceRef.current = "idle";
-      setActiveSlot(sortedSlots[0]);
+    if (activeSlot && sortedSlots.includes(activeSlot)) {
+      setSelectedTab(activeSlot);
     }
-  }, [sortedSlots, activeSlot, setActiveSlot]);
+  }, [activeSlot, sortedSlots]);
 
-  const handleTabChange = useCallback(
-    (slot) => {
-      navigationSourceRef.current = "tab";
-      setActiveSlot(slot);
-      setTabRequestVersion((version) => version + 1);
-    },
-    [setActiveSlot]
+  useEffect(() => {
+    // セットから単体装備へ切り替えた場合、
+    // 「全て」が選択されたままにならないようにする
+    if (!equipmentIsSet && selectedTab === ALL_SLOT) {
+      setSelectedTab(sortedSlots[0] ?? "");
+      return;
+    }
+
+    if (selectedTab === ALL_SLOT) return;
+    if (sortedSlots.includes(selectedTab)) return;
+
+    setSelectedTab(sortedSlots[0] ?? ALL_SLOT);
+  }, [equipmentIsSet, selectedTab, sortedSlots]);
+
+  const swipeTabs = useMemo(
+    () =>
+      equipmentIsSet
+        ? [ALL_SLOT, ...sortedSlots]
+        : sortedSlots,
+    [equipmentIsSet, sortedSlots]
+  );
+  const swipeStartRef = useRef(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [swipeDirection, setSwipeDirection] = useState(null);
+  const [swipeAnimationKey, setSwipeAnimationKey] = useState(0);
+
+  const changeTab = (slot, direction = null) => {
+    if (!slot || slot === selectedTab) return;
+
+    if (direction) {
+      setSwipeDirection(direction);
+      setSwipeAnimationKey((value) => value + 1);
+    }
+
+    setSelectedTab(slot);
+
+    if (slot !== ALL_SLOT) {
+      setActiveSlot?.(slot);
+    }
+  };
+
+  const handleTabChange = (slot) => {
+    const currentIndex = swipeTabs.indexOf(selectedTab);
+    const nextIndex = swipeTabs.indexOf(slot);
+    const direction =
+      currentIndex >= 0 && nextIndex >= 0 && currentIndex !== nextIndex
+        ? nextIndex > currentIndex
+          ? "left"
+          : "right"
+        : null;
+
+    changeTab(slot, direction);
+  };
+
+  const resetSwipeDrag = () => {
+    swipeStartRef.current = null;
+    setDragOffset(0);
+    setIsDragging(false);
+  };
+
+  const handleTouchStart = (event) => {
+    if (event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    swipeStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      horizontal: null,
+    };
+    setSwipeDirection(null);
+  };
+
+  const handleTouchMove = (event) => {
+    const start = swipeStartRef.current;
+    if (!start || event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    const diffX = touch.clientX - start.x;
+    const diffY = touch.clientY - start.y;
+
+    if (start.horizontal == null) {
+      if (Math.abs(diffX) < 8 && Math.abs(diffY) < 8) return;
+      start.horizontal = Math.abs(diffX) > Math.abs(diffY) * 1.1;
+    }
+
+    if (!start.horizontal) return;
+
+    event.preventDefault();
+    setIsDragging(true);
+    setDragOffset(Math.max(-90, Math.min(90, diffX * 0.35)));
+  };
+
+  const handleTouchEnd = (event) => {
+    const start = swipeStartRef.current;
+
+    if (!start || !event.changedTouches.length) {
+      resetSwipeDrag();
+      return;
+    }
+
+    const touch = event.changedTouches[0];
+    const diffX = touch.clientX - start.x;
+    const diffY = touch.clientY - start.y;
+    const isHorizontal =
+      start.horizontal === true ||
+      (Math.abs(diffX) >= 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2);
+
+    resetSwipeDrag();
+
+    if (!isHorizontal || Math.abs(diffX) < 45) return;
+
+    const currentIndex = swipeTabs.indexOf(selectedTab);
+    if (currentIndex < 0) return;
+
+    const direction = diffX < 0 ? "left" : "right";
+    const nextIndex = Math.min(
+      swipeTabs.length - 1,
+      Math.max(0, currentIndex + (direction === "left" ? 1 : -1))
+    );
+
+    const nextTab = swipeTabs[nextIndex];
+    changeTab(nextTab, direction);
+  };
+
+  const recommendedPrices = useMemo(
+    () => getRecommendedPrices(selectedTab, sortedSlots, slotPricing),
+    [selectedTab, sortedSlots, slotPricing]
   );
 
-  const handleCarouselChange = useCallback(
-    (slot) => {
-      setActiveSlot(slot);
-    },
-    [setActiveSlot]
-  );
+  const showBaseValues = selectedTab !== ALL_SLOT;
 
   return (
     <section className={styles.card}>
       <div className={styles.headingRow}>
         <h2 className={styles.heading}>{t("materials.title")}</h2>
+        {swipeTabs.length > 1 ? <SwipeHint locale={locale} /> : null}
       </div>
 
-      <div className={styles.mobileOnly}>
-        <MobileSlotTabs
-          slots={sortedSlots}
-          activeSlot={activeSlot}
-          onChange={handleTabChange}
-          slotGridMeta={slotGridMeta}
-          slotItemMap={slotItemMap}
-        />
+      <SlotTabs
+        slots={sortedSlots}
+        activeSlot={selectedTab}
+        onChange={handleTabChange}
+        slotGridMeta={slotGridMeta}
+        slotItemMap={slotItemMap}
+        selectedSet={selectedSet}
+        locale={locale}
+      />
 
-        <MobileSlotCarousel
-          slots={sortedSlots}
-          activeSlot={activeSlot}
-          onChange={handleCarouselChange}
-          slotGrids={slotGrids}
-          slotItemMap={slotItemMap}
-          slotGridMeta={slotGridMeta}
-          navigationSourceRef={navigationSourceRef}
-          tabRequestVersion={tabRequestVersion}
+      
+
+      <div className={styles.swipeViewport}>
+        <div
+          key={`${selectedTab}-${swipeAnimationKey}`}
+          className={`${styles.swipeArea} ${
+            isDragging ? styles.swipeDragging : ""
+          } ${
+            swipeDirection === "left" ? styles.swipeEnterFromRight : ""
+          } ${
+            swipeDirection === "right" ? styles.swipeEnterFromLeft : ""
+          }`}
+          style={{ "--swipe-drag-x": `${dragOffset}px` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={resetSwipeDrag}
+          onAnimationEnd={() => setSwipeDirection(null)}
         >
-          {(slot) => (
-            <MobileMaterialsList
-              slot={slot}
-              rows={safeRows}
-              unitCostMap={unitCostMap}
-              onChangeUnitCost={updateUnitCost}
-              toolRow={mobileToolRow}
-              recommendedPrices={slotPricing?.[slot]?.prices}
+        <div
+          className={`${styles.mainContentGrid} ${
+            showBaseValues ? "" : styles.mainContentGridAll
+          }`}
+        >
+          {showBaseValues ? (
+            <BaseValuePanel
+              slot={selectedTab}
+              slotGrids={slotGrids}
+              slotGridMeta={slotGridMeta}
+              slotItemMap={slotItemMap}
+              selectedSet={selectedSet}
+              locale={locale}
             />
-          )}
-        </MobileSlotCarousel>
-      </div>
+          ) : null}
 
-      <div className={styles.desktopOnly}>
-        <div className={styles.baseValueLabel}>
-          {t("materials.baseValues")}
+          <MaterialsPanel
+            selectedSlot={selectedTab}
+            rows={safeRows}
+            unitCostMap={unitCostMap}
+            updateUnitCost={updateUnitCost}
+            toolEnabled={toolEnabled}
+            selectedTool={selectedTool}
+            toolPrice={toolPrice}
+            setToolPriceOverride={setToolPriceOverride}
+            toolCostPerCraft={toolCostPerCraft}
+            mobileToolRow={mobileToolRow}
+            slotCount={sortedSlots.length}
+            locale={locale}
+          />
         </div>
 
-        <div className={styles.desktopGridScroller}>
-          <div className={styles.desktopGridList}>
-            {sortedSlots.map((slot) => {
-              const grid = slotGrids?.[slot] ?? null;
-              const label = getAxisLabel(slot, slotGridMeta, slotItemMap);
-              const itemName = getAxisItemName(
-                slot,
-                slotGridMeta,
-                selectedSet
-              );
-
-              if (!grid) return null;
-
-              return (
-                <div key={slot} className={styles.desktopGridCard}>
-                  <div className={styles.desktopGridTitle}>
-                    {label}
-                    {itemName && itemName !== label ? (
-                      <>
-                        <br />
-                        {itemName}
-                      </>
-                    ) : null}
-                  </div>
-
-                  <SlotGridView grid={grid} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className={styles.desktopTableCard}>
-          <div className={styles.desktopTableScroller}>
-            <table className={styles.desktopTable}>
-              <thead className={styles.desktopTableHead}>
-                <tr>
-                  <th className={styles.leftHeader}>
-                    {t("materials.material")}
-                  </th>
-
-                  {sortedSlots.map((slot) => (
-                    <th key={slot} className={styles.numberHeader}>
-                      {getAxisLabel(slot, slotGridMeta, slotItemMap)}
-                    </th>
-                  ))}
-
-                  <th className={styles.numberHeader}>
-                    {t("materials.total")}
-                  </th>
-                  <th className={styles.numberHeader}>
-                    {t("materials.unitPrice")}
-                  </th>
-                  <th className={styles.numberHeader}>
-                    {t("materials.amount")}
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {toolEnabled && selectedTool?.id !== "none" && (
-                  <tr className={styles.toolRow}>
-                    <td className={styles.materialCell}>
-                      【{t("materials.tool")}】{selectedTool.name}
-                    </td>
-
-                    {sortedSlots.map((slot) => (
-                      <td key={slot} className={styles.mutedNumberCell}>
-                        —
-                      </td>
-                    ))}
-
-                    <td className={styles.strongNumberCell}>—</td>
-
-                    <td className={styles.inputCell}>
-                      <MoneyInput
-                        className={styles.desktopInput}
-                        value={toolPrice}
-                        ariaLabel={`${selectedTool.name} ${t("materials.unitPrice")}`}
-                        onChange={setToolPriceOverride}
-                      />
-                    </td>
-
-                    <td className={styles.strongNumberCell}>
-                      {yen(toolCostPerCraft)}
-                    </td>
-                  </tr>
-                )}
-
-                {safeRows.map((row) => {
-                  const totalQty = Number(row.totalQty || 0);
-                  const unit = clamp0(unitCostMap?.[row.materialKey] ?? 0);
-                  const amount = totalQty * unit;
-
-                  return (
-                    <tr key={row.materialKey} className={styles.bodyRow}>
-                      <td className={styles.materialCell}>
-                        {row.materialName}
-                      </td>
-
-                      {sortedSlots.map((slot) => (
-                        <td key={slot} className={styles.mutedNumberCell}>
-                          {row.perSlotQty?.[slot] || ""}
-                        </td>
-                      ))}
-
-                      <td className={styles.strongNumberCell}>{totalQty}</td>
-
-                      <td className={styles.inputCell}>
-                        <MoneyInput
-                          className={styles.desktopInput}
-                          value={unit}
-                          ariaLabel={`${row.materialName} ${t("materials.unitPrice")}`}
-                          onChange={(value) =>
-                            updateUnitCost(row.materialKey, value)
-                          }
-                        />
-                      </td>
-
-                      <td className={styles.strongNumberCell}>{yen(amount)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-
-              <tfoot className={styles.desktopTableFoot}>
-                <tr className={styles.totalRow}>
-                  <td className={styles.materialCell}>
-                    {t("materials.total")}
-                  </td>
-
-                  {sortedSlots.map((slot) => (
-                    <td key={slot} className={styles.strongNumberCell}>
-                      {yen(slotTotalsWithTool?.amount?.[slot] || 0)}
-                    </td>
-                  ))}
-
-                  <td colSpan={3} />
-
-                </tr>
-
-                <tr className={styles.recommendedPriceHeadingRow}>
-                  <td
-                    colSpan={sortedSlots.length + 4}
-                    className={styles.recommendedPriceHeading}
-                  >
-                    {locale === "en"
-                      ? "Recommended prices"
-                      : "適正売値価格"}
-                  </td>
-                </tr>
-
-                {[
-                  ["star0", "☆☆☆"],
-                  ["star1", "★☆☆"],
-                  ["star2", "★★☆"],
-                  ["star3", "★★★"],
-                ].map(([key, label]) => (
-                  <tr key={key} className={styles.recommendedPriceRow}>
-                    <td className={styles.recommendedPriceLabel}>{label}</td>
-
-                    {sortedSlots.map((slot) => (
-                      <td key={slot} className={styles.recommendedPriceValue}>
-                        {slotPricing?.[slot]?.prices
-                          ? yen(slotPricing[slot].prices[key])
-                          : "—"}
-                      </td>
-                    ))}
-
-                    <td colSpan={3} />
-                  </tr>
-                ))}
-              </tfoot>
-            </table>
-          </div>
+          {selectedTab !== ALL_SLOT ? (
+            <RecommendedPricePanel prices={recommendedPrices} locale={locale} />
+          ) : null}
         </div>
       </div>
     </section>

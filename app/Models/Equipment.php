@@ -26,6 +26,7 @@ class Equipment extends Model
         'item_name_en',
 
         'equipment_type_id',
+        'fabric_type',
         'job_override_mode',
 
         'craft_level',
@@ -74,6 +75,7 @@ class Equipment extends Model
         'materials_json' => 'array',
         'slot_grid_json' => 'array',
         'effects_json' => 'array',
+        
     ];
 
     protected $attributes = [

@@ -24,66 +24,68 @@ export default function CraftProfitHeaderCard({
   return (
     <section className={styles.card}>
       <div className={styles.formStack}>
-        <div className={styles.field}>
-          <label className={styles.label}>{t("header.equipmentSet")}</label>
+        <div className={styles.top}>
+          <div className={styles.field}>
+            <div className={styles.fieldHeader}>
+              <label className={styles.label}>
+                {t("header.equipmentSet")}
+              </label>
 
-          <div className={styles.fieldControl}>
-            <SearchableSelect
-              value={setQuery}
-              onChange={(nextValue, option) => {
-                setSetQuery(nextValue);
+              <div className={styles.equipmentMeta}>
+                <span className={styles.craftTypeName}>
+                  {craftType || "—"}
+                </span>
 
-                if (option) {
-                  onChangeSet(option.id);
-                }
-              }}
-              options={filteredSets}
-              placeholder={t("header.searchPlaceholder")}
-              emptyText={t("common.noResults")}
-              maxResults={30}
-              allowCustomValue
-              selectOnFocus
-              ariaLabel={t("header.equipmentSet")}
-              getOptionValue={(option) => option.name}
-              getOptionLabel={(option) => option.name}
-              getOptionDescription={() => ""}
-              getOptionSearchText={(option) => {
-                const itemNames = Array.isArray(option.items)
-                  ? option.items.map((item) => item?.name).filter(Boolean)
-                  : [];
+                <span className={styles.requiredLevel}>
+                  必要LV{selectedSet?.craftLevel ?? "—"}
+                </span>
+              </div>
+            </div>
 
-                const itemEquipLevels = Array.isArray(option.items)
-                  ? option.items
-                      .map((item) => item?.equipLevel)
-                      .filter((level) => level != null && level !== "")
-                  : [];
+            <div className={styles.fieldControl}>
+              <SearchableSelect
+                value={setQuery}
+                onChange={(nextValue, option) => {
+                  setSetQuery(nextValue);
 
-                return [
-                  option.name,
-                  ...itemNames,
-                  option.equipLevel,
-                  ...itemEquipLevels,
-                ]
-                  .filter((value) => value != null && value !== "")
-                  .join(" ");
-              }}
-            />
+                  if (option) {
+                    onChangeSet(option.id);
+                  }
+                }}
+                options={filteredSets}
+                placeholder={t("header.searchPlaceholder")}
+                emptyText={t("common.noResults")}
+                maxResults={30}
+                allowCustomValue
+                selectOnFocus
+                ariaLabel={t("header.equipmentSet")}
+                getOptionValue={(option) => option.name}
+                getOptionLabel={(option) => option.name}
+                getOptionDescription={() => ""}
+                getOptionSearchText={(option) => {
+                  const itemNames = Array.isArray(option.items)
+                    ? option.items.map((item) => item?.name).filter(Boolean)
+                    : [];
+
+                  const itemEquipLevels = Array.isArray(option.items)
+                    ? option.items
+                        .map((item) => item?.equipLevel)
+                        .filter((level) => level != null && level !== "")
+                    : [];
+
+                  return [
+                    option.name,
+                    ...itemNames,
+                    option.equipLevel,
+                    ...itemEquipLevels,
+                  ]
+                    .filter((value) => value != null && value !== "")
+                    .join(" ");
+                }}
+              />
+            </div>
           </div>
         </div>
-
-        <div className={styles.field}>
-          <div className={styles.label}>{t("header.craftType")}</div>
-
-          <div className={styles.craftTypeBox}>
-            <span className={styles.craftTypeName}>{craftType || "—"}</span>
-            <span className={styles.requiredLevel}>
-              {t("header.requiredLevel", {
-                level: selectedSet?.craftLevel ?? "—",
-              })}
-            </span>
-          </div>
-        </div>
-
         {hasToolOptions && (
           <div className={styles.field}>
             <label className={styles.label}>{t("header.toolUsage")}</label>

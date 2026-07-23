@@ -251,7 +251,7 @@ class EquipmentController extends Controller
             'recipe_book' => ['nullable', 'string', 'max:255'],
             'recipe_place' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'fabric_type' => ['nullable', 'string', 'max:255'],
+            'type' => ['nullable', 'string', 'max:255'],
 
             'slot' => ['nullable', 'string', 'max:255'],
             'slot_grid_type' => ['nullable', 'string', 'max:255'],

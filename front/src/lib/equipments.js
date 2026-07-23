@@ -114,6 +114,7 @@ export function createEmptyEquipmentRow() {
     equipmentTypeId: "",
     equipmentType: null,
     equipmentTypeName: "",
+    fabricType: "",
 
     jobOverrideMode: "inherit",
     jobOverrides: [],
@@ -347,6 +348,7 @@ export function normalizeEquipmentRow(row = {}) {
 
     equipmentType,
     equipmentTypeName: str(equipmentType?.name ?? row?.equipmentTypeName),
+    fabricType: str(row?.fabric_type ?? row?.fabricType),
 
     jobOverrideMode:
       str(row?.job_override_mode ?? row?.jobOverrideMode) || "inherit",
@@ -439,6 +441,8 @@ export function buildEquipmentPayload(row = {}) {
       str(row.equipmentTypeId).trim() === ""
         ? null
         : Number(row.equipmentTypeId),
+
+    fabric_type: str(row.fabricType).trim() || null,
 
     job_override_mode: str(row.jobOverrideMode).trim() || "inherit",
 

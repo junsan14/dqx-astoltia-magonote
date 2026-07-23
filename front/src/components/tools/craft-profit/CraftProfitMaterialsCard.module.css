@@ -7,7 +7,7 @@
 }
 
 .card > * + * {
-  margin-top: 0.75rem;
+  margin-top: 1rem;
 }
 
 .headingRow {
@@ -25,12 +25,225 @@
   font-weight: 600;
 }
 
-.mobileOnly > * + * {
+.tabsFullBleed {
+  min-width: 0;
+}
+
+.tabsScroller {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.125rem 0 0.25rem;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabsScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.tabButton {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.tabButton:hover {
+  border-color: var(--selected-border);
+}
+
+.tabButton:active {
+  transform: scale(0.97);
+}
+
+.tabButton:focus-visible {
+  outline: 2px solid var(--selected-border);
+  outline-offset: 2px;
+}
+
+.tabButtonActive {
+  border-color: var(--selected-border);
+  background: var(--primary-bg);
+  color: var(--primary-text);
+}
+
+.swipeHint {
+  display: none;
+}
+
+.swipeViewport {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.swipeArea {
+  min-width: 0;
+  touch-action: pan-y pinch-zoom;
+  transform: translate3d(var(--swipe-drag-x, 0), 0, 0);
+  transition: transform 180ms ease-out;
+  will-change: transform, opacity;
+}
+
+.swipeDragging {
+  transition: none;
+}
+
+.swipeEnterFromRight {
+  animation: swipeInFromRight 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.swipeEnterFromLeft {
+  animation: swipeInFromLeft 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.swipeArea > * + * {
+  margin-top: 1rem;
+}
+
+@keyframes swipeInFromRight {
+  from {
+    opacity: 0.45;
+    transform: translate3d(2.5rem, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes swipeInFromLeft {
+  from {
+    opacity: 0.45;
+    transform: translate3d(-2.5rem, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.mainContentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+.mainContentGridAll {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sectionBlock {
+  min-width: 0;
+}
+
+.sectionBlock > * + * {
+  margin-top: 0.5rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--text-title);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.baseValueCard,
+.materialTableCard,
+.priceTableCard {
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  background: var(--card-bg);
+}
+
+.baseValueCard {
+  padding: 1rem;
+  background: var(--soft-bg);
+}
+
+.baseValueCard > * + * {
   margin-top: 0.75rem;
 }
 
-.desktopOnly {
-  display: none;
+.baseValueHeading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.baseValueName {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-main);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailTag {
+  flex: 0 0 auto;
+  max-width: 50%;
+  overflow: hidden;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--tag-border);
+  border-radius: 9999px;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailTagRegenerated {
+  border-color: rgb(34 197 94 / 0.55);
+  background: rgb(34 197 94 / 0.14);
+  color: #15803d;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+}
+
+.detailTagRainbow {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+    linear-gradient(
+      100deg,
+      #f87171,
+      #fbbf24,
+      #4ade80,
+      #38bdf8,
+      #818cf8,
+      #e879f9
+    ) border-box;
+  color: var(--text-main);
+  box-shadow: 0 0 0.75rem rgb(129 140 248 / 0.18);
+}
+
+.detailTagPink {
+  border-color: rgb(236 72 153 / 0.55);
+  background: rgb(236 72 153 / 0.14);
+  color: #db2777;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
 }
 
 .slotGridViewport {
@@ -49,7 +262,7 @@
 
 .slotGridCell {
   display: flex;
-  min-height: 3rem;
+  min-height: 3.25rem;
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
@@ -68,362 +281,53 @@
 
 .slotGridValue {
   overflow-wrap: anywhere;
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 1.35rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.25;
-}
-
-.mobileTabsFullBleed,
-.mobileCarouselFullBleed {
-  margin-inline: -1.25rem;
-}
-
-.mobileTabsScroller {
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding: 0.25rem 1.25rem;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.mobileTabsScroller::-webkit-scrollbar,
-.mobileCarousel::-webkit-scrollbar {
-  display: none;
-}
-
-.mobileTab {
-  flex: 0 0 auto;
-  border: 1px solid var(--card-border);
-  border-radius: 9999px;
-  background: var(--card-bg);
-  color: var(--text-main);
-  padding: 0.25rem 0.75rem;
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease;
-}
-
-.mobileTab:active {
-  transform: scale(0.97);
-}
-
-.mobileTab:focus-visible {
-  outline: 2px solid var(--selected-border);
-  outline-offset: 2px;
-}
-
-.mobileTabActive {
-  border-color: var(--selected-border);
-  background: var(--primary-bg);
-  color: var(--primary-text);
-}
-
-.mobileCarousel {
-  display: flex;
-  gap: 0;
-  overflow-x: auto;
-  padding: 0 0 0.5rem;
-  scroll-behavior: smooth;
-  scroll-padding-inline: 0;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  overscroll-behavior-inline: contain;
-  touch-action: pan-x pan-y pinch-zoom;
-  -webkit-overflow-scrolling: touch;
-}
-
-.mobileSlide {
-  flex: 0 0 100%;
-  width: 100%;
-  min-width: 100%;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  box-sizing: border-box;
-}
-
-.mobileSlideContent {
-  margin-inline: 1rem;
-}
-
-.mobileSlideContent > * + * {
-  margin-top: 0.75rem;
-}
-
-.mobileGridCard {
-  padding: 0.75rem;
-  border: 1px solid var(--card-border);
-  border-radius: 1rem;
-  background: var(--soft-bg);
-}
-
-.mobileGridCard > * + * {
-  margin-top: 0.5rem;
-}
-
-.mobileGridTitle {
-  overflow: hidden;
-  padding-inline: 0.5rem;
-  color: var(--text-sub);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mobileGridBody {
-  display: flex;
-  min-height: 11.5rem;
-  align-items: center;
-}
-
-.mobileMaterialTable {
-  overflow: hidden;
-  border: 1px solid var(--card-border);
-  border-radius: 0.5rem;
-  background: var(--card-bg);
-  font-size: 0.6875rem;
-}
-
-.mobileMaterialHeader,
-.mobileMaterialRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 1.5rem 3.25rem 4.5rem;
-  align-items: center;
-  gap: 0.15rem;
-}
-
-.mobileMaterialHeader {
-  padding-block: 0.5rem;
-  border-bottom: 1px solid var(--card-border);
-  background: var(--soft-bg);
-  color: var(--text-main);
-  font-size: 0.625rem;
-  font-weight: 600;
   line-height: 1.2;
+}
+
+.emptyPanel {
+  padding: 1.5rem 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
   text-align: center;
 }
 
-.mobileMaterialNameHeader {
-  min-width: 0;
-  padding-inline: 0.4rem;
-  text-align: left;
-}
-
-.mobileMaterialRow {
-  min-height: 2.5rem;
-  padding-block: 0.3rem;
-  border-top: 1px solid var(--card-border);
-}
-
-.mobileMaterialRow:first-of-type {
-  border-top: 0;
-}
-
-.mobileMaterialName {
-  min-width: 0;
-  padding-inline: 0.4rem;
-  color: var(--text-main);
-  font-size: 0.625rem;
-  font-weight: 500;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-  word-break: normal;
-  white-space: normal;
-}
-
-.mobileMutedCell,
-.mobileNumberCell {
-  min-width: 0;
-  font-size: 0.625rem;
-  line-height: 1.2;
-  text-align: center;
-  white-space: nowrap;
-}
-
-.mobileMutedCell {
-  color: var(--text-muted);
-}
-
-.mobileNumberCell {
-  color: var(--text-main);
-  font-variant-numeric: tabular-nums;
-}
-
-.mobileUnitInputWrap {
-  min-width: 0;
-  padding-right: 0.15rem;
-}
-
-.mobileUnitInput {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  height: 2rem;
-  box-sizing: border-box;
-  border: 1px solid var(--input-border);
-  border-radius: 0.3rem;
-  background: var(--input-bg);
-  color: var(--input-text);
-  padding: 0.2rem;
-  font-family: inherit;
-  font-size: 1rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  text-align: right;
-}
-
-.mobileUnitInput:focus-visible,
-.desktopInput:focus-visible {
-  outline: 2px solid var(--selected-border);
-  outline-offset: 1px;
-}
-
-.mobileEmpty {
-  padding: 1rem 0.75rem;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-.mobileMaterialTotal {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 0.35rem 0.5rem;
-  border-top: 1px solid var(--card-border);
-  background: var(--soft-bg);
-  color: var(--text-main);
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
-.mobileRecommendedPriceHeading {
-  padding: 0.55rem 0.5rem;
-  border-top: 1px solid var(--card-border);
-  background: var(--soft-bg);
-  color: var(--text-main);
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.mobileRecommendedPriceRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.45rem 0.5rem;
-  border-top: 1px solid rgb(148 163 184 / 0.14);
-  border-top-color: color-mix(
-    in srgb,
-    var(--card-border) 42%,
-    transparent
-  );
-  background: var(--card-bg);
-}
-
-.mobileRecommendedPriceLabel {
-  color: var(--text-muted);
-  font-size: 0.6875rem;
-  font-weight: 600;
-}
-
-.mobileRecommendedPriceValue {
-  color: var(--text-main);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.baseValueLabel {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-.desktopOnly > * + * {
-  margin-top: 0.75rem;
-}
-
-.desktopGridScroller,
-.desktopTableScroller {
+.materialTableScroller {
   overflow-x: auto;
 }
 
-.desktopGridList {
-  display: flex;
-  width: max-content;
-  gap: 0.75rem;
-  padding-bottom: 0.5rem;
-}
-
-.desktopGridCard {
-  flex: 0 0 13.75rem;
-  padding: 1rem;
-  border: 1px solid var(--card-border);
-  border-radius: 1rem;
-  background: var(--soft-bg);
-}
-
-.desktopGridCard > * + * {
-  margin-top: 0.5rem;
-}
-
-.desktopGridTitle {
-  color: var(--text-main);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.desktopTableCard {
-  overflow: hidden;
-  border: 1px solid var(--card-border);
-  border-radius: 1rem;
-  background: var(--card-bg);
-}
-
-.desktopTable {
+.materialTable {
   width: 100%;
-  min-width: 56.25rem;
+  min-width: 32rem;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
-.desktopTableHead {
+.materialTable th,
+.materialTable td {
+  padding: 0.65rem 0.75rem;
+}
+
+.materialTable thead {
   border-bottom: 1px solid var(--card-border);
   background: var(--soft-bg);
 }
 
-.desktopTable th,
-.desktopTable td {
-  padding: 0.5rem 0.75rem;
-}
-
-.leftHeader,
-.numberHeader {
+.materialTable thead th {
   color: var(--text-sub);
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
 }
 
-.leftHeader {
+.materialTable .materialNameHeader {
   text-align: left;
 }
 
-.numberHeader {
-  text-align: right;
-}
-
-.toolRow,
-.bodyRow {
+.materialTable tbody tr {
   border-bottom: 1px solid rgb(148 163 184 / 0.14);
   border-bottom-color: color-mix(
     in srgb,
@@ -432,60 +336,88 @@
   );
 }
 
-.toolRow {
-  background: var(--soft-bg);
+.materialTable tbody tr:last-child {
+  border-bottom: 0;
 }
 
-.materialCell {
+
+
+.materialNameCell {
   color: var(--text-main);
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
-.bodyRow .materialCell {
-  font-weight: 500;
-}
-
-.mutedNumberCell,
-.strongNumberCell,
+.numberCell,
 .inputCell,
-.averageLabel {
+.amountCell {
   text-align: right;
+  white-space: nowrap;
 }
 
-.mutedNumberCell {
+.numberCell {
   color: var(--text-sub);
   font-variant-numeric: tabular-nums;
 }
 
-.strongNumberCell {
+.amountCell {
   color: var(--text-main);
-  font-weight: 600;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.inputCell {
-  white-space: nowrap;
-}
-
-.desktopInput {
+.moneyInput {
   width: 7rem;
+  max-width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--input-border);
   border-radius: 0.5rem;
   background: var(--input-bg);
   color: var(--input-text);
-  padding: 0.25rem 0.5rem;
+  padding: 0.35rem 0.5rem;
   font: inherit;
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-.desktopTableFoot {
+.moneyInput:focus-visible {
+  outline: 2px solid var(--selected-border);
+  outline-offset: 1px;
+}
+
+.emptyTableCell {
+  padding: 1.25rem !important;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.materialTable tfoot {
   border-top: 1px solid var(--card-border);
   background: var(--soft-bg);
 }
 
-.desktopTableFoot tr + tr {
+.materialTable tfoot td {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.materialTable tfoot td:first-child {
+  text-align: right;
+}
+
+.totalAmount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.priceTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.priceTable tr + tr {
   border-top: 1px solid rgb(148 163 184 / 0.14);
   border-top-color: color-mix(
     in srgb,
@@ -494,55 +426,177 @@
   );
 }
 
-.recommendedPriceHeadingRow {
-  background: var(--soft-bg);
+.priceTable th,
+.priceTable td {
+  padding: 0.7rem 0.9rem;
 }
 
-.recommendedPriceHeading {
-  color: var(--text-main);
+.priceTable th {
+  width: 7rem;
+  background: var(--soft-bg);
+  color: var(--text-sub);
   font-size: 0.8125rem;
-  font-weight: 800;
+  font-weight: 700;
   text-align: left;
 }
 
-.recommendedPriceLabel {
+.priceTable td {
   color: var(--text-main);
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.recommendedPriceValue {
-  color: var(--text-main);
+  font-size: 0.9375rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
 }
 
-.averageLabel {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-@media (min-width: 640px) {
-  .mobileOnly {
-    display: none;
+@media (max-width: 639px) {
+  .card {
+    padding: 1rem;
   }
 
-  .desktopOnly {
-    display: block;
+  .card > * + * {
+    margin-top: 0.85rem;
+  }
+
+  .tabsFullBleed {
+    margin-inline: 0;
+  }
+
+  .tabsScroller {
+    display: grid;
+    grid-template-columns: repeat(var(--tab-count), minmax(0, 1fr));
+    gap: 0.25rem;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .tabButton {
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.4rem 0.1rem;
+    border-radius: 0.65rem;
+    font-size: 0.6875rem;
+    text-overflow: ellipsis;
+  }
+
+  .swipeHint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-top: -0.15rem;
+    color: var(--text-muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+  }
+
+  .swipeHintIcon {
+    flex: 0 0 auto;
+    font-size: 1.1rem;
+  }
+
+  .mainContentGrid,
+  .mainContentGridAll {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+  .sectionTitle {
+    font-size: 0.8125rem;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+  .baseValueCard {
+    padding: 0.75rem;
+  }
+
+  .baseValueName {
+    font-size: 0.8125rem;
+  }
+
+  .detailTag {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.6875rem;
+  }
+
+  .slotGridValue {
+    font-size: 1.5rem;
+  }
+
+  .materialTable {
+    min-width: 0;
+    table-layout: fixed;
+    font-size: 0.6875rem;
+  }
+
+  .materialTable th,
+  .materialTable td {
+    padding: 0.45rem 0.35rem;
+  }
+
+  .materialTable th:nth-child(1),
+  .materialTable td:nth-child(1) {
+    width: 38%;
+  }
+
+  .materialTable th:nth-child(2),
+  .materialTable td:nth-child(2) {
+    width: 12%;
+  }
+
+  .materialTable th:nth-child(3),
+  .materialTable td:nth-child(3) {
+    width: 27%;
+  }
+
+  .materialTable th:nth-child(4),
+  .materialTable td:nth-child(4) {
+    width: 23%;
+  }
+
+  .materialNameCell {
+    font-size: 0.7rem;
+    line-height: 1.3;
+  }
+
+  .moneyInput {
+    width: 100%;
+    min-width: 0;
+    padding: 0.3rem 0.25rem;
+    font-size: 16px;
+  }
+
+  .amountCell,
+  .numberCell {
+    font-size: 0.72rem;
+  }
+
+  .priceTable th,
+  .priceTable td {
+    padding: 0.6rem 0.75rem;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mobileTabsScroller,
-  .mobileCarousel {
+  .tabsScroller {
     scroll-behavior: auto;
   }
 
-  .mobileTab {
+  .tabButton,
+  .swipeArea {
     transition: none;
+    animation: none;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .detailTagRegenerated {
+    color: #86efac;
+  }
+
+  .detailTagPink {
+    color: #f9a8d4;
   }
 }

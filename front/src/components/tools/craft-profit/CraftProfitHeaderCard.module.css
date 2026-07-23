@@ -11,7 +11,36 @@
 .formStack > * + * {
   margin-top: 0.75rem;
 }
+.top {
+  display: block;
+  width: 100%;
+}
+.fieldHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
 
+.equipmentMeta {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.craftTypeName {
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.requiredLevel {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
 .field {
   min-width: 0;
 }
@@ -37,13 +66,14 @@
   border: 1px solid var(--soft-border);
   border-radius: 0.75rem;
   background: var(--soft-bg);
+  
 }
 
 .craftTypeName {
   min-width: 0;
   overflow: hidden;
   color: var(--text-main);
-  font-size: 0.875rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -52,12 +82,12 @@
 .requiredLevel {
   flex: 0 0 auto;
   color: var(--text-muted);
-  font-size: 0.6875rem;
+  font-size: 0.65rem;
 }
 
 .toolControls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: 50% 50%;
   gap: 0.5rem;
   margin-top: 0.25rem;
 }
@@ -76,4 +106,18 @@
 .priceInput:focus-visible {
   outline: 2px solid var(--selected-border);
   outline-offset: 1px;
+}
+
+@media (max-width: 639px) {
+  .craftTypeName {
+
+  font-size: .8rem;
+
+}
+
+.requiredLevel {
+
+  font-size: 0.65rem;
+}
+  
 }

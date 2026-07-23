@@ -22,6 +22,8 @@ const GROUP_KIND_OPTIONS = [
   { value: "craft_tool_set", label: "職人道具" },
 ];
 
+const FABRIC_TYPE_OPTIONS = ["通常布", "再生布", "虹布"];
+
 export default function EquipmentEditorPanel({
   row,
   equipmentTypes = [],
@@ -59,6 +61,10 @@ export default function EquipmentEditorPanel({
     safeRow.__key ?? safeRow.id ?? "row"
   }`;
 
+  const fabricTypeListId = `fabric-type-list-${
+    safeRow.__key ?? safeRow.id ?? "row"
+  }`;
+
   const selectedEquipmentType = useMemo(() => {
     if (!row) return null;
 
@@ -70,6 +76,17 @@ export default function EquipmentEditorPanel({
       null
     );
   }, [equipmentTypes, safeRow.equipmentTypeId, safeRow.equipmentType, row]);
+
+  const selectedCraftTypeName = str(
+    selectedEquipmentType?.craftType?.name ??
+      selectedEquipmentType?.craft_type?.name ??
+      selectedEquipmentType?.craftTypeName ??
+      selectedEquipmentType?.craft_type_name
+  ).trim();
+
+  const isTailoringEquipment =
+    str(safeRow.groupKind).trim() === "tailoring_set" ||
+    /裁縫|さいほう|tailor/i.test(selectedCraftTypeName);
 
   const selectableJobs = useMemo(() => {
     return (Array.isArray(allJobs) ? allJobs : []).map((job) => ({
@@ -691,6 +708,26 @@ export default function EquipmentEditorPanel({
                     }
                   />
                 </LabeledField>
+
+                {isTailoringEquipment ? (
+                  <LabeledField label="布タイプ">
+                    <input
+                      list={fabricTypeListId}
+                      style={styles.input}
+                      value={row.fabricType ?? ""}
+                      placeholder="通常布・再生布・虹布、または新規入力"
+                      onChange={(e) =>
+                        patch("fabricType", e.target.value)
+                      }
+                    />
+
+                    <datalist id={fabricTypeListId}>
+                      {FABRIC_TYPE_OPTIONS.map((name) => (
+                        <option key={name} value={name} />
+                      ))}
+                    </datalist>
+                  </LabeledField>
+                ) : null}
 
                 <LabeledField label="作成コマタイプ">
                   <select
