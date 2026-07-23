@@ -22,7 +22,7 @@ const GROUP_KIND_OPTIONS = [
   { value: "craft_tool_set", label: "職人道具" },
 ];
 
-const FABRIC_TYPE_OPTIONS = ["通常布", "再生布", "虹布"];
+const FABRIC_TYPE_OPTIONS = ["通常布", "再生布", "虹布","ピンク布"];
 
 export default function EquipmentEditorPanel({
   row,
@@ -711,21 +711,19 @@ export default function EquipmentEditorPanel({
 
                 {isTailoringEquipment ? (
                   <LabeledField label="布タイプ">
-                    <input
-                      list={fabricTypeListId}
+                    <select
                       style={styles.input}
                       value={row.fabricType ?? ""}
-                      placeholder="通常布・再生布・虹布、または新規入力"
-                      onChange={(e) =>
-                        patch("fabricType", e.target.value)
-                      }
-                    />
+                      onChange={(e) => patch("fabricType", e.target.value)}
+                    >
+                      <option value="">未選択</option>
 
-                    <datalist id={fabricTypeListId}>
                       {FABRIC_TYPE_OPTIONS.map((name) => (
-                        <option key={name} value={name} />
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
                       ))}
-                    </datalist>
+                    </select>
                   </LabeledField>
                 ) : null}
 

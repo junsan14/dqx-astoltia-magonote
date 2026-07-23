@@ -614,30 +614,34 @@ export default function CraftProfitMaterialsCard({
     return map;
   }, [selectedSet]);
 
-  const initialSlot = sortedSlots.includes(activeSlot)
-    ? activeSlot
-    : sortedSlots[0] ?? ALL_SLOT;
-  const [selectedTab, setSelectedTab] = useState(initialSlot);
+  const [selectedTab, setSelectedTab] = useState("");
 
   useEffect(() => {
-    if (activeSlot && sortedSlots.includes(activeSlot)) {
-      setSelectedTab(activeSlot);
-    }
-  }, [activeSlot, sortedSlots]);
-
-  useEffect(() => {
-    // セットから単体装備へ切り替えた場合、
-    // 「全て」が選択されたままにならないようにする
-    if (!equipmentIsSet && selectedTab === ALL_SLOT) {
-      setSelectedTab(sortedSlots[0] ?? "");
+    // 初期ロード中・装備未選択時はタブを空にする。
+    if (!selectedSet || sortedSlots.length === 0) {
+      setSelectedTab("");
       return;
     }
 
-    if (selectedTab === ALL_SLOT) return;
-    if (sortedSlots.includes(selectedTab)) return;
+    const availableTabs = equipmentIsSet
+      ? [ALL_SLOT, ...sortedSlots]
+      : sortedSlots;
 
-    setSelectedTab(sortedSlots[0] ?? ALL_SLOT);
-  }, [equipmentIsSet, selectedTab, sortedSlots]);
+    // 親側で有効な部位が選択されている場合は優先する。
+    if (activeSlot && sortedSlots.includes(activeSlot)) {
+      setSelectedTab(activeSlot);
+      return;
+    }
+
+    setSelectedTab((currentTab) => {
+      if (availableTabs.includes(currentTab)) {
+        return currentTab;
+      }
+
+      // 初期表示は最初の部位を選択する。
+      return sortedSlots[0] ?? "";
+    });
+  }, [selectedSet, equipmentIsSet, activeSlot, sortedSlots]);
 
   const swipeTabs = useMemo(
     () =>
@@ -756,6 +760,10 @@ export default function CraftProfitMaterialsCard({
   );
 
   const showBaseValues = selectedTab !== ALL_SLOT;
+
+  if (!selectedSet || sortedSlots.length === 0 || !selectedTab) {
+    return null;
+  }
 
   return (
     <section className={styles.card}>
