@@ -874,3 +874,93 @@
     opacity: 0.62;
   }
 }
+
+
+/* Mobile: compact input row with a full-width report status below. */
+@media (max-width: 900px) {
+  .quickCell {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px 4px;
+    padding-block: 2px;
+  }
+
+  .quickColorButton {
+    min-height: 32px;
+    font-size: 12px;
+    border-radius: 6px;
+    touch-action: manipulation;
+  }
+
+  .latestState {
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    min-height: 22px;
+    padding: 1px 12px 1px 2px;
+    border-radius: 5px;
+  }
+
+  .stateLine {
+    font-size: 10px;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .noData {
+    font-size: 9px;
+  }
+
+  /* The whole status area is the undo target; the cross stays on the right. */
+  .cellUndoButton {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 22px;
+    padding: 0 2px 0 0;
+    border-radius: inherit;
+    background: transparent;
+    color: var(--text-muted, #64748b);
+    font-size: 12px;
+    text-align: right;
+    touch-action: manipulation;
+  }
+
+  .cellUndoButton:focus-visible,
+  .quickColorButton:focus-visible {
+    outline: 2px solid var(--selected-border, #f59e0b);
+    outline-offset: 1px;
+  }
+}
+
+
+/* Desktop: color inputs above the registration time. */
+@media (min-width: 901px) {
+  .quickCell {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3px 4px;
+  }
+
+  .latestState {
+    grid-column: 1 / -1;
+    box-sizing: border-box;
+    min-height: 24px;
+    padding: 3px 22px;
+  }
+
+  .stateLine {
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .mobileStateDetail {
+    display: none;
+  }
+
+  .cellUndoButton {
+    top: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+  }
+}

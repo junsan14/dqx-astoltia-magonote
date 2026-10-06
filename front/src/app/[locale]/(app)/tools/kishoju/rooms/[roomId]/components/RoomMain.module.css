@@ -1120,3 +1120,73 @@
     color: var(--text-muted, rgba(17, 24, 39, 0.55));
   }
 }
+
+/* Mobile: share the server column across three exploration areas. */
+.mobileThreeMapTable {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mobileThreeMapTable {
+    display: block;
+    min-width: 0;
+  }
+
+  .mobileThreeMapTable .quickTable th {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .mobileThreeMapTable .quickTable td {
+    padding: 2px;
+    vertical-align: top;
+  }
+
+  .mobileMapTab {
+    min-height: 44px;
+  }
+
+  .mobileMapTabLabel {
+    white-space: normal;
+  }
+
+  .mobileMapNavigation {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+  }
+
+  .mobileMapNavigationButton {
+    width: 44px;
+    height: 44px;
+    touch-action: manipulation;
+  }
+}
+
+
+/* Keep the mobile table headings visible instead of the map selector tabs. */
+@media (max-width: 900px) {
+  .mobileMapTabs {
+    position: static;
+    top: auto;
+    z-index: auto;
+  }
+
+  .mobileThreeMapTable .quickTableWrap {
+    overflow: visible;
+  }
+
+  .mobileThreeMapTable .quickTable thead th {
+    position: sticky;
+    top: var(--site-header-height, 60px);
+    z-index: 20;
+    background: var(--card-bg, #fff);
+    box-shadow: 0 3px 6px rgba(15, 23, 42, 0.08);
+  }
+}
+
+@media (max-width: 900px) {
+  .mobileThreeMapTable {
+    touch-action: pan-y pinch-zoom;
+  }
+}

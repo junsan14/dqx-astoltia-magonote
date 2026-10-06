@@ -1114,12 +1114,15 @@ export function QuickCell({
               </strong>
             ) : latest.gauge_color === "赤" ? (
               <strong className={styles.stateLine}>
-                {formatTime(latest.created_at)}〜{formatTime(info.rainbowAt)}
+                {formatTime(latest.created_at)}
+                <span className={styles.mobileStateDetail}>〜{formatTime(info.rainbowAt)}</span>
               </strong>
             ) : (
               <strong className={styles.stateLine}>
-                {getGaugeLabel(latest.gauge_color, t)}
-                <br />
+                <span className={styles.mobileStateDetail}>
+                  {getGaugeLabel(latest.gauge_color, t)}
+                  <br />
+                </span>
                 {formatTime(latest.created_at)}
               </strong>
             )}
@@ -1218,7 +1221,7 @@ export function RainbowNoticeCard({
 
   const timeLabel = info.isRainbow
     ? `あと${info.remainingToExpireMinutes}分で自動削除`
-    : `あと${info.remainingMinutes}分で虹`;
+    : `あと${info.remainingMinutes}分以内に虹`;
 
   const subLabel = info.isRainbow
     ? `虹発生`

@@ -93,7 +93,8 @@ export default function RoomMain({ controller: c }) {
     const currentIndex = orderedMaps.indexOf(activeMobileMap);
     const safeIndex = currentIndex >= 0 ? currentIndex : 0;
     const nextIndex =
-      (safeIndex + direction + orderedMaps.length) % orderedMaps.length;
+      ((Math.floor(safeIndex / 3) + direction + Math.ceil(orderedMaps.length / 3)) %
+        Math.ceil(orderedMaps.length / 3)) * 3;
 
     setIsMobileDragging(false);
     setMobileDragOffset(0);
@@ -170,7 +171,9 @@ export default function RoomMain({ controller: c }) {
   };
 
   const handleMobileTabPointerUp = (event, targetMap) => {
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (event.pointerId != null && event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
     clearMobileTabLongPressTimer();
 
     if (mobileTabLongPressTriggeredRef.current) {

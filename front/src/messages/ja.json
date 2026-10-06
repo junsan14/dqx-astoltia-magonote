@@ -426,7 +426,7 @@
       "caption": "ユーザーを選択して担当サーバーだけ表示",
       "noMember": "ユーザー登録後、ここからユーザーを選択してください。",
       "noMap": "左の「表示する場所」から、少なくとも1つ選択してください。",
-      "server": "Server",
+      "server": "サーバー",
       "empty": "未",
       "deleteReportLabel": "この報告を取り消す",
       "deleteMemberLabel": "{name}を削除"
