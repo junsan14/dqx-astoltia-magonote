@@ -17,7 +17,6 @@ import {
   getClothEvent,
   applySewingResult,
   isClothEffectTurn,
-  getNextClothTurn,
   advancePowerState,
   getEquipmentTolerance,
 } from "./craftOptimizer";
@@ -861,15 +860,6 @@ export default function CraftCalculatorClient({
     return candidate.affectedPreview.some((item) => item.cellKey === cellKey);
   }
 
-  function getAffectedPreview(cellKey) {
-    const candidate = getActiveCandidate();
-
-    if (!candidate) return null;
-
-    return (
-      candidate.affectedPreview.find((item) => item.cellKey === cellKey) ?? null
-    );
-  }
 
   function getCandidateTitle(candidate) {
     if (!candidate) return "";
