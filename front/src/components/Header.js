@@ -13,6 +13,7 @@ import { mochiy } from "@/app/fonts";
 
 import styles from "./Header.module.css";
 
+ const term = "v8.1対応";
 function HeaderNavLink({
   href,
   localized = true,
@@ -267,7 +268,6 @@ export default function Header() {
 
   const headerRef = useRef(null);
 
-  const term = "v8.0対応";
 
   const publicMenus = useMemo(
     () => [

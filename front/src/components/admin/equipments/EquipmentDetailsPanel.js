@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 
 export default function EquipmentDetailsPanel({
   row,
+  showMaterials = true,
+  showEffects = true,
   allItems = [],
   materials = [],
   effects = [],
@@ -64,6 +66,7 @@ export default function EquipmentDetailsPanel({
 
   return (
     <div style={styles.stack}>
+      {showMaterials ? (
       <section style={styles.card}>
         <div style={styles.sectionHead}>
           <div style={styles.sectionTitle}>素材</div>
@@ -149,7 +152,9 @@ export default function EquipmentDetailsPanel({
           </div>
         )}
       </section>
+      ) : null}
 
+      {showEffects ? (
       <section style={styles.card}>
         <div style={styles.sectionHead}>
           <div style={styles.sectionTitle}>効果</div>
@@ -193,6 +198,7 @@ export default function EquipmentDetailsPanel({
           )}
         </div>
       </section>
+      ) : null}
     </div>
   );
 }

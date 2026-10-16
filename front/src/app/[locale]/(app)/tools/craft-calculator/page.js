@@ -3,9 +3,9 @@ import CraftCalculatorClient from "./CraftCalculatorClient";
 import styles from "./craft-calculator.module.css";
 
 export const metadata = {
-  title: "裁縫職人 数値チェッカー",
+  title: "さいほうナビ",
   description:
-    "ドラクエ10の裁縫職人向けに、大成功に必要な数値と現在値の差分を確認できるツールです。",
+    "ドラクエ10の裁縫結果を入力して、次に使う特技と対象マスを確認できる補助ツールです。",
 };
 
 export default async function CraftCalculatorPage() {
@@ -23,11 +23,11 @@ export default async function CraftCalculatorPage() {
   return (
     <main className={styles.page}>
       <section className={styles.hero}>
-        <p className={styles.kicker}>Craft Tool</p>
-        <h1>裁縫職人 数値チェッカー</h1>
+        <p className={styles.kicker}>SEWING COMPANION</p>
+        <h1>さいほうナビ</h1>
         <p>
-          装備の大成功に必要な数値を見ながら、今どれくらい縫えているかを入力できるツールです。
-          残り数値、ぴったり、縫いすぎをマスごとに確認できます。
+          縫って、入力して、次の一手へ。
+          あなたの裁縫を、盤面のとなりでサポート。
         </p>
       </section>
 

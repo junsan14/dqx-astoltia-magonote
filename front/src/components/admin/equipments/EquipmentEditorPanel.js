@@ -27,6 +27,13 @@ const GROUP_KIND_OPTIONS = [
 ];
 
 const TAILORING_TRAIT_OPTIONS = ["通常布", "再生布", "虹布", "ピンク布"];
+const WOODWORKING_TRAIT_OPTIONS = [
+  "通常(茶色)",
+  "木目変化(ピンク色)",
+  "燃える木(赤色)",
+  "再生木(水色)",
+  "虹木",
+];
 const SMITHING_TRAIT_OPTIONS = ["戻り", "集中変化", "倍半", "威力会心"];
 
 export default function EquipmentEditorPanel({
@@ -34,8 +41,8 @@ export default function EquipmentEditorPanel({
   equipmentTypes = [],
   craftProductTypes = [],
   allJobs = [],
-  syncGroup,
-  setSyncGroup,
+  isGroupEditing = false,
+  onCraftTypeChange,
   isSelectedGrouped,
   isMobile = false,
   onPatch,
@@ -48,6 +55,8 @@ export default function EquipmentEditorPanel({
   recipePlaceOptions = [],
 }) {
   const safeRow = row ?? {};
+  const showSharedFields = isGroupEditing || !isSelectedGrouped;
+  const showMemberFields = !isGroupEditing;
 
   const [groupSearch, setGroupSearch] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
@@ -165,13 +174,19 @@ export default function EquipmentEditorPanel({
       activeCraftTypeName
     );
 
-  const craftMaterialTraitOptions = isTailoringEquipment
+  const isWoodworkingEquipment = /木工|woodwork/i.test(activeCraftTypeName);
+
+  const craftMaterialTraitOptions = isWoodworkingEquipment
+    ? WOODWORKING_TRAIT_OPTIONS
+    : isTailoringEquipment
     ? TAILORING_TRAIT_OPTIONS
     : isSmithingEquipment
     ? SMITHING_TRAIT_OPTIONS
     : [];
 
-  const craftMaterialTraitLabel = isTailoringEquipment
+  const craftMaterialTraitLabel = isWoodworkingEquipment
+    ? "素材特性"
+    : isTailoringEquipment
     ? "布タイプ"
     : isSmithingEquipment
     ? "地金特性"
@@ -304,7 +319,7 @@ export default function EquipmentEditorPanel({
   function patchGroupAware(key, value) {
     if (!row) return;
 
-    if (syncGroup && isSelectedGrouped) {
+    if (isGroupEditing) {
       onGroupPatch?.({ [key]: value });
       return;
     }
@@ -323,7 +338,7 @@ export default function EquipmentEditorPanel({
       equipmentType: selectedType,
     };
 
-    if (syncGroup && isSelectedGrouped) {
+    if (isGroupEditing) {
       onGroupPatch?.(payload);
       return;
     }
@@ -333,6 +348,11 @@ export default function EquipmentEditorPanel({
 
   function handleCraftTypeFilterChange(value) {
     if (!row) return;
+
+    if (isGroupEditing) {
+      onCraftTypeChange?.(value);
+      return;
+    }
 
     setCraftTypeFilterId(value);
     onPatch?.({
@@ -360,7 +380,7 @@ export default function EquipmentEditorPanel({
         : {}),
     };
 
-    if (syncGroup && isSelectedGrouped) {
+    if (isGroupEditing) {
       onGroupPatch?.(payload);
       return;
     }
@@ -471,16 +491,9 @@ export default function EquipmentEditorPanel({
           <div style={styles.idBadge}>Item ID: {row.itemId || "-"}</div>
         </div>
 
-        {isSelectedGrouped ? (
-          <label style={styles.checkRow}>
-            <input
-              type="checkbox"
-              checked={syncGroup}
-              onChange={(e) => setSyncGroup(e.target.checked)}
-            />
-            <span>グループ同期</span>
-          </label>
-        ) : null}
+        <span style={styles.helpText}>
+          {isGroupEditing ? "セット共通項目を編集中" : "この装備のみを編集中"}
+        </span>
       </div>
 
       <div style={styles.columns}>
@@ -489,7 +502,7 @@ export default function EquipmentEditorPanel({
             <div>
               <h2 style={styles.panelTitle}>基本情報</h2>
               <p style={styles.panelLead}>
-                装備の名前・分類・価格・グループ情報
+                {isGroupEditing ? "セット共通の分類・価格・グループ情報" : isSelectedGrouped ? "部位の装備名" : "装備の名前・分類・価格・グループ情報"}
               </p>
             </div>
           </div>
@@ -615,6 +628,7 @@ export default function EquipmentEditorPanel({
           ) : null}
 
           <div style={styles.fieldStack}>
+            {showMemberFields ? <>
             <LabeledField label="装備名（日本語）">
               <input
                 style={styles.input}
@@ -640,6 +654,9 @@ export default function EquipmentEditorPanel({
               />
             </LabeledField>
 
+            </> : null}
+
+            {showSharedFields ? <>
             {!isCraftToolSet ? (
               <LabeledField label="装備可能レベル">
                 <input
@@ -800,6 +817,20 @@ export default function EquipmentEditorPanel({
                   />
                 </LabeledField>
 
+
+              </div>
+            ) : null}
+
+            <LabeledField label="説明文">
+              <textarea
+                style={styles.textarea}
+                value={row.description ?? ""}
+                onChange={(e) => patchGroupAware("description", e.target.value)}
+                rows={2}
+              />
+            </LabeledField>
+            </> : null}
+            {hasRealGroup && showMemberFields ? (
                 <div style={styles.leaveGroupBox}>
                   <div>
                     <div style={styles.leaveGroupTitle}>
@@ -822,17 +853,7 @@ export default function EquipmentEditorPanel({
                     この装備だけ外す
                   </button>
                 </div>
-              </div>
             ) : null}
-
-            <LabeledField label="説明文">
-              <textarea
-                style={styles.textarea}
-                value={row.description ?? ""}
-                onChange={(e) => patch("description", e.target.value)}
-                rows={2}
-              />
-            </LabeledField>
           </div>
         </section>
 
@@ -841,15 +862,16 @@ export default function EquipmentEditorPanel({
             <div>
               <h2 style={styles.panelTitle}>職人情報</h2>
               <p style={styles.panelLead}>
-                作成レベル・職人作成タイプ・大成功数値・レシピ情報
+                {isGroupEditing ? "セット共通の作成レベル・職人・レシピ情報" : "部位の素材特性・職人作成タイプ・大成功数値"}
               </p>
             </div>
           </div>
 
           <div style={styles.fieldStack}>
-            <div style={craftGridLayoutStyle(isMobile)}>
+            <div style={craftGridLayoutStyle(isMobile || isGroupEditing)}>
               <div style={styles.craftLeftColumn}>
-                <LabeledField label="作成レベル">
+                {showSharedFields ? (
+<LabeledField label="作成レベル">
                   <input
                     type="number"
                     style={styles.input}
@@ -859,8 +881,9 @@ export default function EquipmentEditorPanel({
                     }
                   />
                 </LabeledField>
+) : null}
 
-                {craftMaterialTraitOptions.length ? (
+                {showMemberFields && craftMaterialTraitOptions.length ? (
                   <LabeledField label={craftMaterialTraitLabel}>
                     <select
                       style={styles.input}
@@ -880,7 +903,8 @@ export default function EquipmentEditorPanel({
                   </LabeledField>
                 ) : null}
 
-                <LabeledField label="職人">
+                {showSharedFields ? (
+<LabeledField label="職人">
                   <select
                     style={styles.input}
                     value={craftTypeFilterId}
@@ -896,8 +920,10 @@ export default function EquipmentEditorPanel({
                     ))}
                   </select>
                 </LabeledField>
+) : null}
 
-                <LabeledField label="職人作成タイプ">
+                {showMemberFields ? (
+<LabeledField label="職人作成タイプ">
                   <select
                     style={styles.input}
                     value={row.craftProductTypeId || ""}
@@ -916,20 +942,22 @@ export default function EquipmentEditorPanel({
                     ))}
                   </select>
                 </LabeledField>
+) : null}
               </div>
 
-              <div style={styles.craftRightColumn}>
+              {showMemberFields ? <div style={styles.craftRightColumn}>
                 <SlotGridEditor row={row} onPatch={onPatch} />
-              </div>
+              </div> : null}
             </div>
 
-            <LabeledField label="レシピ本">
+            {showSharedFields ? (
+<LabeledField label="レシピ本">
               <input
                 list={recipeBookListId}
                 style={styles.input}
                 value={row.recipeBook ?? ""}
                 placeholder="既存候補から選択、または新規入力"
-                onChange={(e) => patch("recipeBook", e.target.value)}
+                onChange={(e) => patchGroupAware("recipeBook", e.target.value)}
               />
 
               <datalist id={recipeBookListId}>
@@ -938,14 +966,16 @@ export default function EquipmentEditorPanel({
                 ))}
               </datalist>
             </LabeledField>
+) : null}
 
-            <LabeledField label="レシピ入手場所">
+            {showSharedFields ? (
+<LabeledField label="レシピ入手場所">
               <input
                 list={recipePlaceListId}
                 style={styles.input}
                 value={row.recipePlace ?? ""}
                 placeholder="既存候補から選択、または新規入力"
-                onChange={(e) => patch("recipePlace", e.target.value)}
+                onChange={(e) => patchGroupAware("recipePlace", e.target.value)}
               />
 
               <datalist id={recipePlaceListId}>
@@ -954,9 +984,11 @@ export default function EquipmentEditorPanel({
                 ))}
               </datalist>
             </LabeledField>
+) : null}
           </div>
         </section>
 
+        {showMemberFields ? (
         <section style={styles.panel}>
           <div style={styles.panelHead}>
             <div>
@@ -986,7 +1018,7 @@ export default function EquipmentEditorPanel({
                       type="number"
                       style={styles.input}
                       value={row[field.key] ?? ""}
-                      onChange={(e) => patchGroupAware(field.key, e.target.value)}
+                      onChange={(e) => patch(field.key, e.target.value)}
                     />
                   </LabeledField>
                 );
@@ -1013,7 +1045,7 @@ export default function EquipmentEditorPanel({
                       type="number"
                       style={styles.input}
                       value={row[field.key] ?? ""}
-                      onChange={(e) => patchGroupAware(field.key, e.target.value)}
+                      onChange={(e) => patch(field.key, e.target.value)}
                     />
                   </LabeledField>
                 );
@@ -1021,6 +1053,7 @@ export default function EquipmentEditorPanel({
             </div>
           </div>
         </section>
+        ) : null}
       </div>
     </section>
   );

@@ -293,12 +293,6 @@ export default function EquipmentInfoCard({
     );
   }, [activeStatusItemKey, statusItems]);
 
-  const baseEffectAliases = useMemo(() => {
-    return STATUS_FIELDS.flatMap((status) =>
-      status.aliases.map(normalizeComparableText)
-    );
-  }, []);
-
   const equipmentEffects = useMemo(() => {
     const uniqueEffects = new Map();
 
@@ -311,18 +305,14 @@ export default function EquipmentInfoCard({
       .forEach((effect) => {
         const comparable = normalizeComparableText(effect);
 
-        // 基礎効果欄に表示しているHP・攻撃力などは装備効果から除外する。
-        const overlapsBaseStatus = baseEffectAliases.some((alias) =>
-          comparable.startsWith(alias)
-        );
-
-        if (!overlapsBaseStatus && !uniqueEffects.has(comparable)) {
+        // セット効果の能力値補正も表示する。同じ効果だけを重複排除する。
+        if (!uniqueEffects.has(comparable)) {
           uniqueEffects.set(comparable, effect);
         }
       });
 
     return Array.from(uniqueEffects.values());
-  }, [baseEffectAliases, selectedSet]);
+  }, [selectedSet]);
 
   return (
     <section className={styles.card}>

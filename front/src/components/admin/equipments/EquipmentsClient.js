@@ -37,6 +37,7 @@ import {
   findCraftProductTypeByKey,
   getCraftProductTypeName,
   getGroupDisplayName,
+  buildGroupCraftTypePatches,
 } from "./equipmentFormHelpers";
 
 const DEFAULT_GROUP_KIND = "armor_set";
@@ -257,7 +258,7 @@ export default function EquipmentsClient() {
   const [rows, setRows] = useState([]);
   const [query, setQuery] = useState("");
   const [selectedKey, setSelectedKey] = useState("");
-  const [syncGroup, setSyncGroup] = useState(true);
+  const [selectionMode, setSelectionMode] = useState("member");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [equipmentTypes, setEquipmentTypes] = useState([]);
@@ -307,6 +308,8 @@ export default function EquipmentsClient() {
     if (!gid) return false;
     return rows.filter((r) => str(r.groupId).trim() === gid).length > 1;
   }, [rows, selectedRow]);
+
+  const isGroupEditing = selectionMode === "group" && isSelectedGrouped;
 
   const availableGroups = useMemo(() => {
     const map = new Map();
@@ -473,6 +476,17 @@ export default function EquipmentsClient() {
     );
   }
 
+  function handleGroupCraftTypeChange(craftTypeId) {
+    if (!isGroupEditing) return;
+    const members = rows.filter((r) => str(r.groupId).trim() === str(selectedRow.groupId).trim());
+    try {
+      const patches = buildGroupCraftTypePatches(members, craftProductTypes, craftTypeId);
+      setRows((prev) => prev.map((r) => patches.has(r.__key) ? { ...r, ...patches.get(r.__key) } : r));
+    } catch (error) {
+      showToast(error.message, "error");
+    }
+  }
+
   function handleJoinGroup(payload) {
     if (!selectedRow) return;
 
@@ -513,7 +527,7 @@ export default function EquipmentsClient() {
 
     const itemName = str(selectedRow.itemName).trim() || "この装備";
 
-    setSyncGroup(false);
+    setSelectionMode("member");
 
     const withoutEquipmentType = ["craft_tool_set", "other_set"].includes(
       groupKind
@@ -549,7 +563,7 @@ export default function EquipmentsClient() {
 
     if (!ok) return;
 
-    setSyncGroup(false);
+    setSelectionMode("member");
 
     setSelectedRowPatch({
       groupKind: "",
@@ -715,7 +729,7 @@ export default function EquipmentsClient() {
       const saveSingleOnly = !!selectedRow.__saveSingleOnly;
 
       const targetRows =
-        !saveSingleOnly && syncGroup && gid
+        !saveSingleOnly && isGroupEditing && gid
           ? rows.filter((r) => str(r.groupId).trim() === gid)
           : [selectedRow];
 
@@ -725,33 +739,18 @@ export default function EquipmentsClient() {
           __saveSingleOnly: undefined,
         };
 
-        if (row.id) {
-          await updateEquipment(row.id, cleanRow);
-        } else {
-          const savedRow = await createEquipment(cleanRow);
-          const saved = hydrateCraftProductType(
-            hydrateRowMaterialsWithItems(savedRow, allItems),
-            craftProductTypes
-          );
-
-          setRows((prev) =>
-            prev.map((r) => (r.__key === row.__key ? saved : r))
-          );
-        }
+        const savedRow = row.id
+          ? await updateEquipment(row.id, cleanRow)
+          : await createEquipment(cleanRow);
+        const saved = hydrateCraftProductType(
+          hydrateRowMaterialsWithItems(savedRow, allItems), craftProductTypes
+        );
+        setRows((prev) => prev.map((r) => r.__key === row.__key
+          ? { ...saved, __key: row.__key, __saveSingleOnly: undefined } : r));
       }
 
-      setRows((prev) =>
-        prev.map((r) =>
-          r.__key === selectedRow.__key
-            ? { ...r, __saveSingleOnly: undefined }
-            : r
-        )
-      );
-
-      await fetchInitial(selectedRow.id, selectedRow.__key);
-
       const targetName =
-        getGroupDisplayName(selectedRow) || selectedRow.itemName || "装備";
+        (isGroupEditing ? getGroupDisplayName(selectedRow) : selectedRow.itemName) || "装備";
       showToast(`「${targetName}」を保存した`);
     } catch (error) {
       console.error(error);
@@ -869,17 +868,17 @@ export default function EquipmentsClient() {
 
   function addEffect() {
     const next = [...effects, ""];
-    setSelectedRowPatch({ effectsJson: toJsonString(next, "[]") });
+    (isGroupEditing ? setGroupPatch : setSelectedRowPatch)({ effectsJson: toJsonString(next, "[]") });
   }
 
   function updateEffect(index, value) {
     const next = effects.map((e, i) => (i === index ? value : e));
-    setSelectedRowPatch({ effectsJson: toJsonString(next, "[]") });
+    (isGroupEditing ? setGroupPatch : setSelectedRowPatch)({ effectsJson: toJsonString(next, "[]") });
   }
 
   function deleteEffect(index) {
     const next = effects.filter((_, i) => i !== index);
-    setSelectedRowPatch({ effectsJson: toJsonString(next, "[]") });
+    (isGroupEditing ? setGroupPatch : setSelectedRowPatch)({ effectsJson: toJsonString(next, "[]") });
   }
   function getSidebarSlotOrder(row) {
     const key = str(
@@ -910,7 +909,9 @@ export default function EquipmentsClient() {
       ? "新規追加: 単体装備を作成中"
       : "新規追加: セット装備を作成中"
     : selectedRow
-    ? `${selectedRow.itemName || getGroupDisplayName(selectedRow) || "名称なし"}を編集中`
+    ? isGroupEditing
+      ? `${getGroupDisplayName(selectedRow)}の共通項目を編集中`
+      : `${selectedRow.itemName || getGroupDisplayName(selectedRow) || "名称なし"}を編集中`
     : loading
     ? "読み込み中..."
     : "";
@@ -943,7 +944,7 @@ export default function EquipmentsClient() {
             <div style={styles.list}>
               {displayEntries.map((entry) => {
                 if (entry.__kind === "group") {
-                  const groupActive =
+                  const groupActive = isGroupEditing &&
                     str(selectedRow?.groupId).trim() ===
                     str(entry.groupId).trim();
 
@@ -954,6 +955,7 @@ export default function EquipmentsClient() {
                         style={groupButtonStyle(groupActive)}
                         onClick={() => {
                           if (entry.rows?.[0]?.__key) {
+                            setSelectionMode("group");
                             setSelectedKey(entry.rows[0].__key);
                             setActiveTab("edit");
                             if (isMobile) closeSidebar();
@@ -972,7 +974,7 @@ export default function EquipmentsClient() {
                         {[...entry.rows]
                           .sort((a, b) => getSidebarSlotOrder(a) - getSidebarSlotOrder(b))
                           .map((row) => {
-                          const active = row.__key === selectedKey;
+                          const active = !isGroupEditing && row.__key === selectedKey;
 
                           return (
                             <button
@@ -980,6 +982,7 @@ export default function EquipmentsClient() {
                               type="button"
                               style={childButtonStyle(active)}
                               onClick={() => {
+                                setSelectionMode("member");
                                 setSelectedKey(row.__key);
                                 setActiveTab("edit");
                                 if (isMobile) closeSidebar();
@@ -1005,6 +1008,7 @@ export default function EquipmentsClient() {
                     type="button"
                     style={singleButtonStyle(active)}
                     onClick={() => {
+                      setSelectionMode("member");
                       setSelectedKey(entry.row.__key);
                       setActiveTab("edit");
                       if (isMobile) closeSidebar();
@@ -1096,8 +1100,8 @@ export default function EquipmentsClient() {
               equipmentTypes={equipmentTypes}
               craftProductTypes={craftProductTypes}
               allJobs={allJobs}
-              syncGroup={syncGroup}
-              setSyncGroup={setSyncGroup}
+              isGroupEditing={isGroupEditing}
+              onCraftTypeChange={handleGroupCraftTypeChange}
               isMobile={isMobile}
               isSelectedGrouped={isSelectedGrouped}
               onPatch={setSelectedRowPatch}
@@ -1112,6 +1116,8 @@ export default function EquipmentsClient() {
 
             <EquipmentDetailsPanel
               row={selectedRow}
+              showMaterials={!isGroupEditing}
+              showEffects={isGroupEditing || !isSelectedGrouped}
               allItems={allItems}
               materials={materials}
               effects={effects}

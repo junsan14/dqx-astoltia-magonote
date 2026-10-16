@@ -438,3 +438,29 @@ export function isArmorCraftProductType(craftProductTypeLike) {
 
   return key.startsWith("armor_") || key.startsWith("tailoring_");
 }
+
+// Resolve each member independently so changing a set's profession never copies
+// the representative member's part (for example, head) to the whole set.
+export function buildGroupCraftTypePatches(members, productTypes, craftTypeId) {
+  const candidates = filterCraftProductTypesByCraftType(productTypes, craftTypeId);
+  const patches = new Map();
+  for (const member of members) {
+    const current = findCraftProductTypeById(productTypes, member.craftProductTypeId)
+      ?? getCraftProductType(member);
+    const part = getCraftProductPartKey(current);
+    const matches = candidates.filter((candidate) =>
+      (current?.key && candidate.key === current.key) ||
+      (part && getCraftProductPartKey(candidate) === part)
+    );
+    if (matches.length !== 1) {
+      throw new Error(`「${member.itemName || "部位"}」に対応する職人作成タイプがありません。変更は反映していません。`);
+    }
+    const next = matches[0];
+    patches.set(member.__key, {
+      craftProductTypeId: String(next.id),
+      craftProductType: next,
+      craft_product_type: next,
+    });
+  }
+  return patches;
+}

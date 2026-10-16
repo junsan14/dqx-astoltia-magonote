@@ -12,7 +12,28 @@ import {
   SKILL_LIST,
   getGlobalOptimizedCandidates,
   getPowerRangeLabel,
+  getBoardSummary,
+  getRegenTargets,
+  getClothEvent,
+  applySewingResult,
+  isClothEffectTurn,
+  getNextClothTurn,
+  advancePowerState,
+  getEquipmentTolerance,
 } from "./craftOptimizer";
+
+// A pointer's default caret placement can undo selection made during focus.
+// Re-select after click and after the browser finishes the current event/frame.
+function selectInputValue(event) {
+  const input = event.currentTarget;
+  if (input.readOnly) return;
+  input.select();
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => {
+      if (document.activeElement === input) input.select();
+    });
+  }
+}
 
 const DEFAULT_CRAFT_TYPE = {
   key: "sewing",
@@ -234,20 +255,6 @@ function getCellName(rowIndex, colIndex) {
   }`;
 }
 
-function isClothEffectTurn(turnCount) {
-  const current = Number(turnCount || 1);
-  // 素材特性は4ターン経過後なので、最初は5ターン目。
-  return current >= 5 && (current - 1) % 4 === 0;
-}
-
-function getNextClothTurn(turnCount) {
-  const current = Number(turnCount || 1);
-  if (isClothEffectTurn(current)) return current;
-
-  const passed = Math.max(0, current - 1);
-  return 1 + Math.ceil((passed + 1) / 4) * 4;
-}
-
 function getCellKey(rowIndex, colIndex) {
   return `${rowIndex}-${colIndex}`;
 }
@@ -305,18 +312,24 @@ export default function CraftCalculatorClient({
   const [searchWord, setSearchWord] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [values, setValues] = useState({});
+  const [history, setHistory] = useState([]);
+  const [resultError, setResultError] = useState("");
+  const [equipmentOpen, setEquipmentOpen] = useState(true);
 
   const [currentPower, setCurrentPower] = useState("unknown");
   const [nextPower, setNextPower] = useState("unknown");
+  const [powerQueue, setPowerQueue] = useState([]);
   const [mentalPower, setMentalPower] = useState(252);
   const [turnCount, setTurnCount] = useState(1);
   const [clothType, setClothType] = useState("regen");
   const [clothEvents, setClothEvents] = useState({});
+  const [heldPower, setHeldPower] = useState("");
   const [focusTurns, setFocusTurns] = useState(0);
+  const [bastingCells, setBastingCells] = useState({});
+  const [tolerance, setTolerance] = useState(0);
 
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [previewCandidate, setPreviewCandidate] = useState(null);
-  const [showMoreCandidates, setShowMoreCandidates] = useState(false);
 
   const [powerModalOpen, setPowerModalOpen] = useState(false);
   const [powerModalMode, setPowerModalMode] = useState("initial");
@@ -359,7 +372,11 @@ export default function CraftCalculatorClient({
   }, [selectedEquipment]);
 
   const maxCols = useMemo(() => getMaxCols(grid), [grid]);
-  const currentTurnEvent = clothEvents[String(turnCount)] ?? null;
+  const currentTurnEvent = getClothEvent(clothType, turnCount, clothEvents);
+  const boardSummary = getBoardSummary(grid, values, tolerance);
+  const regenTargets = getRegenTargets(grid, values);
+  const regenNeedsInput = clothType === "regen" && isClothEffectTurn(turnCount) && !clothEvents[String(turnCount)] && regenTargets.length > 0;
+  const pinkNeedsInput = clothType === "pink" && isClothEffectTurn(turnCount) && !currentTurnEvent?.cellKeys?.length;
 
   const summary = useMemo(() => {
     let totalTarget = 0;
@@ -422,6 +439,10 @@ export default function CraftCalculatorClient({
       clothType,
       clothEvents,
       focusTurns,
+      heldPower,
+      powerQueue,
+      bastingCells,
+      tolerance,
       limit: 5,
     });
   }, [
@@ -434,7 +455,15 @@ export default function CraftCalculatorClient({
     clothType,
     clothEvents,
     focusTurns,
+    heldPower,
+    powerQueue,
+    bastingCells,
+    tolerance,
   ]);
+
+  useEffect(() => {
+    setPreviewCandidate(globalCandidates[0] ?? null);
+  }, [globalCandidates]);
 
   useEffect(() => {
     if (!craftTypes.length) return;
@@ -449,7 +478,7 @@ export default function CraftCalculatorClient({
   useEffect(() => {
     if (!selectedId) return;
 
-    const existsInFiltered = filteredEquipments.some(
+    const existsInFiltered = validEquipments.some(
       (equipment) => String(equipment.id) === selectedId
     );
 
@@ -459,37 +488,74 @@ export default function CraftCalculatorClient({
     setValues({});
     setSelectedCandidate(null);
     setPreviewCandidate(null);
-    setShowMoreCandidates(false);
     setPowerModalOpen(false);
-  }, [filteredEquipments, selectedId]);
+  }, [validEquipments, selectedId]);
+
+  function rememberAction(label) {
+    setHistory((prev) => [...prev.slice(-49), {
+      label, values: { ...values }, currentPower, nextPower, mentalPower,
+      turnCount, clothType, clothEvents, focusTurns, bastingCells, tolerance, powerQueue, heldPower,
+    }]);
+  }
+
+  function undoAction() {
+    const previous = history[history.length - 1];
+    if (!previous) return;
+    setValues(previous.values);
+    setCurrentPower(previous.currentPower);
+    setNextPower(previous.nextPower);
+    setPowerQueue(previous.powerQueue ?? []);
+    setMentalPower(previous.mentalPower);
+    setTurnCount(previous.turnCount);
+    setClothType(previous.clothType);
+    setClothEvents(previous.clothEvents);
+    setFocusTurns(previous.focusTurns);
+    setHeldPower(previous.heldPower ?? "");
+    setBastingCells(previous.bastingCells);
+    setTolerance(previous.tolerance);
+    setHistory((prev) => prev.slice(0, -1));
+    setSelectedCandidate(null);
+    setPreviewCandidate(null);
+    setPowerModalOpen(false);
+    setClothEffectModalOpen(false);
+    setActionCurrentValues({});
+    setRegenCurrentValues({});
+    setResultError("");
+  }
 
   function handleCraftTypeChange(craftTypeKey) {
+    setHistory([]);
     setActiveCraftType(craftTypeKey);
     setSearchWord("");
     setSelectedId("");
     setValues({});
     setSelectedCandidate(null);
     setPreviewCandidate(null);
-    setShowMoreCandidates(false);
     setPowerModalOpen(false);
   }
 
   function handleEquipmentSelect(equipment) {
+    setHistory([]);
+    setMentalPower(252);
     const nextGrid = normalizeSlotGrid(equipment.slotGridJson);
 
+    setTolerance(getEquipmentTolerance(equipment));
+    setEquipmentOpen(false);
     setSelectedId(String(equipment.id));
     setValues(createInitialValues(nextGrid));
     setTurnCount(1);
     setClothEvents({});
     setFocusTurns(0);
+    setHeldPower("");
+    setBastingCells({});
     setCurrentPower("unknown");
     setNextPower("unknown");
+    setPowerQueue([]);
     setSelectedCandidate(null);
     setPreviewCandidate(null);
     setPowerModalMode("initial");
     setModalCurrentPower("weak");
     setModalNextPower("unknown");
-    setShowMoreCandidates(false);
     setPowerModalOpen(true);
     setClothEffectModalOpen(false);
 
@@ -507,6 +573,8 @@ export default function CraftCalculatorClient({
   }
 
   function resetValues() {
+    setHistory([]);
+    setMentalPower(252);
     if (!selectedEquipment) {
       setValues({});
       setSelectedCandidate(null);
@@ -519,14 +587,16 @@ export default function CraftCalculatorClient({
     setTurnCount(1);
     setClothEvents({});
     setFocusTurns(0);
+    setHeldPower("");
+    setBastingCells({});
     setCurrentPower("unknown");
     setNextPower("unknown");
+    setPowerQueue([]);
     setSelectedCandidate(null);
     setPreviewCandidate(null);
     setPowerModalMode("initial");
     setModalCurrentPower("weak");
     setModalNextPower("unknown");
-    setShowMoreCandidates(false);
     setPowerModalOpen(true);
     setClothEffectModalOpen(false);
     setActionCurrentValues({});
@@ -554,7 +624,7 @@ export default function CraftCalculatorClient({
   }
 
   function shouldOpenClothEffectModal(nextTurn) {
-    return clothType && Number(nextTurn) > 0 && Number(nextTurn) % 4 === 0;
+    return clothType !== "rainbow" && isClothEffectTurn(nextTurn);
   }
 
   function openManualPowerModal() {
@@ -564,23 +634,19 @@ export default function CraftCalculatorClient({
     setPowerModalOpen(true);
   }
 
-  function openAfterActionPowerModal() {
-    if (focusTurns > 0) {
-      advanceFocusTurn();
+  function openAfterActionPowerModal(forceUnknown = false) {
+    const advanced = advancePowerState({ currentPower, nextPower, focusTurns, powerQueue, heldPower }, forceUnknown);
+    setFocusTurns(advanced.focusTurns);
+    setHeldPower(advanced.heldPower ?? "");
+    setPowerQueue(advanced.powerQueue);
+    if (advanced.focusTurns > 0 && !forceUnknown) {
+      advanceTurnWithResolvedPower(advanced.currentPower, advanced.nextPower);
       return;
     }
-
-    if (nextPower === "unknown") {
-      setPowerModalMode("afterUnknown");
-      setModalCurrentPower("weak");
-      setModalNextPower("unknown");
-      setPowerModalOpen(true);
-      return;
-    }
-
-    setPowerModalMode("afterKnown");
-    setModalCurrentPower(nextPower);
-    setModalNextPower("unknown");
+    // Commit the next turn only once, after the power has been confirmed.
+    setPowerModalMode(advanced.currentPower === "unknown" ? "afterUnknown" : "afterKnown");
+    setModalCurrentPower(advanced.currentPower);
+    setModalNextPower(advanced.nextPower);
     setPowerModalOpen(true);
   }
 
@@ -588,15 +654,12 @@ export default function CraftCalculatorClient({
     setCurrentPower(resolvedCurrentPower);
     setNextPower(resolvedNextPower);
 
-    setTurnCount((prev) => {
-      const nextTurn = Number(prev || 1) + 1;
-
-      if (shouldOpenClothEffectModal(nextTurn)) {
-        setTimeout(() => setClothEffectModalOpen(true), 0);
-      }
-
-      return nextTurn;
-    });
+    const nextTurn = Number(turnCount || 1) + 1;
+    setTurnCount(nextTurn);
+    if (shouldOpenClothEffectModal(nextTurn)) {
+      setRegenCurrentValues({});
+      setClothEffectModalOpen(true);
+    }
   }
 
   function applyPowerModal() {
@@ -619,22 +682,6 @@ export default function CraftCalculatorClient({
     }
   }
 
-  function advanceFocusTurn() {
-    setCurrentPower(currentPower);
-    setNextPower(currentPower);
-    setFocusTurns((prev) => Math.max(0, Number(prev || 0) - 1));
-
-    setTurnCount((prev) => {
-      const nextTurn = Number(prev || 1) + 1;
-
-      if (shouldOpenClothEffectModal(nextTurn)) {
-        setTimeout(() => setClothEffectModalOpen(true), 0);
-      }
-
-      return nextTurn;
-    });
-  }
-
   function selectCandidatePreview(candidate) {
     setPreviewCandidate(candidate);
   }
@@ -643,11 +690,18 @@ export default function CraftCalculatorClient({
     if (!candidate) return;
 
     const initialValues = {};
-
-    candidate.affectedPreview.forEach((item) => {
-      // 候補選択時に想定値を勝手に入れない。実際に縫った後の現在値を入力する。
-      initialValues[item.cellKey] = item.current;
-    });
+    if (candidate.skillKey === "randomSew") {
+      grid.forEach((row, r) => row.forEach((cell, c) => {
+        if (cell && Number.isFinite(cell.target)) {
+          initialValues[getCellKey(r, c)] = getCurrentNumber(values[getCellKey(r, c)]);
+        }
+      }));
+    } else {
+      candidate.affectedPreview.forEach((item) => {
+        initialValues[item.cellKey] = item.current;
+      });
+    }
+    setResultError("");
 
     setPreviewCandidate(candidate);
     setActionCurrentValues(initialValues);
@@ -657,20 +711,17 @@ export default function CraftCalculatorClient({
   function applyCandidateResult() {
     if (!selectedCandidate) return;
 
-    if (selectedCandidate.skillKey !== "focus") {
-      setValues((prev) => {
-        const next = { ...prev };
-
-        selectedCandidate.affectedPreview.forEach((item) => {
-          const nextCurrent = Number(
-            actionCurrentValues[item.cellKey] ?? item.current
-          );
-          next[item.cellKey] = String(Math.max(0, nextCurrent));
-        });
-
-        return next;
-      });
+    let applied;
+    try {
+      applied = applySewingResult({ values, bastingCells, candidate: selectedCandidate, results: actionCurrentValues });
+    } catch (error) {
+      setResultError(error.message);
+      return;
     }
+    rememberAction(getCandidateTitle(selectedCandidate));
+    setResultError("");
+    setValues(applied.values);
+    setBastingCells(applied.bastingCells);
 
     setMentalPower((prev) =>
       Math.max(
@@ -681,33 +732,28 @@ export default function CraftCalculatorClient({
 
     if (selectedCandidate.skillKey === "focus") {
       setFocusTurns(3);
-      setNextPower(currentPower);
+      setHeldPower(currentPower);
+      // Keep the next underlying power for when the fixed power expires.
       setSelectedCandidate(null);
       setPreviewCandidate(null);
 
-      setTurnCount((prev) => {
-        const nextTurn = Number(prev || 1) + 1;
-
-        if (shouldOpenClothEffectModal(nextTurn)) {
-          setTimeout(() => setClothEffectModalOpen(true), 0);
-        }
-
-        return nextTurn;
-      });
+      const nextTurn = Number(turnCount || 1) + 1;
+      setTurnCount(nextTurn);
+      if (shouldOpenClothEffectModal(nextTurn)) {
+        setRegenCurrentValues({});
+        setClothEffectModalOpen(true);
+      }
 
       return;
     }
 
-    if (selectedCandidate.skillKey === "powerShift") {
-      setNextPower("unknown");
-    }
-
     setSelectedCandidate(null);
     setPreviewCandidate(null);
-    openAfterActionPowerModal();
+    openAfterActionPowerModal(selectedCandidate.skillKey === "powerShift");
   }
 
   function openRegenModal() {
+    setResultError("");
     const initialValues = {};
 
     grid.forEach((row, rowIndex) => {
@@ -724,6 +770,11 @@ export default function CraftCalculatorClient({
   }
 
   function applyRegenResult() {
+    if (Object.values(regenCurrentValues).some(value => String(value).trim() === "" || !Number.isSafeInteger(Number(value)) || Number(value) < 0)) {
+      setResultError("再生後の現在値は0以上の整数で入力してください。");
+      return;
+    }
+    setResultError("");
     const eventKey = String(turnCount);
 
     setValues((prev) => {
@@ -852,6 +903,8 @@ export default function CraftCalculatorClient({
 
         <span className={styles.globalMain}>
           <strong>{getCandidateTitle(candidate)}</strong>
+          <small>{candidate.strategy}</small>
+          <small>{candidate.reason}</small>
           <small>{candidate.riskText}</small>
         </span>
 
@@ -876,7 +929,16 @@ export default function CraftCalculatorClient({
 
   return (
     <div className={styles.layout}>
-      <section className={styles.panel}>
+      <div className={styles.guideBar}>
+        <span className={styles.strategyBadge}>基本方針</span>
+        <p>序盤は手順を準備 <span aria-hidden="true">→</span> パワーと布効果を活用 <span aria-hidden="true">→</span> 許容誤差へ調整</p>
+      </div>
+      <details className={`${styles.panel} ${styles.equipmentPanel}`} open={equipmentOpen}
+        onToggle={(event) => setEquipmentOpen(event.currentTarget.open)}>
+        <summary className={styles.equipmentSummary}>
+          <span><small>縫う装備</small><strong>{selectedEquipment?.itemName ?? "装備を選んではじめる"}</strong></span>
+          <span className={styles.equipmentSummaryMeta}>{CLOTH_TYPES.find((cloth) => cloth.key === clothType)?.label} · 装備を変更</span>
+        </summary>
         <div className={styles.panelHeader}>
           <div>
             <p className={styles.sectionLabel}>Craft Type</p>
@@ -905,7 +967,7 @@ export default function CraftCalculatorClient({
 
         <div className={styles.searchBox}>
           <label htmlFor="equipment-search">装備検索</label>
-          <input
+          <input onFocus={selectInputValue} onClick={selectInputValue}
             id="equipment-search"
             type="search"
             value={searchWord}
@@ -963,97 +1025,18 @@ export default function CraftCalculatorClient({
             ))}
           </div>
         </div>
-      </section>
+      </details>
 
-      <section className={`${styles.panel} ${styles.stickyPowerPanel}`}>
-        <div className={styles.statusHeaderCompact}>
-          <div>
-            <p className={styles.sectionLabel}>Sewing Status</p>
-            <h2>
-              現在状況
-              {focusTurns > 0 ? ` / 精神統一中 残り${focusTurns}` : ""}
-            </h2>
-          </div>
-
-          <div className={styles.statusActions}>
-            <button
-              type="button"
-              onClick={openManualPowerModal}
-              className={styles.subButton}
-            >
-              ぬいパワーを設定
-            </button>
-
-            {clothType === "regen" && isClothEffectTurn(turnCount) && (
-              <button
-                type="button"
-                onClick={openRegenModal}
-                className={styles.subButton}
-              >
-                再生結果を入力
-              </button>
-            )}
-
-            {clothType !== "regen" && isClothEffectTurn(turnCount) && (
-              <button
-                type="button"
-                onClick={() => setClothEffectModalOpen(true)}
-                className={styles.subButton}
-              >
-                布効果を設定
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className={styles.powerDisplayGrid}>
-          <div className={styles.powerDisplayItem}>
-            <span>現在</span>
-            <strong>{POWER_LABELS[currentPower]}</strong>
-          </div>
-
-          <div className={styles.powerDisplayItem}>
-            <span>次</span>
-            <strong>{POWER_LABELS[nextPower]}</strong>
-          </div>
-
-          <div className={styles.powerDisplayItem}>
-            <span>精神力</span>
-            <strong>{mentalPower}</strong>
-          </div>
-
-          <div className={styles.powerDisplayItem}>
-            <span>ターン</span>
-            <strong>{turnCount}</strong>
-          </div>
-
-          <div className={styles.powerDisplayItem}>
-            <span>布効果</span>
-            <strong>
-              {isClothEffectTurn(turnCount)
-                ? "効果ターン"
-                : `${getNextClothTurn(turnCount)}T`}
-            </strong>
-          </div>
-
-          {focusTurns > 0 && (
-            <div className={styles.powerDisplayItem}>
-              <span>精神統一</span>
-              <strong>残り{focusTurns}</strong>
-            </div>
-          )}
-        </div>
-      </section>
 
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
             <p className={styles.sectionLabel}>Target Grid</p>
-            <h2>大成功数値チェック</h2>
+            <h2>{selectedEquipment?.itemName ?? "裁縫盤面"}</h2>
           </div>
 
           <button type="button" onClick={fillZero} className={styles.subButton}>
-            0を入力
+            盤面を0にする
           </button>
         </div>
 
@@ -1061,12 +1044,160 @@ export default function CraftCalculatorClient({
           <div className={styles.emptySelectionBox}>
             <h3>装備を選択してください</h3>
             <p>
-              最初は装備を自動選択しないようにしました。上の検索から縫いたい装備を選ぶと、数値グリッドとおすすめ候補が表示されます。
+              上の検索から縫いたい装備を選ぶと、数値グリッドと次の一手が表示されます。
             </p>
           </div>
         ) : (
           <div className={styles.workbenchGrid}>
             <div className={styles.gridColumnPanel}>
+      <section className={styles.stickyPowerPanel} aria-label="ぬいパワー">
+        <span className={styles.smallTurn}>ターン {turnCount}</span>
+        <div className={styles.powerTrack} aria-live="polite">
+          <div key={`current-${turnCount}`} className={`${styles.powerToken} ${styles.currentPowerToken}`} data-power={currentPower}>
+            <span>現在</span><strong>{POWER_LABELS[currentPower]}</strong>
+            {currentPower === "unknown" && <select aria-label="現在のぬいパワーを入力" value="unknown" onChange={e => { setCurrentPower(e.target.value); setPreviewCandidate(null); }}>
+              <option value="unknown">ゲームを見て選択</option>{POWER_ORDER.map(p => <option key={p} value={p}>{POWER_LABELS[p]}</option>)}
+            </select>}
+          </div>
+          <span className={styles.powerArrow} aria-hidden="true">←</span>
+          <div className={styles.powerToken} data-power={focusTurns > 1 ? heldPower || currentPower : nextPower}>
+            <span>つぎ</span>{focusTurns > 1 && <strong>{POWER_LABELS[heldPower || currentPower]}</strong>}
+            {focusTurns <= 1 && <select aria-label="次のぬいパワー" value={nextPower} onChange={e => { setNextPower(e.target.value); setPreviewCandidate(null); }}>
+              {[...POWER_ORDER, "unknown"].map(p => <option key={p} value={p}>{POWER_LABELS[p]}</option>)}
+            </select>}
+          </div>
+          <div className={styles.powerUpcoming}>
+            <span>{focusTurns > 0 ? `精神統一 あと${focusTurns}回` : "そのあと"}</span>
+            <div>{(focusTurns > 1 ? [...Array(Math.max(0, focusTurns - 2)).fill(heldPower || currentPower), nextPower, ...powerQueue] : powerQueue).slice(0, 4).map((p, i) => <span key={i} data-power={p}>{POWER_LABELS[p]}</span>)}</div>
+          </div>
+        </div>
+      </section>
+
+            <aside className={styles.candidateColumnPanel}>
+              <div className={styles.globalCandidateBox}>
+
+                <div className={styles.globalCandidateHeader}>
+                  <div>
+                    <p className={styles.sectionLabel}>Best Actions</p>
+                    <h3>次の一手</h3>
+                  </div>
+                  <div className={styles.actionMental}>
+            <label htmlFor="mental-power">残り集中力</label>
+            <input onFocus={selectInputValue} onClick={selectInputValue} id="mental-power" type="number" min="0" step="1"
+              className={styles.mentalInput} value={mentalPower}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (Number.isSafeInteger(value) && value >= 0) {
+                  setMentalPower(value);
+                  setPreviewCandidate(null);
+                }
+              }} />
+
+                  </div>
+                </div>
+
+                {regenNeedsInput ? (
+                  <div><p>再生後の数値を確認すると次の候補を計算します。</p><button type="button" className={styles.primaryButton} onClick={openRegenModal}>再生結果を入力</button></div>
+                ) : boardSummary.withinTolerance ? (
+                  <p className={styles.completedMessage} role="status">完成 · 大成功圏内（合計誤差 {boardSummary.totalError} / 許容 {tolerance}）</p>
+                ) : pinkNeedsInput ? (
+                  <div><p>光っているマスを指定すると候補を計算します。</p><button type="button" className={styles.primaryButton} onClick={() => setClothEffectModalOpen(true)}>光るマスを指定</button></div>
+                ) : currentPower === "unknown" ? (
+                  <p className={styles.noResult}>
+                    盤面の上で、ゲームに表示された現在のぬいパワーを選んでください。
+                  </p>
+                ) : globalCandidates.length === 0 ? (
+                  <p className={styles.noResult} role="status">
+                    {summary.perfectCount === summary.cellCount
+                      ? "すべてのマスが目標値ぴったりです。ゲーム内で仕上がりを確認してください。"
+                      : boardSummary.totalError <= tolerance + 6
+                        ? `最低目標内です（合計誤差${boardSummary.totalError} / 目標${tolerance + 6}以下）。改善できる手が見つからないため、ここで仕上げる判断をおすすめします。`
+                        : `最低目標の合計誤差${tolerance + 6}以下へ進める手が見つかりません。集中力・現在値・ぬいパワーを確認してください。`}
+                  </p>
+                ) : (
+                  <>
+                    <div className={styles.quickAction}>
+                      <div><strong>{getCandidateTitle(previewCandidate ?? globalCandidates[0])}</strong>
+                        {(previewCandidate ?? globalCandidates[0]).finishingPlan && <small style={{display:"block",fontSize:".65rem"}}>{(previewCandidate ?? globalCandidates[0]).finishingPlan.assessment} · 最低目標 誤差{tolerance + 6}以下</small>}
+                      </div>
+                      <button type="button" className={styles.primaryButton} onClick={() => openCandidateModal(previewCandidate ?? globalCandidates[0])}>ゲームで縫った結果を入力</button>
+                    </div>
+                  </>
+                )}
+
+              </div>
+            </aside>
+              <h3 className={styles.boardItemName}>{selectedEquipment?.itemName}</h3>
+              <div className={styles.gridWrap}>
+                <div
+                  className={styles.craftGrid}
+                  style={{
+                    gridTemplateColumns: `repeat(${maxCols}, minmax(72px, 1fr))`,
+                  }}
+                >
+                  {grid.map((row, rowIndex) =>
+                    row.map((cell, colIndex) => {
+                      const key = getCellKey(rowIndex, colIndex);
+
+                      if (!cell || cell.target === null || Number.isNaN(cell.target)) {
+                        return <div key={key} className={styles.disabledCell} />;
+                      }
+
+                      const currentValue = values[key];
+                      const currentNumber = getCurrentNumber(currentValue);
+                      const status = getCellStatus(cell.target, currentValue);
+                      const isClothCell = isCurrentTurnClothCell(rowIndex, colIndex);
+                      const isPreviewAffected = isAffectedCell(key);
+                      return (
+                        <div
+                          key={key}
+                          className={`${styles.cell} ${status.className} ${cell.target === currentNumber ? styles.completedCell : ""} ${
+                            isClothCell ? styles.clothActiveCell : ""
+                          } ${isPreviewAffected ? styles.previewAffectedCell : ""}`}
+                        >
+                          <input onFocus={selectInputValue} onClick={selectInputValue}
+                            id={`cell-${key}`}
+                            aria-label={`${getCellName(rowIndex, colIndex)}の現在値（目標${cell.target}${bastingCells[key] ? "、しつけ済み" : ""}）`}
+                            title={`目標 ${cell.target}${bastingCells[key] ? " · しつけ済み" : ""}`}
+                            type="text" inputMode="numeric" pattern="[0-9]*"
+                            value={values[key] ?? ""}
+                            onChange={(e) => { if (/^\d*$/.test(e.target.value)) handleValueChange(key, e.target.value); }}
+                            className={styles.input}
+                          />
+                          <span className={styles.remainingValue} aria-label={`誤差${cell.target - currentNumber}`}>
+                            誤差 {cell.target - currentNumber}
+                          </span>
+                          {cell.target === currentNumber && <span className={styles.completedOverlay} aria-hidden="true">誤差 0</span>}
+
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              <details className={styles.workbenchDetails}>
+                <summary>候補の理由・他の手・詳細設定</summary>
+                <button type="button" className={styles.subButton} onClick={openManualPowerModal}>ぬいパワーを修正</button>
+                <div className={styles.moreCandidateList}>
+                  {globalCandidates.map((candidate, index) => renderCandidateButton(candidate, index, true))}
+                </div>
+        <details className={styles.powerQueueEditor}>
+          <summary>ぬいパワーの順番を登録（残り{powerQueue.length}手）</summary>
+          <p>「つぎ」の後に続く順番を、ゲームの表示に合わせて追加します。精神統一中は順番を保持します。</p>
+          <div>{[...POWER_ORDER, "unknown"].map(p => <button type="button" key={p} className={styles.subButton} onClick={() => setPowerQueue(q => [...q, p])}>＋{POWER_LABELS[p]}</button>)}</div>
+          <p>{powerQueue.map(p => POWER_LABELS[p]).join(" → ") || "未登録"}</p>
+          <button type="button" className={styles.subButton} disabled={!powerQueue.length} onClick={() => setPowerQueue(q => q.slice(0, -1))}>末尾を削除</button>
+        </details>
+              <div className={styles.planningStatus} aria-live="polite">
+                <strong>合計誤差 {boardSummary.totalError}</strong>
+                <label>許容誤差 <input onFocus={selectInputValue} onClick={selectInputValue} type="number" min="0" max="20" value={tolerance}
+                  onChange={(e) => { const n = Number(e.target.value); if (Number.isInteger(n) && n >= 0 && n <= 20) setTolerance(n); }} /></label>
+                <small>装備ごとの基準を確認してください。不明な部位は0から設定できます。</small>
+              </div>
+              {clothType === "regen" && regenTargets.length > 0 && (
+                <p className={styles.calculationNote}>今の盤面で再生する候補：{regenTargets.map(c => c.name).join(" / ")}。次の行動や会心で対象は変わります。</p>
+              )}
               <div className={styles.summaryGrid}>
                 <div>
                   <span>目標合計</span>
@@ -1091,135 +1222,29 @@ export default function CraftCalculatorClient({
                 </div>
               </div>
 
-              <div className={styles.gridWrap}>
-                <div
-                  className={styles.craftGrid}
-                  style={{
-                    gridTemplateColumns: `repeat(${maxCols}, minmax(72px, 1fr))`,
-                  }}
-                >
-                  {grid.map((row, rowIndex) =>
-                    row.map((cell, colIndex) => {
-                      const key = getCellKey(rowIndex, colIndex);
+              </details>
 
-                      if (!cell || cell.target === null || Number.isNaN(cell.target)) {
-                        return <div key={key} className={styles.disabledCell} />;
-                      }
 
-                      const currentValue = values[key];
-                      const currentNumber = getCurrentNumber(currentValue);
-                      const status = getCellStatus(cell.target, currentValue);
-                      const isClothCell = isCurrentTurnClothCell(rowIndex, colIndex);
-                      const isPreviewAffected = isAffectedCell(key);
-                      return (
-                        <div
-                          key={key}
-                          className={`${styles.cell} ${status.className} ${
-                            isClothCell ? styles.clothActiveCell : ""
-                          } ${isPreviewAffected ? styles.previewAffectedCell : ""}`}
-                        >
-                          <div className={styles.cellTop}>
-                            <span>{getCellName(rowIndex, colIndex)}</span>
-                            <strong>{cell.target}</strong>
-                          </div>
-
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            value={values[key] ?? ""}
-                            onChange={(e) => handleValueChange(key, e.target.value)}
-                            placeholder="現在"
-                            className={styles.input}
-                          />
-
-                          <p className={styles.status}>
-                            {currentNumber} / {status.label}
-                          </p>
-
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
             </div>
 
-            <aside className={styles.candidateColumnPanel}>
-              <div className={styles.globalCandidateBox}>
-                <div className={styles.globalCandidateHeader}>
-                  <div>
-                    <p className={styles.sectionLabel}>Best Actions</p>
-                    <h3>全体おすすめTOP1</h3>
-                  </div>
-                </div>
 
-                {currentPower === "unknown" ? (
-                  <p className={styles.noResult}>
-                    まず「ぬいパワーを設定」から現在と次のぬいパワーを設定してください。
-                  </p>
-                ) : globalCandidates.length === 0 ? (
-                  <p className={styles.noResult}>候補なし</p>
-                ) : (
-                  <>
-                    <div className={styles.globalCandidateList}>
-                      {renderCandidateButton(globalCandidates[0], 0)}
-                    </div>
-
-                    {globalCandidates.length > 1 && (
-                      <details
-                        className={styles.moreCandidateDetails}
-                        open={showMoreCandidates}
-                        onToggle={(e) => setShowMoreCandidates(e.currentTarget.open)}
-                      >
-                        <summary>他の候補を見る</summary>
-
-                        <div className={styles.moreCandidateList}>
-                          {globalCandidates
-                            .slice(1, 5)
-                            .map((candidate, index) =>
-                              renderCandidateButton(candidate, index + 1, true)
-                            )}
-                        </div>
-                      </details>
-                    )}
-
-                    <div className={styles.selectedCandidateActionBox}>
-                      {previewCandidate ? (
-                        <>
-                          <p>
-                            選択中：
-                            <strong>
-                              {getCandidateTitle(previewCandidate)}
-                            </strong>
-                          </p>
-
-                          <button
-                            type="button"
-                            onClick={() => openCandidateModal(previewCandidate)}
-                            className={styles.primaryButton}
-                          >
-                            結果を入力して反映
-                          </button>
-                        </>
-                      ) : (
-                        <p>候補をクリックすると、左の数値グリッドで縫うマスが光ります。</p>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </aside>
           </div>
         )}
       </section>
 
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div>
-            <p className={styles.sectionLabel}>Skill List</p>
-            <h2>裁縫特技</h2>
-          </div>
-        </div>
+      {history.length > 0 && (
+        <section className={styles.panel}>
+          <h2>操作履歴</h2>
+          <ol className={styles.actionHistory}>
+            {history.map((entry, index) => (
+              <li key={index}>{entry.turnCount}ターン目：{entry.label}（実行前の集中力 {entry.mentalPower}）</li>
+            ))}
+          </ol>
+          <button type="button" onClick={undoAction} className={styles.subButton}>最後の一手を取り消す</button>
+        </section>
+      )}
+      <details className={`${styles.panel} ${styles.referencePanel}`}>
+        <summary>特技の効果と消費集中力</summary>
 
         <div className={styles.skillTableWrap}>
           <table className={styles.skillTable}>
@@ -1242,15 +1267,10 @@ export default function CraftCalculatorClient({
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
 
-      <section className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <div>
-            <p className={styles.sectionLabel}>Sewing Numbers</p>
-            <h2>裁縫の基礎数値</h2>
-          </div>
-        </div>
+      <details className={`${styles.panel} ${styles.referencePanel}`}>
+        <summary>ぬいパワー別の数値表</summary>
 
         <div className={styles.numberTables}>
           {Object.entries(POWER_TABLES)
@@ -1279,11 +1299,11 @@ export default function CraftCalculatorClient({
               </div>
             ))}
         </div>
-      </section>
+      </details>
 
       {powerModalOpen && (
         <div className={styles.modalOverlay}>
-          <div className={styles.smallModal}>
+          <div className={styles.smallModal} role="dialog" aria-modal="true" aria-label="ぬいパワーの設定">
             <div className={styles.modalHeader}>
               <div>
                 <p className={styles.sectionLabel}>Sewing Power</p>
@@ -1296,10 +1316,11 @@ export default function CraftCalculatorClient({
                 </h2>
               </div>
 
-              {currentPower !== "unknown" && (
+              {powerModalMode === "initial" && currentPower !== "unknown" && (
                 <button
                   type="button"
                   onClick={() => setPowerModalOpen(false)}
+                  aria-label="閉じる"
                   className={styles.modalClose}
                 >
                   ×
@@ -1335,7 +1356,7 @@ export default function CraftCalculatorClient({
               </div>
             )}
 
-            <div className={styles.initialPowerBlock}>
+            {!(focusTurns > 0 && powerModalMode === "afterUnknown") && <div className={styles.initialPowerBlock}>
               <h3>次のターン</h3>
 
               <div className={styles.powerSelectList}>
@@ -1352,12 +1373,13 @@ export default function CraftCalculatorClient({
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
 
             <div className={styles.modalActions}>
               <button
                 type="button"
                 onClick={applyPowerModal}
+                disabled={modalCurrentPower === "unknown"}
                 className={styles.primaryButton}
               >
                 決定
@@ -1369,7 +1391,7 @@ export default function CraftCalculatorClient({
 
       {selectedCandidate && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
+          <div className={styles.modal} role="dialog" aria-modal="true" aria-label="ゲームの結果を入力">
             <div className={styles.modalHeader}>
               <div>
                 <p className={styles.sectionLabel}>Action Result</p>
@@ -1381,7 +1403,8 @@ export default function CraftCalculatorClient({
               <button
                 type="button"
                 onClick={() => setSelectedCandidate(null)}
-                className={styles.modalClose}
+                aria-label="閉じる"
+                  className={styles.modalClose}
               >
                 ×
               </button>
@@ -1397,19 +1420,18 @@ export default function CraftCalculatorClient({
               </p>
             ) : selectedCandidate.skillKey === "basting" ? (
               <p className={styles.modalLead}>
-                しつけがけを実行します。対象マスを左のグリッドで確認し、反映してください。
+                対象マスにしつけがけを行ってください。反映すると、次にそのマスを縫うまで効果を保持し、数値の計算に反映します。
               </p>
             ) : (
               <>
                 <p className={styles.modalLead}>
-                  縫った後の現在値を入力してください。対象マスだけ編集できます。
-                  乱れぬいの場合は、実際に縫われたマスだけ修正してください。
+                  縫った後の数値を入力してください。
                 </p>
 
                 <div
                   className={styles.resultGrid}
                   style={{
-                    gridTemplateColumns: `repeat(${maxCols}, minmax(88px, 1fr))`,
+                    gridTemplateColumns: `repeat(${maxCols}, minmax(64px, 1fr))`,
                   }}
                 >
                   {grid.map((row, rowIndex) =>
@@ -1429,10 +1451,8 @@ export default function CraftCalculatorClient({
                         );
                       }
 
-                      const affected = getAffectedPreview(cellKey);
                       const editable = isAffectedCell(cellKey);
                       const current = getCurrentNumber(values[cellKey]);
-                      const status = getCellStatus(cell.target, values[cellKey]);
 
                       return (
                         <label
@@ -1443,27 +1463,11 @@ export default function CraftCalculatorClient({
                               : styles.resultGridReadonly
                           }`}
                         >
-                          <span className={styles.resultCellName}>
-                            {getCellName(rowIndex, colIndex)}
-                          </span>
-
-                          <strong className={styles.resultCellTarget}>
-                            目標 {cell.target}
-                          </strong>
-
-                          <small>
-                            現在 {current} / {status.label}
-                          </small>
-
-                          {affected ? (
-                            <small>対象マス。縫った後の現在値を入力</small>
-                          ) : (
-                            <small>影響なし</small>
-                          )}
-
-                          <input
-                            type="number"
+                          <input onFocus={selectInputValue} onClick={selectInputValue}
+                            aria-label={`${getCellName(rowIndex, colIndex)}の縫った後の数値`}
+                            type="text"
                             inputMode="numeric"
+                            pattern="[0-9]*"
                             value={
                               editable
                                 ? actionCurrentValues[cellKey] ?? current
@@ -1485,6 +1489,7 @@ export default function CraftCalculatorClient({
               </>
             )}
 
+            {resultError && <p role="alert" className={styles.resultError}>{resultError}</p>}
             <div className={styles.modalActions}>
               <button
                 type="button"
@@ -1508,17 +1513,19 @@ export default function CraftCalculatorClient({
 
       {clothEffectModalOpen && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modal}>
+          <div className={styles.modal} role="dialog" aria-modal="true" aria-label="ゲームの結果を入力">
             <div className={styles.modalHeader}>
               <div>
                 <p className={styles.sectionLabel}>Cloth Effect</p>
                 <h2>{turnCount}ターン目の布効果</h2>
+                {resultError && <p role="alert" className={styles.resultError}>{resultError}</p>}
               </div>
 
               <button
                 type="button"
                 onClick={() => setClothEffectModalOpen(false)}
-                className={styles.modalClose}
+                aria-label="閉じる"
+                  className={styles.modalClose}
               >
                 ×
               </button>
@@ -1533,7 +1540,7 @@ export default function CraftCalculatorClient({
                 <div
                   className={styles.resultGrid}
                   style={{
-                    gridTemplateColumns: `repeat(${maxCols}, minmax(88px, 1fr))`,
+                    gridTemplateColumns: `repeat(${maxCols}, minmax(64px, 1fr))`,
                   }}
                 >
                   {grid.map((row, rowIndex) =>
@@ -1568,9 +1575,10 @@ export default function CraftCalculatorClient({
                           </strong>
                           <small>再生前 {current}</small>
 
-                          <input
-                            type="number"
+                          <input onFocus={selectInputValue} onClick={selectInputValue}
+                            type="text"
                             inputMode="numeric"
+                            pattern="[0-9]*"
                             value={regenCurrentValues[cellKey] ?? current}
                             onChange={(e) =>
                               setRegenCurrentValues((prev) => ({
@@ -1614,7 +1622,7 @@ export default function CraftCalculatorClient({
                 <div
                   className={styles.resultGrid}
                   style={{
-                    gridTemplateColumns: `repeat(${maxCols}, minmax(88px, 1fr))`,
+                    gridTemplateColumns: `repeat(${maxCols}, minmax(64px, 1fr))`,
                   }}
                 >
                   {grid.map((row, rowIndex) =>

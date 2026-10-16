@@ -54,6 +54,8 @@ class EquipmentController extends Controller
 
         if ($request->filled('q')) {
             $q = trim((string) $request->q);
+            $numericQuery = mb_convert_kana($q, 'n', 'UTF-8');
+            $equipLevelQuery = ctype_digit($numericQuery) ? (int) $numericQuery : null;
             $escaped = addcslashes($q, '\\%_');
             $hiraganaQ = mb_convert_kana($q, 'c', 'UTF-8');
             $katakanaQ = mb_convert_kana($q, 'C', 'UTF-8');
@@ -65,7 +67,13 @@ class EquipmentController extends Controller
                 $hiraganaQ,
             ]));
 
-            $query->where(function ($sub) use ($searchWords) {
+            $query->where(function ($sub) use ($searchWords, $equipLevelQuery) {
+                // 数字だけの検索は装備レベルの完全一致。ID内の数字には一致させない。
+                if ($equipLevelQuery !== null) {
+                    $sub->where('equip_level', $equipLevelQuery);
+                    return;
+                }
+
                 foreach ($searchWords as $index => $searchWord) {
                     $escapedWord = addcslashes($searchWord, '\\%_');
                     $method = $index === 0 ? 'where' : 'orWhere';
