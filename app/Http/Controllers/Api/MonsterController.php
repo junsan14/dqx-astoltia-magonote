@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Monster;
+use App\Services\MonsterHabitatSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -821,6 +822,7 @@ if ($searchType === 'equipment') {
             }
 
             $this->syncMonsterDrops($monster->id, $validated['drops'] ?? []);
+            app(MonsterHabitatSyncService::class)->sync((int) $monster->id);
 
             return $monster;
         });
@@ -880,6 +882,7 @@ if ($searchType === 'equipment') {
             }
 
             $this->syncMonsterDrops($monster->id, $validated['drops'] ?? []);
+            app(MonsterHabitatSyncService::class)->sync((int) $monster->id);
         });
 
         return $this->show($monster->id);

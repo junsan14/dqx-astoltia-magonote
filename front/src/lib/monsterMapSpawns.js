@@ -274,6 +274,7 @@ export function normalizeSpawn(row = {}, locale = "ja") {
 
     monster_id: row?.monster_id ?? row?.monster?.id ?? null,
     monster_name: monsterName,
+    reincarnation_parent_id: row?.reincarnation_parent_id ?? null,
 
     map_id: row?.map_id ?? row?.map?.id ?? null,
     map_layer_id: row?.map_layer_id ?? row?.map_layer?.id ?? null,
@@ -443,7 +444,7 @@ export async function saveMonsterMapSpawns(
   );
 
   const deleteTargets = (prevSpawns ?? []).filter(
-    (row) => row?.id && !nextIds.has(row.id)
+    (row) => row?.id && !row?.reincarnation_parent_id && !nextIds.has(row.id)
   );
 
   for (const row of deleteTargets) {
@@ -453,6 +454,7 @@ export async function saveMonsterMapSpawns(
   const saved = [];
 
   for (const row of nextSpawns ?? []) {
+    if (row?.reincarnation_parent_id) continue;
     const payload = buildSpawnPayload(row, monsterId, null);
 
     if (!payload.monster_id) {
@@ -490,7 +492,7 @@ export async function saveMapMonsterSpawns(
   );
 
   const deleteTargets = (prevSpawns ?? []).filter(
-    (row) => row?.id && !nextIds.has(row.id)
+    (row) => row?.id && !row?.reincarnation_parent_id && !nextIds.has(row.id)
   );
 
   for (const row of deleteTargets) {
@@ -500,6 +502,7 @@ export async function saveMapMonsterSpawns(
   const saved = [];
 
   for (const row of nextSpawns ?? []) {
+    if (row?.reincarnation_parent_id) continue;
     const payload = buildSpawnPayload(row, null, mapId);
 
     if (!payload.monster_id) {

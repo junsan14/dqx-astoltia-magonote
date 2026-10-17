@@ -1,0 +1,137 @@
+#!/usr/bin/env php
+<?php
+
+require __DIR__.'/scripts/dbpull-helper.php';
+
+function dbpullMain(array $argv): int
+{
+    umask(0077);
+    $options = null;
+    $lock = null;
+    $incoming = null;
+    $backup = null;
+    $backupPartial = null;
+    $importStarted = false;
+    try {
+        $flags = array_slice($argv, 1);
+        if (array_diff($flags, ['--check', '--help']) !== []) {
+            throw new RuntimeException('使い方: dbpull [--check | --help]');
+        }
+        if (in_array('--help', $flags, true)) {
+            echo "dbpull          本番DBを取得し、バックアップ後にローカルを上書き\ndbpull --check  接続・設定の確認のみ（DB変更なし）\n";
+
+            return 0;
+        }
+        [$env, $db] = dbpullConfig(__DIR__);
+        if ($env !== 'local' || ! in_array($db['host'] ?? '', ['localhost', '127.0.0.1', '::1'], true)) {
+            throw new RuntimeException('APP_ENV=local かつDB_HOSTがローカルの環境でのみ実行できます。');
+        }
+        if (empty($db['unix_socket'])) {
+            $db['host'] = $db['host'] === 'localhost' ? '127.0.0.1' : $db['host'];
+        }
+        $dir = __DIR__.'/storage/app/private/dbpull';
+        if (! is_dir($dir) && ! mkdir($dir, 0700, true)) {
+            throw new RuntimeException('バックアップ用ディレクトリを作成できません。');
+        }
+        $lock = fopen($dir.'/lock', 'c');
+        if (! $lock || ! flock($lock, LOCK_EX | LOCK_NB)) {
+            throw new RuntimeException('別のdbpullが実行中です。');
+        }
+        $options = dbpullOptions($db);
+        $mysql = ['mysql', '--defaults-file='.$options, '--binary-mode=1'];
+        $localVersion = trim(dbpullRun([...$mysql, '--batch', '--skip-column-names', '--execute=SELECT VERSION()', '--', $db['database']]));
+        dbpullDumpArgs($options, $db['database']);
+        $remoteRoot = '/home/c1248652/laravel/dqx_laravel';
+        $ssh = ['ssh', '-p', '8022', '-i', (getenv('HOME') ?: '').'/.ssh/key-2026-10-16-13-00.pem', '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes', '-o', 'UpdateHostKeys=no', '-o', 'ConnectTimeout=15', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3', 'c1248652@www178.conoha.ne.jp'];
+        $helper = file_get_contents(__DIR__.'/scripts/dbpull-helper.php');
+        $remoteInput = static fn (string $mode): string => $helper."\numask(0077); exit(dbpullRemote(".var_export($remoteRoot, true).', '.var_export($mode, true)."));\n";
+        echo "接続を確認しています…\n";
+        $remote = json_decode(dbpullRun([...$ssh, 'LC_ALL=C php -d display_errors=stderr'], $remoteInput('check')), true, 512, JSON_THROW_ON_ERROR);
+        echo '本番: '.$remote['database'].' ('.$remote['version'].")\n";
+        echo 'ローカル: '.$db['database'].' ('.$localVersion.")\n";
+        if (in_array('--check', $flags, true)) {
+            echo "接続確認OK。DBは変更していません。\n";
+
+            return 0;
+        }
+        echo "ローカルDBの全データ・テーブル構造を上書きします。ローカルのアプリとキューワーカーを停止してください。\n続行する場合は yes と入力: ";
+        if (trim((string) fgets(STDIN)) !== 'yes') {
+            echo "キャンセルしました。\n";
+
+            return 0;
+        }
+        $stamp = date('Ymd_His').'_'.bin2hex(random_bytes(4));
+        $incoming = $dir.'/production_'.$stamp.'.sql';
+        $out = fopen($incoming, 'x');
+        if (! $out) {
+            throw new RuntimeException('取得用ファイルを作成できません。');
+        }
+        echo "本番DBを取得しています…\n";
+        try {
+            dbpullRun([...$ssh, 'LC_ALL=C php -d display_errors=stderr'], $remoteInput('dump'), $out);
+        } finally {
+            fclose($out);
+        }
+        if (filesize($incoming) === 0) {
+            throw new RuntimeException('取得したSQLが空です。');
+        }
+        $backup = $dir.'/local_'.$stamp.'.sql';
+        $backupPartial = $backup.'.partial';
+        $out = fopen($backupPartial, 'x');
+        if (! $out) {
+            throw new RuntimeException('バックアップファイルを作成できません。');
+        }
+        echo "ローカルDBをバックアップしています…\n";
+        try {
+            dbpullRun(dbpullDumpArgs($options, $db['database']), null, $out);
+        } finally {
+            fclose($out);
+        }
+        if (filesize($backupPartial) === 0) {
+            throw new RuntimeException('バックアップが空です。');
+        }
+        if (! rename($backupPartial, $backup)) {
+            throw new RuntimeException('バックアップを確定できません。');
+        }
+        $backupPartial = null;
+        echo "ローカルDBへ取り込んでいます…\n";
+        $in = fopen($incoming, 'r');
+        $importStarted = true;
+        try {
+            dbpullRun([...$mysql, '--', $db['database']], $in);
+        } finally {
+            fclose($in);
+        }
+        echo "完了しました。バックアップ: $backup\n";
+        echo "本番に存在しないローカル専用テーブルは保持されます。\n";
+        unlink($incoming);
+        $incoming = null;
+    } catch (Throwable $e) {
+        fwrite(STDERR, $e->getMessage()."\n");
+        if ($importStarted) {
+            fwrite(STDERR, "取り込み途中で停止しました。ローカルDBは一部更新されている可能性があります。\n復旧用バックアップ: $backup\n");
+        } else {
+            fwrite(STDERR, "ローカルDBへの取り込みは開始していません。\n");
+        }
+
+        return 1;
+    } finally {
+        if ($options !== null) {
+            unlink($options);
+        }
+        if ($incoming !== null && is_file($incoming)) {
+            unlink($incoming);
+        }
+        if ($backupPartial !== null && is_file($backupPartial)) {
+            unlink($backupPartial);
+        }
+        if (is_resource($lock)) {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    return 0;
+}
+
+exit(dbpullMain($argv));

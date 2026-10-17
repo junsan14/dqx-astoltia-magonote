@@ -60,10 +60,13 @@ function getLayerMetaByName(layerName) {
   };
 }
 
+let nextLayerEditorKey = 0;
+
 function createEmptyLayer(order = 1) {
   return {
     id: null,
     map_id: null,
+    editor_key: ++nextLayerEditorKey,
     layer_name: "地上",
     layer_file_name: "1",
     floor_no: 1,
@@ -463,6 +466,7 @@ export default function MapsClient() {
   }
 
   async function handleSave() {
+    if (currentMap.layers?.some((layer) => layer.image_processing)) return;
     setSaving(true);
     setMessage("");
 
@@ -497,6 +501,7 @@ export default function MapsClient() {
                 ? Number(layer.floor_no)
                 : Number(derived?.floor_no ?? 1),
             image_file: layer.image_file ?? null,
+            image_cropped: Boolean(layer.image_cropped),
             source_url: layer.source_url?.trim() ?? "",
             display_order: Number(layer.display_order ?? index + 1),
           };
@@ -657,12 +662,13 @@ export default function MapsClient() {
           onSave={handleSave}
           onDelete={handleDelete}
           saving={saving}
-          saveDisabled={saving || loadingDetail || loadingSpawns}
+          saveDisabled={saving || loadingDetail || loadingSpawns || currentMap.layers?.some((layer) => layer.image_processing)}
           deleteDisabled={saving}
           deleteTitle=""
         />
 
         <MapEditorForm
+          key={currentMap.id ?? "new"}
           value={currentMap}
           loading={loadingDetail}
           continentOptions={continentOptions}

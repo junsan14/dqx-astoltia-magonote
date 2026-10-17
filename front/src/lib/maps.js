@@ -207,6 +207,7 @@ function buildMapFormData(payload = {}) {
 
     if (layer?.image_file instanceof File) {
       formData.append(`layers[${index}][image]`, layer.image_file);
+      formData.append(`layers[${index}][image_cropped]`, layer.image_cropped ? "1" : "0");
     }
   });
 

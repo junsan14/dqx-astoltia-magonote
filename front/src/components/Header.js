@@ -13,7 +13,7 @@ import { mochiy } from "@/app/fonts";
 
 import styles from "./Header.module.css";
 
- const term = "v8.1対応";
+const term = "v8.1対応";
 function HeaderNavLink({
   href,
   localized = true,

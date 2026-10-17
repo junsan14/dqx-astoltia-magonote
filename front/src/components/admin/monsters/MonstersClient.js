@@ -362,11 +362,14 @@ export default function MonstersClient() {
       if (monsterId) {
         savedMonster = await updateMonster(monsterId, payload);
 
-        await saveMonsterMapSpawns(
-          monsterId,
-          Array.isArray(selectedMonster?.spawns) ? selectedMonster.spawns : [],
-          initialSpawns
-        );
+        if (!payload.reincarnation_parent_id) {
+          // A former reincarnation becomes independently editable after detaching.
+          await saveMonsterMapSpawns(
+            monsterId,
+            (selectedMonster?.spawns ?? []).map((row) => ({ ...row, reincarnation_parent_id: null })),
+            initialSpawns.map((row) => ({ ...row, reincarnation_parent_id: null }))
+          );
+        }
       } else {
         savedMonster = await createMonster(payload);
         monsterId = savedMonster?.id ?? null;
@@ -375,11 +378,14 @@ export default function MonstersClient() {
           throw new Error("モンスター保存後のID取得に失敗");
         }
 
-        await saveMonsterMapSpawns(
-          monsterId,
-          Array.isArray(selectedMonster?.spawns) ? selectedMonster.spawns : [],
-          initialSpawns
-        );
+        if (!payload.reincarnation_parent_id) {
+          // A former reincarnation becomes independently editable after detaching.
+          await saveMonsterMapSpawns(
+            monsterId,
+            (selectedMonster?.spawns ?? []).map((row) => ({ ...row, reincarnation_parent_id: null })),
+            initialSpawns.map((row) => ({ ...row, reincarnation_parent_id: null }))
+          );
+        }
       }
 
       const [freshMonster, freshSpawns] = await Promise.all([
@@ -535,7 +541,7 @@ export default function MonstersClient() {
             <MonsterSpawnsEditor
               spawns={selectedMonster?.spawns ?? []}
               maps={mapOptions}
-              is_reincarnated={selectedMonster.is_reincarnated}
+              is_reincarnated={Boolean(selectedMonster.reincarnation_parent_id)}
               onChange={(nextSpawns) =>
                 setSelectedMonster((prev) => ({
                   ...prev,

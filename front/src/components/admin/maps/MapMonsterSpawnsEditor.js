@@ -193,7 +193,7 @@ function MonsterSearchInput({
       try {
         setLoading(true);
         const result = await searchMonsters(q, "monster");
-        setRows(Array.isArray(result) ? result.slice(0, 30) : []);
+        setRows(Array.isArray(result) ? result.filter((monster) => !monster.reincarnation_parent_id).slice(0, 30) : []);
       } catch (error) {
         console.error(error);
         setRows([]);
@@ -447,6 +447,7 @@ function SpawnMapGrid({
 }
 
 function SpawnCard({ spawn, map, onChange, onRemove, disabled = false, styles }) {
+  disabled = disabled || Boolean(spawn?.reincarnation_parent_id);
   const layers = Array.isArray(map?.layers) ? map.layers : [];
 
   const selectedLayer = useMemo(() => {
@@ -464,7 +465,7 @@ function SpawnCard({ spawn, map, onChange, onRemove, disabled = false, styles })
   }, [layers, map, spawn?.map_layer_id]);
 
   useEffect(() => {
-    if (!map?.id) return;
+    if (!map?.id || spawn?.reincarnation_parent_id) return;
 
     const nextMapName = map?.name ?? "";
     const nextLayerId = selectedLayer?.id ?? "";
@@ -560,6 +561,10 @@ function SpawnCard({ spawn, map, onChange, onRemove, disabled = false, styles })
           削除
         </button>
       </div>
+
+      {spawn?.reincarnation_parent_id ? (
+        <p style={styles.label}>転生元の生息地を引き継いでいます。変更は転生元のモンスターで行ってください。</p>
+      ) : null}
 
       <div className="map-monster-spawns-form-grid" style={styles.formGrid}>
         <label style={styles.field}>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { resolveMapImageUrl } from "@/lib/maps";
-import Image from "next/image";
+import MapImageCropper from "./MapImageCropper";
 import {
   DEFAULT_CONTINENT_OPTIONS,
   DEFAULT_MAP_TYPE_OPTIONS,
@@ -247,14 +247,6 @@ export default function MapEditorForm({
 
   const layers = Array.isArray(value?.layers) ? value.layers : [];
 
-  function handleSelectImage(index, file) {
-    if (!file) return;
-
-    const previewUrl = URL.createObjectURL(file);
-
-    onChangeLayer?.(index, "image_file", file);
-    onChangeLayer?.(index, "image_url", previewUrl);
-  }
 
   return (
     <div style={styles.wrap}>
@@ -365,7 +357,7 @@ export default function MapEditorForm({
               layer?.image_url || resolveMapImageUrl(layer?.image_path || "");
 
             return (
-              <div key={layer?.id ?? `layer_${index}`} style={styles.layerCard}>
+              <div key={layer?.id ?? `layer_${layer.editor_key}`} style={styles.layerCard}>
                 <div style={styles.layerCardHeader}>
                   <div style={styles.layerCardIndex}>{index + 1}</div>
 
@@ -457,35 +449,18 @@ export default function MapEditorForm({
                     />
                   </label>
 
-                  <label style={{ ...styles.field, ...styles.fieldFull }}>
-                    <div style={styles.label}>画像</div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        handleSelectImage(index, e.target.files?.[0])
-                      }
-                      style={styles.input}
-                    />
-                    <div style={styles.helpText}>
-                      保存時に自動で
-                      /storage/images/maps/大陸/map_id_xxx/layer_file_name.webp
-                      で保存される
-                    </div>
-                  </label>
+
                 </div>
 
-                {previewUrl ? (
-                  <div style={styles.previewWrap}>
-                    <Image
-                      src={previewUrl}
-                      alt={`map-layer-${index + 1}`}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 900px"
-                      style={styles.previewImage}
-                    />
-                  </div>
-                ) : null}
+                <MapImageCropper
+                  value={previewUrl}
+                  onApply={({ file, previewUrl: nextPreviewUrl }) => {
+                    onChangeLayer?.(index, "image_file", file);
+                    onChangeLayer?.(index, "image_url", nextPreviewUrl);
+                    onChangeLayer?.(index, "image_cropped", true);
+                  }}
+                  onBusyChange={(busy) => onChangeLayer?.(index, "image_processing", busy)}
+                />
               </div>
             );
           })}

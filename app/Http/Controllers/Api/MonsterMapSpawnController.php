@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Services\MonsterHabitatSyncService;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -51,6 +53,7 @@ class MonsterMapSpawnController extends Controller
             'id' => $row->id,
             'monster_id' => $row->monster_id,
             'monster_name' => $row->monster_name ?? null,
+            'reincarnation_parent_id' => $row->reincarnation_parent_id ?? null,
             'monster_name_en' => $row->monster_name_en ?? null,
 
             'map_id' => $row->map_id,
@@ -135,149 +138,14 @@ class MonsterMapSpawnController extends Controller
         return null;
     }
 
-    private function getReincarnationChildIds(int $parentMonsterId): array
+    private function assertEditable(int $monsterId): void
     {
-        return DB::table('monsters')
-            ->where('reincarnation_parent_id', $parentMonsterId)
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-    }
-    private function findSpawnByMonsterAndLocation(int $monsterId, int $mapId, $mapLayerId): ?object
-{
-    $query = DB::table('monster_map_spawns')
-        ->where('monster_id', $monsterId)
-        ->where('map_id', $mapId);
-
-    if ($mapLayerId === null) {
-        $query->whereNull('map_layer_id');
-    } else {
-        $query->where('map_layer_id', $mapLayerId);
-    }
-
-    return $query->orderBy('id', 'asc')->first();
-}
-
-    private function hasReincarnationChildren(int $monsterId): bool
-    {
-        return DB::table('monsters')
-            ->where('reincarnation_parent_id', $monsterId)
-            ->exists();
-    }
-
-   private function syncCreatedSpawnToReincarnations(int $parentMonsterId, array $spawnData): void
-{
-    $childIds = $this->getReincarnationChildIds($parentMonsterId);
-
-    if (empty($childIds)) {
-        return;
-    }
-
-    foreach ($childIds as $childMonsterId) {
-        $existing = $this->findSpawnByMonsterAndLocation(
-            $childMonsterId,
-            (int) $spawnData['map_id'],
-            $spawnData['map_layer_id'] ?? null
-        );
-
-        $payload = [
-            'monster_id' => $childMonsterId,
-            'map_id' => $spawnData['map_id'],
-            'map_layer_id' => $spawnData['map_layer_id'],
-            'area' => $spawnData['area'],
-            'spawn_time' => $spawnData['spawn_time'],
-            'spawn_count' => $spawnData['spawn_count'],
-            'symbol_count' => $spawnData['symbol_count'],
-            'note' => $spawnData['note'],
-            'imported_note' => $spawnData['imported_note'],
-            'is_hunting_ground' => $spawnData['is_hunting_ground'],
-            'updated_at' => now(),
-        ];
-
-        if ($existing) {
-            DB::table('monster_map_spawns')
-                ->where('id', $existing->id)
-                ->update($payload);
-        } else {
-            DB::table('monster_map_spawns')->insert($payload + [
-                'created_at' => now(),
+        if (DB::table('monsters')->where('id', $monsterId)->value('reincarnation_parent_id')) {
+            throw ValidationException::withMessages([
+                'monster_id' => '転生モンスターの生息地は転生元のモンスターから編集してください。',
             ]);
         }
     }
-}
-
-private function syncUpdatedSpawnToReincarnations(object $before, array $after): void
-{
-    $childIds = $this->getReincarnationChildIds((int) $before->monster_id);
-
-    if (empty($childIds)) {
-        return;
-    }
-
-    foreach ($childIds as $childMonsterId) {
-        // 変更前の map_id + map_layer_id で子レコードを特定する
-        $childSpawn = $this->findSpawnByMonsterAndLocation(
-            $childMonsterId,
-            (int) $before->map_id,
-            $before->map_layer_id
-        );
-
-        if ($childSpawn) {
-            DB::table('monster_map_spawns')
-                ->where('id', $childSpawn->id)
-                ->update([
-                    'map_id' => $after['map_id'],
-                    'map_layer_id' => $after['map_layer_id'],
-                    'area' => $after['area'],
-                    'spawn_time' => $after['spawn_time'],
-                    'spawn_count' => $after['spawn_count'],
-                    'symbol_count' => $after['symbol_count'],
-                    'note' => $after['note'],
-                    'imported_note' => $after['imported_note'],
-                    'is_hunting_ground' => (bool) $after['is_hunting_ground'],
-                    'updated_at' => now(),
-                ]);
-        } else {
-            DB::table('monster_map_spawns')->insert([
-                'monster_id' => $childMonsterId,
-                'map_id' => $after['map_id'],
-                'map_layer_id' => $after['map_layer_id'],
-                'area' => $after['area'],
-                'spawn_time' => $after['spawn_time'] ?? 'normal',
-                'spawn_count' => $after['spawn_count'],
-                'symbol_count' => $after['symbol_count'],
-                'note' => $after['note'],
-                'imported_note' => $after['imported_note'],
-                'is_hunting_ground' => (bool) $after['is_hunting_ground'],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-    }
-}
-
-    private function syncDeletedSpawnToReincarnations(object $before): void
-{
-    $childIds = $this->getReincarnationChildIds((int) $before->monster_id);
-
-    if (empty($childIds)) {
-        return;
-    }
-
-    foreach ($childIds as $childMonsterId) {
-        $query = DB::table('monster_map_spawns')
-            ->where('monster_id', $childMonsterId)
-            ->where('map_id', $before->map_id);
-
-        if ($before->map_layer_id === null) {
-            $query->whereNull('map_layer_id');
-        } else {
-            $query->where('map_layer_id', $before->map_layer_id);
-        }
-
-        $query->delete();
-    }
-}
 
     public function index(Request $request)
 {
@@ -303,6 +171,7 @@ private function syncUpdatedSpawnToReincarnations(object $before, array $after):
             'monster_map_spawns.created_at',
             'monster_map_spawns.updated_at',
             'monsters.name as monster_name',
+            'monsters.reincarnation_parent_id',
             'monsters.name_en as monster_name_en',
             'maps.name as map_name',
             'map_layers.layer_name as map_layer_name',
@@ -350,6 +219,7 @@ private function syncUpdatedSpawnToReincarnations(object $before, array $after):
             'monster_map_spawns.created_at',
             'monster_map_spawns.updated_at',
             'monsters.name as monster_name',
+            'monsters.reincarnation_parent_id',
             'monsters.name_en as monster_name_en',
             'maps.name as map_name',
             'map_layers.layer_name as map_layer_name',
@@ -395,6 +265,8 @@ private function syncUpdatedSpawnToReincarnations(object $before, array $after):
             return response()->json($layerError, 422);
         }
 
+        $this->assertEditable((int) $data['monster_id']);
+
         $createdId = null;
 
         DB::transaction(function () use ($data, &$createdId) {
@@ -426,9 +298,7 @@ private function syncUpdatedSpawnToReincarnations(object $before, array $after):
                 'updated_at' => now(),
             ]);
 
-            if ($this->hasReincarnationChildren($spawnData['monster_id'])) {
-                $this->syncCreatedSpawnToReincarnations($spawnData['monster_id'], $spawnData);
-            }
+            app(MonsterHabitatSyncService::class)->sync($spawnData['monster_id']);
         });
 
         return $this->show((string) $createdId);
@@ -522,39 +392,18 @@ private function syncUpdatedSpawnToReincarnations(object $before, array $after):
         $updateData['is_hunting_ground'] = (bool) $data['is_hunting_ground'];
     }
 
-    DB::table('monster_map_spawns')
-        ->where('id', $id)
-        ->update($updateData);
+    $this->assertEditable((int) $current->monster_id);
+    $nextMonsterId = (int) ($updateData['monster_id'] ?? $current->monster_id);
+    $this->assertEditable($nextMonsterId);
 
-    $after = [
-        'map_id' => array_key_exists('map_id', $updateData) ? $updateData['map_id'] : $current->map_id,
-        'map_layer_id' => array_key_exists('map_layer_id', $updateData) ? $updateData['map_layer_id'] : $current->map_layer_id,
-        'area' => array_key_exists('area', $updateData) ? $updateData['area'] : $current->area,
-        'spawn_time' => array_key_exists('spawn_time', $updateData) ? $updateData['spawn_time'] : $current->spawn_time,
-        'spawn_count' => array_key_exists('spawn_count', $updateData) ? $updateData['spawn_count'] : $current->spawn_count,
-        'symbol_count' => array_key_exists('symbol_count', $updateData) ? $updateData['symbol_count'] : $current->symbol_count,
-        'note' => array_key_exists('note', $updateData) ? $updateData['note'] : $current->note,
-        'imported_note' => array_key_exists('imported_note', $updateData) ? $updateData['imported_note'] : $current->imported_note,
-        'is_hunting_ground' => array_key_exists('is_hunting_ground', $updateData)
-            ? (bool) $updateData['is_hunting_ground']
-            : (bool) $current->is_hunting_ground,
-    ];
-
-    $beforeMonsterId = (int) $current->monster_id;
-
-    if ($this->hasReincarnationChildren($beforeMonsterId)) {
-        try {
-            $this->syncUpdatedSpawnToReincarnations($current, $after);
-        } catch (\Throwable $e) {
-            \Log::error('reincarnation spawn sync failed', [
-                'parent_spawn_id' => $id,
-                'parent_monster_id' => $beforeMonsterId,
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
+    DB::transaction(function () use ($id, $updateData, $current, $nextMonsterId) {
+        DB::table('monster_map_spawns')->where('id', $id)->update($updateData);
+        $sync = app(MonsterHabitatSyncService::class);
+        $sync->sync((int) $current->monster_id);
+        if ($nextMonsterId !== (int) $current->monster_id) {
+            $sync->sync($nextMonsterId);
         }
-    }
+    });
 
     return $this->show((string) $id);
 }
@@ -569,16 +418,15 @@ private function syncUpdatedSpawnToReincarnations(object $before, array $after):
             ], 404);
         }
 
+        $this->assertEditable((int) $current->monster_id);
+
         DB::transaction(function () use ($current, $id) {
             $monsterId = (int) $current->monster_id;
-
-            if ($this->hasReincarnationChildren($monsterId)) {
-                $this->syncDeletedSpawnToReincarnations($current);
-            }
 
             DB::table('monster_map_spawns')
                 ->where('id', $id)
                 ->delete();
+            app(MonsterHabitatSyncService::class)->sync($monsterId);
         });
 
         return response()->json([

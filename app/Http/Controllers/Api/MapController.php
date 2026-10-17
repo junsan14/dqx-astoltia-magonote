@@ -354,6 +354,7 @@ class MapController extends Controller
 
             return [
                 'id' => isset($layer['id']) && $layer['id'] !== '' ? (int) $layer['id'] : null,
+                'image_cropped' => filter_var($layer['image_cropped'] ?? false, FILTER_VALIDATE_BOOLEAN),
                 'layer_name' => $this->nullableString($layer['layer_name'] ?? null),
                 'layer_file_name' => $this->sanitizeLayerFileName($layer['layer_file_name'] ?? null),
                 'floor_no' => isset($layer['floor_no']) && $layer['floor_no'] !== ''
@@ -443,7 +444,8 @@ class MapController extends Controller
                         $uploadedFile,
                         $mapId,
                         $mapData['continent_folder'],
-                        $layerFileName
+                        $layerFileName,
+                        $layer['image_cropped'] ?? false
                     );
 
                     if (!empty($oldLayer?->image_path) && $oldLayer->image_path !== $newImagePath) {
@@ -467,7 +469,8 @@ class MapController extends Controller
                     $uploadedFile,
                     $mapId,
                     $mapData['continent_folder'],
-                    $layerFileName
+                    $layerFileName,
+                    $layer['image_cropped'] ?? false
                 );
             } else {
                 $payload['image_path'] = null;
@@ -505,7 +508,8 @@ class MapController extends Controller
         UploadedFile $file,
         int|string $mapId,
         string $continentFolder,
-        string $layerFileName
+        string $layerFileName,
+        bool $alreadyCropped = false
     ): string {
         $continentFolder = $this->sanitizePathSegment($continentFolder);
 
@@ -536,7 +540,9 @@ class MapController extends Controller
 
         $canCrop = $width >= ($offsetX + $cropWidth) && $height >= ($offsetY + $cropHeight);
 
-        if ($canCrop) {
+        if ($alreadyCropped) {
+            $image->sharpen(15);
+        } elseif ($canCrop) {
             $image->crop($cropWidth, $cropHeight, $offsetX, $offsetY);
             $image->sharpen(15);
         } else {
