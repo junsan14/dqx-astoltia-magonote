@@ -538,6 +538,14 @@ class MapController extends Controller
         $offsetX = 35;
         $offsetY = 25;
 
+        // Match front/src/lib/defaultScreenshotCrop.js for uncropped uploads.
+        if ($width >= 1920 && $height >= 1080 && abs($width / $height - 16 / 9) < 0.01) {
+            $offsetX = (int) round(45 * $width / 1920);
+            $offsetY = (int) round(32 * $height / 1080);
+            $cropWidth = (int) round(630 * $width / 1920);
+            $cropHeight = (int) round(726 * $height / 1080);
+        }
+
         $canCrop = $width >= ($offsetX + $cropWidth) && $height >= ($offsetY + $cropHeight);
 
         if ($alreadyCropped) {

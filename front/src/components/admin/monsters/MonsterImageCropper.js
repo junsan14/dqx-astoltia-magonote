@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import { FaImage } from "react-icons/fa6";
+import { getDefaultMonsterAreaPixels } from "@/lib/defaultScreenshotCrop";
 import { getCroppedImageBlob } from "@/lib/cropImage";
 
 const EXISTING_IMAGE_CROP = { x: 0, y: 0 };
@@ -13,37 +14,6 @@ const RESET_EDIT_ZOOM = 1;
 
 const DEFAULT_FILE_NAME = "monster.png";
 const CROPPER_SIZE = 320;
-
-const DEFAULT_AUTO_CROP = {
-  centerXRatio: 0.345,
-  centerYRatio: 0.48,
-  sizeRatio: 1,
-  zoom: 2.1,
-};
-
-const getDefaultMonsterAreaPixels = (imgWidth, imgHeight) => {
-  const centerX = imgWidth * DEFAULT_AUTO_CROP.centerXRatio;
-  const centerY = imgHeight * DEFAULT_AUTO_CROP.centerYRatio;
-  const zoom = Math.max(1, DEFAULT_AUTO_CROP.zoom || 1);
-
-  const baseSize = Math.min(imgWidth, imgHeight) * DEFAULT_AUTO_CROP.sizeRatio;
-  const size = baseSize / zoom;
-
-  const half = size / 2;
-
-  let x = centerX - half;
-  let y = centerY - half;
-
-  x = Math.max(0, Math.min(x, imgWidth - size));
-  y = Math.max(0, Math.min(y, imgHeight - size));
-
-  return {
-    x: Math.round(x),
-    y: Math.round(y),
-    width: Math.round(size),
-    height: Math.round(size),
-  };
-};
 
 const loadImageSize = (src) =>
   new Promise((resolve, reject) => {

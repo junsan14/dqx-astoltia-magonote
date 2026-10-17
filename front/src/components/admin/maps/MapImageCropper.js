@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getDefaultMapAreaPixels } from "@/lib/defaultScreenshotCrop";
 import FreeCropSelection from "./FreeCropSelection";
 import { createImage, getCroppedImageBlob } from "@/lib/cropImage";
 
@@ -54,9 +55,7 @@ export default function MapImageCropper({ value, onApply, onBusyChange }) {
       const image = await createImage(url);
       const width = image.naturalWidth;
       const height = image.naturalHeight;
-      const pixels = width >= 525 && height >= 590
-        ? { x: 35, y: 25, width: 490, height: 565 }
-        : { x: 0, y: 0, width, height };
+      const pixels = getDefaultMapAreaPixels(width, height);
       await apply(url, pixels);
       if (!alive.current) return;
       setImageSize({ width, height });
