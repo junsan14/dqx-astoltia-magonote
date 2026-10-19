@@ -1,3 +1,4 @@
+import { attachAnnouncementPrompt } from "./announcementPrompt";
 import axios from "axios";
 
 function getApiUrl() {
@@ -13,6 +14,8 @@ const api = axios.create({
     Accept: "application/json",
   },
 });
+
+attachAnnouncementPrompt(api);
 
 function pickLocalizedValue(row = {}, jaKey, enKey, locale = "ja") {
   const ja = typeof row?.[jaKey] === "string" ? row[jaKey].trim() : "";

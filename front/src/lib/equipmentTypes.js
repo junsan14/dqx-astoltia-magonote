@@ -1,3 +1,4 @@
+import { attachAnnouncementPrompt } from "./announcementPrompt";
 import axios from "axios";
 
 function getApiUrl() {
@@ -13,6 +14,8 @@ const api = axios.create({
     Accept: "application/json",
   },
 });
+
+attachAnnouncementPrompt(api);
 
 export function createEmptyEquipmentType() {
   return {

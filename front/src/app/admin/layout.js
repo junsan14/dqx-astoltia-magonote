@@ -2,6 +2,7 @@ import {NextIntlClientProvider} from "next-intl";
 import {getMessages, setRequestLocale} from "next-intl/server";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AnnouncementPromptProvider from "@/components/admin/announcements/AnnouncementPromptProvider";
 import AuthGuard from '@/components/AuthGuard'
 
 export default async function LocaleLayout({children, params}) {
@@ -14,9 +15,11 @@ export default async function LocaleLayout({children, params}) {
      
     <NextIntlClientProvider locale={locale} messages={messages}>
       <AuthGuard>
+        <AnnouncementPromptProvider>
         <Header />
         {children}
         <Footer />
+        </AnnouncementPromptProvider>
       
           </AuthGuard>
     </NextIntlClientProvider>

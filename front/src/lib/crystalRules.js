@@ -1,3 +1,4 @@
+import { attachAnnouncementPrompt } from "./announcementPrompt";
 import axios from "axios";
 
 let cache = null;
@@ -20,6 +21,8 @@ const api = axios.create({
   xsrfCookieName: "XSRF-TOKEN",
   xsrfHeaderName: "X-XSRF-TOKEN",
 });
+
+attachAnnouncementPrompt(api);
 
 async function ensureCsrfCookie() {
   if (csrfReady) return;

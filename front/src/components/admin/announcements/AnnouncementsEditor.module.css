@@ -1,0 +1,18 @@
+.main { max-width: 1200px; margin: auto; padding: 32px 20px 80px; color: var(--text-main); }
+.main h1 { font-size: 28px; font-weight: 800; margin-bottom: 12px; }
+.main h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
+.layout { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr); gap: 24px; margin-top: 24px; align-items: start; }
+.panel { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px; min-width: 0; }
+.panel fieldset { border: 0; padding: 0; min-width: 0; }
+.panel label { display: grid; gap: 6px; margin: 16px 0; }
+.panel input, .panel textarea, .panel select { width: 100%; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--input-text); padding: 10px; }
+.panel button { border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.panel button:disabled { opacity: .5; cursor: default; }
+.panel button[aria-pressed="true"] { border-color: var(--secondary-text); }
+.panel > button, .candidates button { display: block; width: 100%; text-align: left; margin-bottom: 8px; overflow-wrap: anywhere; }
+.panel small { display: block; font-size: 11px; margin-top: 6px; }
+.hint { font-size: 12px; color: var(--text-sub); line-height: 1.7; margin-bottom: 12px; }
+.candidates { max-height: 280px; overflow-y: auto; }
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.panel .primary { color: var(--primary-text); background: var(--primary-bg); }
+@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } .panel { padding: 18px; } }

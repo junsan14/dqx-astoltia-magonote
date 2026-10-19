@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
+import useSearchQuery from "@/hooks/useSearchQuery";
 import { clamp0 } from "@/lib/money";
 import { fetchItemsByIds } from "@/lib/items";
 import {
@@ -645,7 +646,9 @@ export default function CraftProfitClient() {
   const [selectionLoading, setSelectionLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
 
-  const [setQuery, setSetQuery] = useState("");
+  const [searchParams, updateQuery] = useSearchQuery();
+  const setQuery = searchParams.get("q") ?? "";
+  const setSetQuery = (value) => updateQuery({ q: value });
   const [openSetList, setOpenSetList] = useState(false);
 
   const [feeRatePct, setFeeRatePct] = useState(DEFAULT_FEE_RATE);
@@ -671,7 +674,6 @@ export default function CraftProfitClient() {
         setSets([]);
         setSelectedSet(null);
         setSelectedEquipmentRows([]);
-        setSetQuery("");
         setCraftTools([]);
         selectionRequestRef.current += 1;
         selectingNameRef.current = "";
@@ -700,6 +702,8 @@ export default function CraftProfitClient() {
   }, [locale]);
 
   useEffect(() => {
+    // Wait for initial reference data before restoring an equipment selection.
+    if (loading || loadError) return;
     const query = setQuery.trim();
     const normalizedQuery = normalizeSearchText(query);
     const normalizedSelectedName = normalizeSearchText(selectedSet?.name);
@@ -737,7 +741,26 @@ export default function CraftProfitClient() {
         );
 
         if (cancelled) return;
-        setSets(Array.isArray(nextSets) ? nextSets : []);
+        const safeSets = Array.isArray(nextSets) ? nextSets : [];
+        setSets(safeSets);
+
+        // A shared URL containing a full equipment name should open its data,
+        // using the same detail/material loading path as a suggestion click.
+        const namedMatches = safeSets.filter(
+          set => normalizeSearchText(set.name) === normalizedQuery
+        );
+        const exactMatches = namedMatches.length ? namedMatches : safeSets.filter(
+          set => Array.isArray(set.items) && set.items.some(
+            item => normalizeSearchText(item.name) === normalizedQuery
+          )
+        );
+        if (exactMatches.length === 1) {
+          pendingFavoriteMaterialPricesRef.current = null;
+          await loadEquipmentSelection(exactMatches[0], {
+            isCurrent: () => !cancelled,
+            preserveQuery: true,
+          });
+        }
       } catch (error) {
         if (cancelled) return;
         console.error("Equipment search error:", error);
@@ -756,7 +779,7 @@ export default function CraftProfitClient() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [setQuery, locale, selectedSet?.id, selectedSet?.name]);
+  }, [setQuery, locale, loading, loadError, selectedSet?.id, selectedSet?.name]);
 
   useEffect(() => {
     if (selectedSet?.name) {
@@ -987,14 +1010,17 @@ export default function CraftProfitClient() {
     }
   }, [slots, activeSlot]);
 
-  const loadEquipmentSelection = async (selection) => {
+  const loadEquipmentSelection = async (
+    selection,
+    { isCurrent = () => true, preserveQuery = false } = {}
+  ) => {
     if (!selection?.id) return null;
 
     const requestId = selectionRequestRef.current + 1;
     selectionRequestRef.current = requestId;
     selectingNameRef.current = selection.name ?? "";
 
-    setSetQuery(selection.name ?? "");
+    if (!preserveQuery) setSetQuery(selection.name ?? "");
     setSets([]);
     setSelectedEquipmentRows([]);
     setSelectionLoading(true);
@@ -1062,12 +1088,12 @@ export default function CraftProfitClient() {
         throw new Error("Equipment detail could not be built");
       }
 
-      if (selectionRequestRef.current !== requestId) return null;
+      if (selectionRequestRef.current !== requestId || !isCurrent()) return null;
       setSelectedEquipmentRows(equipmentRows);
       setSelectedSet(resolvedSet);
       return resolvedSet;
     } catch (error) {
-      if (selectionRequestRef.current !== requestId) return null;
+      if (selectionRequestRef.current !== requestId || !isCurrent()) return null;
       console.error("Equipment detail load error:", error);
       setSearchError(
         locale === "en"

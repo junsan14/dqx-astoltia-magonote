@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import useSearchQuery from "@/hooks/useSearchQuery";
 import { FiChevronDown, FiChevronRight } from "react-icons/fi";
 import { fetchMonsterDetail, searchMonsters } from "@/lib/monsters";
 
@@ -156,8 +157,12 @@ export default function MonstersSearchClient() {
     [t]
   );
 
-  const [searchType, setSearchType] = useState("monster");
-  const [keyword, setKeyword] = useState("");
+  const [searchParams, updateQuery] = useSearchQuery();
+  const requestedType = searchParams.get("type");
+  const searchType = searchOptions.some(option => option.value === requestedType)
+    ? requestedType
+    : "monster";
+  const keyword = searchParams.get("q") ?? "";
   const [monsters, setMonsters] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -492,13 +497,15 @@ export default function MonstersSearchClient() {
 
     cancelPendingAutoScroll();
     setPendingAutoOpenId(null);
-    setKeyword(nextValue);
+    updateQuery({ q: nextValue });
 
     setSelectedSuggestion(
       selectedFromSuggestions
         ? {
             id: option.id,
             label: option.label,
+            keyword: nextValue,
+            searchType,
           }
         : null
     );
@@ -506,27 +513,25 @@ export default function MonstersSearchClient() {
 
 
   useEffect(() => {
-    runSearch({ keyword: "", searchType: "monster", isInitial: true });
-  }, [locale]);
-
-  useEffect(() => {
-    if (initialLoading) return undefined;
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(
-      () =>
-        runSearch({
-          keyword,
-          searchType,
-          exactSuggestion: selectedSuggestion,
-        }),
+      () => runSearch({
+        keyword,
+        searchType,
+        isInitial: true,
+        exactSuggestion: selectedSuggestion?.keyword === keyword &&
+          selectedSuggestion?.searchType === searchType ? selectedSuggestion : null,
+      }),
       keyword.length >= 2 ? 180 : 0
     );
 
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      clearTimeout(debounceRef.current);
+      // Ignore responses for a previous URL while the next search is debounced.
+      searchRequestIdRef.current += 1;
     };
-  }, [keyword, searchType, initialLoading, locale, selectedSuggestion]);
+  }, [keyword, searchType, locale, selectedSuggestion]);
 
   useEffect(() => {
     if (loading || !pendingAutoOpenId) return;
@@ -580,8 +585,7 @@ export default function MonstersSearchClient() {
                 onChange={(nextValue) => {
                   cancelPendingAutoScroll();
                   setPendingAutoOpenId(null);
-                  setSearchType(nextValue);
-                  setKeyword("");
+                  updateQuery({ type: nextValue === "monster" ? null : nextValue, q: null });
                   setSelectedSuggestion(null);
                   setSuggestions([]);
                 }}

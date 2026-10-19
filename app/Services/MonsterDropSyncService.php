@@ -14,6 +14,8 @@ class MonsterDropSyncService
             ->get()
             ->keyBy('id');
 
+        // Copy scalar values before Eloquent mutates the loaded models.
+        $before = $existingDrops->map(fn ($drop) => (object) $drop->getAttributes());
         $keptIds = [];
 
         foreach (array_values($dropMonsters) as $index => $row) {
@@ -79,5 +81,11 @@ class MonsterDropSyncService
                 fn ($query) => $query->whereNotIn('id', $keptIds)
             )
             ->delete();
+
+        app(AnnouncementDropChangeService::class)->record(
+            $before,
+            MonsterDrop::where('drop_target_type', $targetType)
+                ->where('drop_target_id', $targetId)->get()
+        );
     }
 }

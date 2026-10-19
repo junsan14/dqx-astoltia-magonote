@@ -239,6 +239,12 @@ const ADMIN_MENUS = [
     localized: false,
   },
   {
+    href: "/admin/tool-editor/announcements",
+    label: "お知らせ管理",
+    sortKey: "おしらせ",
+    localized: false,
+  },
+  {
     href: "/admin/tool-editor/content-reports",
     label: "レポートチェック",
     sortKey: "れぽーと",

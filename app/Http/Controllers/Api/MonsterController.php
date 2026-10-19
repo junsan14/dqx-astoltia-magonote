@@ -1174,6 +1174,7 @@ if ($searchType === 'equipment') {
 
     private function syncMonsterDrops(int $monsterId, array $drops): void
     {
+        $before = DB::table('monster_drops')->where('monster_id', $monsterId)->get();
         $keepIds = [];
 
         foreach ($drops as $index => $drop) {
@@ -1222,6 +1223,11 @@ if ($searchType === 'equipment') {
                 $query->whereRaw('1 = 1');
             })
             ->delete();
+
+        app(\App\Services\AnnouncementDropChangeService::class)->record(
+            $before,
+            DB::table('monster_drops')->where('monster_id', $monsterId)->get()
+        );
     }
 
     private function attachDropSummaries(Collection $monsters, string $searchType, string $keyword): Collection

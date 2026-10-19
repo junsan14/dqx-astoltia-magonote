@@ -10,6 +10,7 @@ export default function ToolsPage() {
 
                 <ul className="space-y-3">
                     {[
+                        { href: "/admin/tool-editor/announcements", label: "お知らせ管理" },
                         { href: "/tool-editor/equipments", label: "装備管理" },
                         { href: "/tool-editor/orbs", label: "オーブ管理" },
                         { href: "/tool-editor/items", label: "アイテム管理" },

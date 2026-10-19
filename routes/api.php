@@ -153,3 +153,11 @@ Route::get('/monster-system-types', [
     MonsterSystemTypeController::class,
     'index',
 ]);
+
+Route::get('/announcements', [\App\Http\Controllers\Api\AnnouncementController::class, 'index']);
+Route::prefix('admin/announcements')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\AnnouncementController::class, 'adminIndex']);
+    Route::get('/candidates', [\App\Http\Controllers\Api\AnnouncementController::class, 'candidates']);
+    Route::post('/', [\App\Http\Controllers\Api\AnnouncementController::class, 'store']);
+    Route::put('/{announcement}', [\App\Http\Controllers\Api\AnnouncementController::class, 'update']);
+});

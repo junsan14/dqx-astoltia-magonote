@@ -1,3 +1,4 @@
+import HomeAnnouncements from "@/components/home/HomeAnnouncements";
 import HomeHero from "@/components/home/HomeHero";
 import { createBaseMetadata } from "@/lib/metadata";
 
@@ -26,6 +27,7 @@ export default function HomePage() {
   return (
     <main className="homePageMain">
       <HomeHero />
+      <HomeAnnouncements />
     </main>
   );
 }
