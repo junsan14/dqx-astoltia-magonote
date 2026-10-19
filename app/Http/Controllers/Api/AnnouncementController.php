@@ -100,6 +100,7 @@ class AnnouncementController extends Controller
         };
         return [
             'key' => $type.':'.$row->id.':'.$context,
+            'target_type' => $type, 'target_name' => $row->name,
             'updated_at' => $row->updated_at,
             'locale' => 'ja', 'category' => 'update',
             'page_label' => $label, 'page_path' => $path,
@@ -116,7 +117,7 @@ class AnnouncementController extends Controller
     {
         return $request->validate([
             'locale' => ['required', Rule::in(['ja', 'en'])],
-            'category' => ['required', Rule::in(['update', 'fix', 'feature'])],
+            'category' => ['required', Rule::in(['update', 'fix', 'feature', 'new_info'])],
             'page_label' => ['required', 'string', 'max:100'],
             // Only locale-independent, internal tool paths are accepted.
             'page_path' => ['nullable', 'string', 'max:2048', 'regex:#^/tools/[a-z0-9/-]+(?:\?[a-zA-Z0-9_%+&=.,:;@!()/~-]*)?$#D'],

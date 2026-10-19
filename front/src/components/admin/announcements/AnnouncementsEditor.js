@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import axios from "@/lib/axios";
+import { changeAnnouncementField } from "@/lib/announcementTemplates";
+import NewInformationFields from "./NewInformationFields";
 import styles from "./AnnouncementsEditor.module.css";
 
 const empty = { locale: "ja", category: "update", page_label: "", page_path: "", title: "", body: "" };
@@ -46,7 +48,7 @@ export default function AnnouncementsEditor() {
   function change(key, value) {
     setInitialized(true);
     setDirty(true);
-    setForm(prev => ({ ...prev, [key]: value }));
+    setForm(prev => changeAnnouncementField(prev, key, value));
   }
 
   async function save(event) {
@@ -60,7 +62,7 @@ export default function AnnouncementsEditor() {
       const response = form.id
         ? await axios.put(`/api/admin/announcements/${form.id}`, payload)
         : await axios.post("/api/admin/announcements", payload);
-      setForm({ ...empty, ...response.data.data, link_options: form.link_options });
+      setForm({ ...form, ...response.data.data });
       setDirty(false);
       setMessage(publish ? "公開しました。TOPページに表示されます。" : "下書きに保存しました。公開画面には表示されません。");
       await mutate();
@@ -88,7 +90,8 @@ export default function AnnouncementsEditor() {
           <p>{form.published_at ? "公開中" : "下書き（未公開）"}{dirty ? " ・ 未保存の変更あり" : ""}</p>
           <fieldset disabled={busy}>
             <label>表示言語<select value={form.locale} onChange={e => change("locale", e.target.value)}><option value="ja">日本語</option><option value="en">English</option></select></label>
-            <label>種類<select value={form.category} onChange={e => change("category", e.target.value)}><option value="update">データ更新</option><option value="fix">修正</option><option value="feature">新機能</option></select></label>
+            <label>種類<select value={form.category} onChange={e => change("category", e.target.value)}><option value="update">データ更新</option><option value="fix">修正</option><option value="feature">新機能</option><option value="new_info">新情報追加</option></select></label>
+            <NewInformationFields form={form} onChange={change} onApply={text => { setDirty(true); setForm(prev => ({ ...prev, ...text })); }} />
             {form.link_options?.length > 0 && <label>変更内容に合わせたリンク先<select value={form.link_options.some(option => option.page_path === form.page_path) ? form.page_path : ""} onChange={e => {
               const option = form.link_options.find(option => option.page_path === e.target.value);
               if (!option) return;

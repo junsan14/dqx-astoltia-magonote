@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSWRConfig } from "swr";
 import axios from "@/lib/axios";
+import { changeAnnouncementField } from "@/lib/announcementTemplates";
+import NewInformationFields from "./NewInformationFields";
 import { ANNOUNCEMENT_PROMPT_EVENT } from "@/lib/announcementPrompt";
 import styles from "./AnnouncementPrompt.module.css";
 
@@ -42,7 +44,7 @@ function AnnouncementPrompt({ draft, onFinish, remaining }) {
   const [form, setForm] = useState(draft);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const { mutate } = useSWRConfig();
+  const { mutate, cache } = useSWRConfig();
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -58,7 +60,7 @@ function AnnouncementPrompt({ draft, onFinish, remaining }) {
   }, []);
 
   function change(key, value) {
-    setForm(previous => ({ ...previous, [key]: value }));
+    setForm(previous => changeAnnouncementField(previous, key, value));
   }
 
   function skip() {
@@ -88,7 +90,9 @@ function AnnouncementPrompt({ draft, onFinish, remaining }) {
     // Closing after success prevents a failed cache refresh from offering a
     // second publish action for an announcement that was already created.
     onFinish(publish ? "お知らせを公開しました。TOPとお知らせ一覧に表示されます。" : "お知らせを下書き保存しました。お知らせ管理から編集・公開できます。");
-    void mutate(key => typeof key === "string" && /^\/api\/(?:admin\/)?announcements(?:\?|$)/.test(key)).catch(() => {});
+    for (const key of cache.keys()) {
+      if (typeof key === "string" && /^\/api\/(?:admin\/)?announcements(?:\?|$)/.test(key)) void mutate(key).catch(() => {});
+    }
   }
 
   return (
@@ -103,8 +107,9 @@ function AnnouncementPrompt({ draft, onFinish, remaining }) {
           <fieldset disabled={saving}>
             <div className={styles.columns}>
               <label>表示言語<select value={form.locale} onChange={e => change("locale", e.target.value)}><option value="ja">日本語</option><option value="en">English</option></select></label>
-              <label>種類<select value={form.category} onChange={e => change("category", e.target.value)}><option value="update">データ更新</option><option value="fix">修正</option><option value="feature">新機能</option></select></label>
+              <label>種類<select value={form.category} onChange={e => change("category", e.target.value)}><option value="update">データ更新</option><option value="fix">修正</option><option value="feature">新機能</option><option value="new_info">新情報追加</option></select></label>
             </div>
+            <NewInformationFields form={form} onChange={change} onApply={text => setForm(previous => ({ ...previous, ...text }))} />
             <label>タイトル<input autoFocus required maxLength={200} value={form.title} onChange={e => change("title", e.target.value)} /></label>
             <label>本文<textarea required rows={4} maxLength={10000} value={form.body} onChange={e => change("body", e.target.value)} /></label>
             {form.link_options?.length > 0 && <label>変更内容に合わせたリンク先<select value={form.link_options.some(option => option.page_path === form.page_path) ? form.page_path : ""} onChange={e => {

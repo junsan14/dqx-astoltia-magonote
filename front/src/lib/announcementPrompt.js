@@ -1,3 +1,5 @@
+import { changeAnnouncementField } from "./announcementTemplates";
+
 export const ANNOUNCEMENT_PROMPT_EVENT = "admin:announcement-prompt";
 
 const resources = {
@@ -62,13 +64,16 @@ function draftFromResponse(response) {
     pagePath = "/tools/weight-checker";
   }
 
-  return {
+  const draft = {
+    target_type: { "monster-search": "monster", orbs: "orb", maps: "map", equipments: "equipment", items: "item", accessories: "accessory", bosses: "boss" }[resource] || "other",
+    target_name: name,
     locale: "ja", category: "update", page_label: pageLabel, page_path: pagePath,
     title: `${name}の情報を${action}しました`.slice(0, 200),
     body: `「${name}」の情報を${action}しました。`,
     source_label: `${resources[resource]}「${name}」を${action}しました。`,
     link_options: linkOptions,
   };
+  return routeId ? draft : changeAnnouncementField(draft, "category", "new_info");
 }
 
 // Install only on the clients used by the content editors. Read requests,

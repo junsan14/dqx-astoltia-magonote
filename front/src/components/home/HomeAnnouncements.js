@@ -12,7 +12,7 @@ export default function HomeAnnouncements({ archive = false }) {
   const en = locale === "en";
   const [page, setPage] = useState(1);
   const { data, error, mutate } = useSWR(`/api/announcements?locale=${locale}&per_page=${archive ? 20 : 5}&page=${page}`, url => axios.get(url).then(res => res.data));
-  const categories = en ? { update: "Update", fix: "Fix", feature: "New feature" } : { update: "データ更新", fix: "修正", feature: "新機能" };
+  const categories = en ? { update: "Update", fix: "Fix", feature: "New feature", new_info: "New info" } : { update: "データ更新", fix: "修正", feature: "新機能", new_info: "新情報追加" };
 
   return (
     <section className={`${styles.section} ${archive ? styles.archive : ""}`} aria-label={en ? "Updates" : "更新のお知らせ"}>
