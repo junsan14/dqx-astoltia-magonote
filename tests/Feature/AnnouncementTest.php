@@ -16,6 +16,7 @@ class AnnouncementTest extends TestCase
         parent::setUp();
         (require database_path('migrations/2026_10_19_000000_create_announcements_table.php'))->up();
         (require database_path('migrations/2026_10_19_010000_add_announcement_link_support.php'))->up();
+        (require database_path('migrations/2026_10_19_020000_track_announcement_candidates.php'))->up();
     }
 
     private function admin(): void

@@ -15,12 +15,25 @@ export default function AnnouncementPromptProvider({ children }) {
   const sequence = useRef(0);
 
   useEffect(() => {
-    const receive = event => {
+    let active = true;
+    const receive = async event => {
+      const draft = { ...event.detail, promptId: ++sequence.current };
+      if (["monster", "map", "orb", "item", "equipment", "accessory"].includes(draft.target_type) && draft.target_id) {
+        try {
+          const response = await axios.get("/api/admin/announcements/candidates", {
+            params: { target_type: draft.target_type, target_id: draft.target_id },
+          });
+          draft.source_refs = response.data.data.flatMap(candidate => candidate.source_refs || []);
+        } catch {
+          draft.source_warning = "文面候補との紐付けを取得できませんでした。公開後も候補が残る場合は、お知らせ管理から候補を外してください。";
+        }
+      }
+      if (!active) return;
       setStatus("");
-      setQueue(previous => [...previous, { ...event.detail, promptId: ++sequence.current }]);
+      setQueue(previous => [...previous, draft]);
     };
     window.addEventListener(ANNOUNCEMENT_PROMPT_EVENT, receive);
-    return () => window.removeEventListener(ANNOUNCEMENT_PROMPT_EVENT, receive);
+    return () => { active = false; window.removeEventListener(ANNOUNCEMENT_PROMPT_EVENT, receive); };
   }, []);
 
   function finish(message = "") {
@@ -80,6 +93,7 @@ function AnnouncementPrompt({ draft, onFinish, remaining }) {
         locale: form.locale, category: form.category,
         page_label: form.page_label, page_path: form.page_path,
         title: form.title, body: form.body, is_published: publish,
+        source_refs: form.source_refs || [],
       });
     } catch (e) {
       setError(Object.values(e.response?.data?.errors || {}).flat().join(" / ") || "お知らせを保存できませんでした。元のデータは保存済みです。内容を確認してもう一度お試しください。");
@@ -91,7 +105,7 @@ function AnnouncementPrompt({ draft, onFinish, remaining }) {
     // second publish action for an announcement that was already created.
     onFinish(publish ? "お知らせを公開しました。TOPとお知らせ一覧に表示されます。" : "お知らせを下書き保存しました。お知らせ管理から編集・公開できます。");
     for (const key of cache.keys()) {
-      if (typeof key === "string" && /^\/api\/(?:admin\/)?announcements(?:\?|$)/.test(key)) void mutate(key).catch(() => {});
+      if (typeof key === "string" && /^\/api\/(?:admin\/)?announcements(?:[/?]|$)/.test(key)) void mutate(key).catch(() => {});
     }
   }
 
@@ -120,6 +134,7 @@ function AnnouncementPrompt({ draft, onFinish, remaining }) {
             <label>リンク先（任意）<input maxLength={2048} value={form.page_path} onChange={e => change("page_path", e.target.value)} placeholder="/tools/monster-search/84" /></label>
             {form.locale === "en" && <p className={styles.hint}>英語向けのタイトル・本文・対象ページ名に編集してください。</p>}
           </fieldset>
+          {draft.source_warning && <p className={styles.hint}>{draft.source_warning}</p>}
           {error && <p className={styles.error} role="alert">{error}</p>}
           {remaining > 0 && <p className={styles.hint}>ほかに{remaining}件の保存済みデータのお知らせ候補があります。</p>}
         </div>

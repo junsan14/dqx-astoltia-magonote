@@ -16,3 +16,6 @@
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
 .panel .primary { color: var(--primary-text); background: var(--primary-bg); }
 @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } .panel { padding: 18px; } }
+
+.candidateRow { margin-bottom: 12px; }
+.candidates .dismissCandidate { width: auto; margin-left: auto; padding: 4px 8px; font-size: 11px; color: var(--text-sub); }

@@ -67,6 +67,7 @@ function draftFromResponse(response) {
   const draft = {
     target_type: { "monster-search": "monster", orbs: "orb", maps: "map", equipments: "equipment", items: "item", accessories: "accessory", bosses: "boss" }[resource] || "other",
     target_name: name,
+    target_id: id,
     locale: "ja", category: "update", page_label: pageLabel, page_path: pagePath,
     title: `${name}の情報を${action}しました`.slice(0, 200),
     body: `「${name}」の情報を${action}しました。`,

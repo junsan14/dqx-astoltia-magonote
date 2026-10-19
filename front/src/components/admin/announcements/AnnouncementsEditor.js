@@ -7,14 +7,14 @@ import { changeAnnouncementField } from "@/lib/announcementTemplates";
 import NewInformationFields from "./NewInformationFields";
 import styles from "./AnnouncementsEditor.module.css";
 
-const empty = { locale: "ja", category: "update", page_label: "", page_path: "", title: "", body: "" };
+const empty = { locale: "ja", category: "update", page_label: "", page_path: "", title: "", body: "", source_refs: [] };
 const fetcher = url => axios.get(url).then(res => res.data);
 const fields = { page_label: "対象ページ名", page_path: "対象ページのパス（任意）", title: "タイトル", body: "本文" };
 
 export default function AnnouncementsEditor() {
   const [page, setPage] = useState(1);
   const { data: list, error: listError, mutate } = useSWR(`/api/admin/announcements?page=${page}`, fetcher);
-  const { data: candidates, error: candidatesError } = useSWR("/api/admin/announcements/candidates", fetcher);
+  const { data: candidates, error: candidatesError, mutate: refreshCandidates } = useSWR("/api/admin/announcements/candidates", fetcher);
   const [form, setForm] = useState(empty);
   const [initialized, setInitialized] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -51,6 +51,19 @@ export default function AnnouncementsEditor() {
     setForm(prev => changeAnnouncementField(prev, key, value));
   }
 
+  async function dismissCandidate(item) {
+    if (!window.confirm("この更新を文面候補から外しますか？ 元データと公開済みのお知らせは削除されません。再更新すると新しい候補に表示されます。")) return;
+    setBusy(true); setError("");
+    try {
+      await axios.get("/sanctum/csrf-cookie");
+      await axios.post("/api/admin/announcements/candidates/dismiss", { source_refs: item.source_refs });
+      await refreshCandidates();
+      setMessage("文面候補から外しました。");
+    } catch {
+      setError("候補を外せませんでした。もう一度お試しください。");
+    } finally { setBusy(false); }
+  }
+
   async function save(event) {
     event.preventDefault();
     const publish = event.nativeEvent.submitter?.value === "publish";
@@ -65,7 +78,7 @@ export default function AnnouncementsEditor() {
       setForm({ ...form, ...response.data.data });
       setDirty(false);
       setMessage(publish ? "公開しました。TOPページに表示されます。" : "下書きに保存しました。公開画面には表示されません。");
-      await mutate();
+      await Promise.all([mutate(), refreshCandidates()]);
     } catch (e) {
       setError(Object.values(e.response?.data?.errors || {}).flat().join(" / ") || "保存できませんでした。入力内容と接続を確認してください。");
     } finally { setBusy(false); }
@@ -79,8 +92,8 @@ export default function AnnouncementsEditor() {
         <aside className={styles.panel}>
           <button disabled={busy} onClick={() => select(empty)}>手入力で新規作成</button>
           <h2>DBからの文面候補</h2>
-          <p className={styles.hint}>直近30日・最大50件。最初の候補を初期表示します。更新日時に基づくため、ドロップ変更は記録開始以降の追加・変更・削除を反映します。その他は更新日時から候補を作るため、具体的な変更項目は本文で補足してください。</p>
-          {candidatesError ? <p role="alert">更新候補を取得できませんでした。</p> : !candidates ? <p>読み込み中…</p> : !candidates.data.length ? <p>最近の更新はありません。</p> : <div className={styles.candidates}>{candidates.data.map(item => <button disabled={busy} key={item.key} onClick={() => select(item)}>{item.title}<small>{item.page_label} / {item.updated_at}</small></button>)}</div>}
+          <p className={styles.hint}>直近30日・最大50件。最初の候補を初期表示します。更新日時に基づくため、ドロップ変更は記録開始以降の追加・変更・削除を反映します。その他は更新日時から候補を作るため、具体的な変更項目は本文で補足してください。公開済みの更新は候補から外れ、再更新時に再表示されます。</p>
+          {candidatesError ? <p role="alert">更新候補を取得できませんでした。</p> : !candidates ? <p>読み込み中…</p> : !candidates.data.length ? <p>最近の更新はありません。</p> : <div className={styles.candidates}>{candidates.data.map(item => <div key={item.key} className={styles.candidateRow}><button disabled={busy} onClick={() => select(item)}>{item.title}<small>{item.page_label} / {item.updated_at}</small></button><button className={styles.dismissCandidate} disabled={busy} onClick={() => dismissCandidate(item)} aria-label={`${item.title}を文面候補から外す`}>候補から外す</button></div>)}</div>}
           <h2>保存済みのお知らせ</h2>
           {listError ? <p role="alert">一覧を取得できませんでした。</p> : !list ? <p>読み込み中…</p> : !list.data.length ? <p>保存済みのお知らせはありません。</p> : list.data.map(item => <button disabled={busy} key={item.id} onClick={() => select(item)} aria-pressed={form.id === item.id}>{item.published_at ? "［公開］" : "［下書き］"}{item.title}</button>)}
           {list && <div className={styles.actions}><button disabled={busy || page <= 1} onClick={() => setPage(page - 1)}>前へ</button><span>{page} / {list.last_page}</span><button disabled={busy || page >= list.last_page} onClick={() => setPage(page + 1)}>次へ</button></div>}
