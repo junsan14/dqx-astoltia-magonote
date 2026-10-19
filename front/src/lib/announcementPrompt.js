@@ -28,6 +28,13 @@ function draftFromResponse(response) {
   const match = pathname.match(/^\/api\/([^/]+)(?:\/(\d+))?\/?$/);
   if (!match || !resources[match[1]]) return null;
   const [, resource, routeId] = match;
+  // One editor save may also persist many habitats or create related items.
+  // Only the resource owned by the current editor should announce that save.
+  const editor = window.location.pathname.replace(/^\/(ja|en)(?=\/)/, "")
+    .match(/^\/admin\/tool-editor\/([^/]+)\/?$/)?.[1];
+  const editorResource = { monsters: "monster-search", clystals: "crystal-rules" }[editor] || editor;
+  if (!editorResource || resource !== editorResource) return null;
+
   const method = String(response.config.method || "").toLowerCase();
   if (!["post", "put", "patch"].includes(method)) return null;
   if (response.status < 200 || response.status >= 300) return null;

@@ -10,13 +10,17 @@ import { ANNOUNCEMENT_PROMPT_EVENT } from "@/lib/announcementPrompt";
 import styles from "./AnnouncementPrompt.module.css";
 
 export default function AnnouncementPromptProvider({ children }) {
-  const [queue, setQueue] = useState([]);
+  const [prompt, setPrompt] = useState(null);
+  const promptPending = useRef(false);
   const [status, setStatus] = useState("");
   const sequence = useRef(0);
 
   useEffect(() => {
     let active = true;
     const receive = async event => {
+      // Lock before fetching candidates so concurrent success events cannot queue.
+      if (promptPending.current) return;
+      promptPending.current = true;
       const draft = { ...event.detail, promptId: ++sequence.current };
       if (["monster", "map", "orb", "item", "equipment", "accessory"].includes(draft.target_type) && draft.target_id) {
         try {
@@ -30,28 +34,29 @@ export default function AnnouncementPromptProvider({ children }) {
       }
       if (!active) return;
       setStatus("");
-      setQueue(previous => [...previous, draft]);
+      setPrompt(draft);
     };
     window.addEventListener(ANNOUNCEMENT_PROMPT_EVENT, receive);
-    return () => { active = false; window.removeEventListener(ANNOUNCEMENT_PROMPT_EVENT, receive); };
+    return () => { active = false; promptPending.current = false; window.removeEventListener(ANNOUNCEMENT_PROMPT_EVENT, receive); };
   }, []);
 
   function finish(message = "") {
-    setQueue(previous => previous.slice(1));
+    setPrompt(null);
+    promptPending.current = false;
     setStatus(message);
   }
 
   return <>
     {children}
     {status && <div role="status" className={styles.toast}>{status}<button type="button" aria-label="通知を閉じる" onClick={() => setStatus("")}>×</button></div>}
-    {queue.length > 0 && createPortal(
-      <AnnouncementPrompt key={queue[0].promptId} draft={queue[0]} onFinish={finish} remaining={queue.length - 1} />,
+    {prompt && createPortal(
+      <AnnouncementPrompt key={prompt.promptId} draft={prompt} onFinish={finish} />,
       document.body
     )}
   </>;
 }
 
-function AnnouncementPrompt({ draft, onFinish, remaining }) {
+function AnnouncementPrompt({ draft, onFinish }) {
   const dialogRef = useRef(null);
   const submitting = useRef(false);
   const [form, setForm] = useState(draft);
@@ -136,7 +141,6 @@ function AnnouncementPrompt({ draft, onFinish, remaining }) {
           </fieldset>
           {draft.source_warning && <p className={styles.hint}>{draft.source_warning}</p>}
           {error && <p className={styles.error} role="alert">{error}</p>}
-          {remaining > 0 && <p className={styles.hint}>ほかに{remaining}件の保存済みデータのお知らせ候補があります。</p>}
         </div>
         <footer className={styles.actions}>
           <button type="button" disabled={saving} onClick={skip}>今回は掲載しない</button>

@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import useSWR from "swr";
 import { useLocale } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import ProgressIntlLink from "@/components/common/route-progress/ProgressIntlLink";
 import axios from "@/lib/axios";
 import styles from "./HomeAnnouncements.module.css";
 
@@ -19,7 +19,7 @@ export default function HomeAnnouncements({ archive = false }) {
       {!archive && (
         <div className={styles.heading}>
           <h2>{en ? "Updates" : "更新のお知らせ"}</h2>
-          <Link href="/announcements">{en ? "All updates →" : "すべて見る →"}</Link>
+          <ProgressIntlLink href="/announcements">{en ? "All updates →" : "すべて見る →"}</ProgressIntlLink>
         </div>
       )}
       {error ? <p role="alert">{en ? "Unable to load updates." : "お知らせを読み込めませんでした。"} <button onClick={() => mutate()}>{en ? "Retry" : "再読み込み"}</button></p>
@@ -70,7 +70,7 @@ const hasLink =
         <div className={styles.accordionInner}>
           <div className={styles.content}>
             <p className={styles.body}>{item.body}</p>
-            {hasLink ? <Link className={styles.pageLink} href={item.page_path} tabIndex={open ? undefined : -1}>{item.page_label || (en ? "View page" : "対象ページ")} →</Link> : <span className={styles.pageLabel}>{item.page_label}</span>}
+            {hasLink ? <ProgressIntlLink className={styles.pageLink} href={item.page_path} tabIndex={open ? undefined : -1}>{item.page_label || (en ? "View page" : "対象ページ")} →</ProgressIntlLink> : <span className={styles.pageLabel}>{item.page_label}</span>}
           </div>
         </div>
       </div>
