@@ -47,7 +47,19 @@ class ItemController extends Controller
         }
 
         if ($request->filled('category')) {
-            $query->where('category', $request->category);
+            $category = trim((string) $request->category);
+            $aliases = [
+                'consumable' => '消費アイテム',
+                'recipe' => 'レシピ',
+                'material' => '素材',
+                'scout' => 'スカウトの書',
+            ];
+            $legacy = array_search($category, $aliases, true);
+            $query->whereIn('category', array_unique([
+                $category,
+                $aliases[strtolower($category)] ?? $category,
+                $legacy !== false ? $legacy : $category,
+            ]));
         }
 
         $rows = $query->orderBy('name')->get();
