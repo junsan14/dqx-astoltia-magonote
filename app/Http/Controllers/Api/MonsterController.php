@@ -774,11 +774,11 @@ if ($searchType === 'equipment') {
 
             'drops' => $drops,
 
-            'normal_drops' => $drops->where('drop_target_type', 'item')->where('drop_type', 'normal')->values(),
-            'rare_drops' => $drops->where('drop_target_type', 'item')->where('drop_type', 'rare')->values(),
+            'normal_drops' => $drops->whereIn('drop_target_type', ['item', 'equipment'])->where('drop_type', 'normal')->values(),
+            'rare_drops' => $drops->whereIn('drop_target_type', ['item', 'equipment'])->where('drop_type', 'rare')->values(),
             'white_box_drops' => $drops->where('drop_type', 'white_box')->values(),
             'orb_drops' => $drops->where('drop_target_type', 'orb')->values(),
-            'equipment_drops' => $drops->where('drop_target_type', 'equipment')->values(),
+            'equipment_drops' => $drops->where('drop_target_type', 'equipment')->whereIn('drop_type', ['equipment', 'white_box'])->values(),
             'accessory_drops' => $drops->where('drop_target_type', 'accessory')->values(),
 
             'maps' => $maps,
@@ -1282,23 +1282,23 @@ if ($searchType === 'equipment') {
             $rows = collect($dropRows->get($monster->id, []));
 
             $normalDrops = $rows
-                ->where('drop_target_type', 'item')
+                ->whereIn('drop_target_type', ['item', 'equipment'])
                 ->where('drop_type', 'normal')
                 ->map(fn ($row) => [
-                    'name' => $row->item_name,
-                    'name_kana' => $row->item_name_kana,
-                    'name_en' => $row->item_name_en,
+                    'name' => $row->drop_target_type === 'equipment' ? $row->equipment_name : $row->item_name,
+                    'name_kana' => $row->drop_target_type === 'equipment' ? $row->equipment_name_kana : $row->item_name_kana,
+                    'name_en' => $row->drop_target_type === 'equipment' ? $row->equipment_name_en : $row->item_name_en,
                 ])
                 ->unique(fn ($row) => ($row['name'] ?? '') . '|' . ($row['name_en'] ?? ''))
                 ->values();
 
             $rareDrops = $rows
-                ->where('drop_target_type', 'item')
+                ->whereIn('drop_target_type', ['item', 'equipment'])
                 ->where('drop_type', 'rare')
                 ->map(fn ($row) => [
-                    'name' => $row->item_name,
-                    'name_kana' => $row->item_name_kana,
-                    'name_en' => $row->item_name_en,
+                    'name' => $row->drop_target_type === 'equipment' ? $row->equipment_name : $row->item_name,
+                    'name_kana' => $row->drop_target_type === 'equipment' ? $row->equipment_name_kana : $row->item_name_kana,
+                    'name_en' => $row->drop_target_type === 'equipment' ? $row->equipment_name_en : $row->item_name_en,
                 ])
                 ->unique(fn ($row) => ($row['name'] ?? '') . '|' . ($row['name_en'] ?? ''))
                 ->values();
@@ -1316,6 +1316,7 @@ if ($searchType === 'equipment') {
 
             $equipmentDrops = $rows
                 ->where('drop_target_type', 'equipment')
+                ->whereIn('drop_type', ['equipment', 'white_box'])
                 ->map(fn ($row) => [
                     'name' => $row->equipment_name,
                     'name_kana' => $row->equipment_name_kana,

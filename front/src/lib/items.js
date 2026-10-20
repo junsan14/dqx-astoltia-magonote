@@ -21,6 +21,7 @@ attachAnnouncementPrompt(api);
 function normalizeDropMonster(row = {}, index = 0) {
   return {
     id: row?.id ?? null,
+    _tmpKey: row?._tmpKey ?? null,
     monster_id: row?.monster_id ?? row?.monsterId ?? row?.monster?.id ?? null,
     monsterId: row?.monsterId ?? row?.monster_id ?? row?.monster?.id ?? null,
     drop_type: row?.drop_type ?? row?.dropType ?? "normal",
