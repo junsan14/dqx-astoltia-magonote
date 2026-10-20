@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ITEM_CATEGORIES, normalizeItemCategory, itemCategoryLabel } from "@/lib/itemCategories";
 import MonsterPicker from "@/components/admin/shared/MonsterPicker";
 
 export default function ItemFormFields({
@@ -71,17 +72,24 @@ export default function ItemFormFields({
           <label style={labelStyle}>
             <span style={labelTextStyle}>カテゴリ</span>
             <input
-              value={form.category}
+              value={itemCategoryLabel(form.category)}
               onChange={(e) => updateField("category", e.target.value)}
               style={inputStyle}
-              placeholder="素材 / 消費アイテム など"
               list="item-category-list"
+              placeholder="候補から選択、または新しいカテゴリを入力"
+              maxLength={255}
             />
             <datalist id="item-category-list">
-              {categories.map((category) => (
-                <option key={category} value={category} />
+              {Array.from(new Set([
+                ...ITEM_CATEGORIES.map((option) => option.value),
+                ...categories.map(normalizeItemCategory),
+              ])).filter(Boolean).map((category) => (
+                <option key={category} value={itemCategoryLabel(category)} />
               ))}
             </datalist>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+              新しいカテゴリはアイテムの保存後に候補へ追加されます。
+            </span>
           </label>
 
           <label style={labelStyle}>

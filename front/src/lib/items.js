@@ -1,3 +1,4 @@
+import { normalizeItemCategory } from "./itemCategories";
 import { attachAnnouncementPrompt } from "./announcementPrompt";
 import axios from "axios";
 
@@ -77,7 +78,7 @@ export function buildItemPayload(form = {}) {
       form.sell_price === "" || form.sell_price == null
         ? null
         : Number(form.sell_price),
-    category: String(form.category ?? "").trim() || null,
+    category: normalizeItemCategory(form.category) || null,
     drop_monsters: Array.isArray(form.drop_monsters)
       ? form.drop_monsters.map((row, index) => ({
           id: row.id ?? null,
@@ -206,6 +207,7 @@ export async function fetchItem(id) {
 export async function createItem(data) {
   try {
     const res = await api.post(`${API_URL}/api/items`, data);
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("items-updated"));
     return normalizeItem(res.data?.data ?? res.data);
   } catch (error) {
     console.error(error);
@@ -221,6 +223,7 @@ export async function createItem(data) {
 export async function updateItem(id, data) {
   try {
     const res = await api.put(`${API_URL}/api/items/${id}`, data);
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("items-updated"));
     return normalizeItem(res.data?.data ?? res.data);
   } catch (error) {
     console.error(error);
@@ -236,6 +239,7 @@ export async function updateItem(id, data) {
 export async function deleteItem(id) {
   try {
     const res = await api.delete(`${API_URL}/api/items/${id}`);
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("items-updated"));
     return res.data;
   } catch (error) {
     console.error(error);

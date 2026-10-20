@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ITEM_CATEGORIES, normalizeItemCategory, itemCategoryLabel } from "@/lib/itemCategories";
 import { fetchItems } from "@/lib/items";
 import { fetchAccessories } from "@/lib/accessories";
 import { fetchOrbs } from "@/lib/orbs";
@@ -11,10 +12,8 @@ const TAB_ORBS = "orbs";
 const TAB_EQUIPMENTS = "equipments";
 
 const DROP_ITEM_CATEGORIES = [
-  { value: "scout", label: "スカウトの書" },
-  { value: "consumable", label: "消費アイテム" },
-  { value: "recipe", label: "レシピ" },
-  { value: "material", label: "素材" },
+  { value: "", label: "すべてのアイテム" },
+  ...ITEM_CATEGORIES,
   { value: "accessory", label: "アクセサリー" },
   { value: "equipment", label: "装備" },
 ];
@@ -82,14 +81,6 @@ function getDropKey(drop) {
   return drop.__key ?? drop.id;
 }
 
-function normalizeItemCategory(value = "") {
-  const v = String(value ?? "").trim().toLowerCase();
-  if (v === "scout") return "scout";
-  if (v === "consumable") return "consumable";
-  if (v === "material") return "material";
-  return v;
-}
-
 function normalizeOptions(rows = [], type) {
   if (type === "item") {
     return rows.map((row) => ({
@@ -97,7 +88,7 @@ function normalizeOptions(rows = [], type) {
       name: row.name ?? "",
       nameKana: row.name_kana ?? row.nameKana ?? "",
       nameEn: row.name_en ?? row.nameEn ?? "",
-      rawCategory: row.category ?? "",
+      rawCategory: itemCategoryLabel(row.category),
       category: normalizeItemCategory(row.category),
     }));
   }
@@ -197,21 +188,21 @@ function filterByQuery(options, query) {
     .slice(0, 100);
 }
 
-function toItemApiCategory(category) {
-  if (category === "scout") return "scout";
-  if (category === "consumable") return "consumable";
-  if (category === "recipe") return "recipe";
-  if (category === "material") return "material";
-  return "";
-}
-
 function getDropTargetType(category) {
   if (category === "accessory") return "accessory";
   if (category === "equipment") return "equipment";
   return "item";
 }
 
-async function fetchDropTargetOptions(category, equipmentCategory) {
+async function fetchDropTargetOptions(category, equipmentCategory, items) {
+  // Item candidates must reflect newly saved items and legacy Japanese categories.
+  if (category !== "accessory" && category !== "equipment") {
+    const itemCategory = category.startsWith("item:") ? category.slice(5) : category;
+    return normalizeOptions(items, "item")
+      .filter((row) => !itemCategory || row.category === itemCategory)
+      .map((row) => ({ ...row, source_type: "item" }));
+  }
+
   const cacheKey =
     category === "equipment"
       ? `drop-target:equipment:${equipmentCategory}`
@@ -234,11 +225,7 @@ async function fetchDropTargetOptions(category, equipmentCategory) {
       }));
     }
 
-    const rows = await fetchItems("", toItemApiCategory(category));
-    return normalizeOptions(rows, "item").map((row) => ({
-      ...row,
-      source_type: "item",
-    }));
+
   });
 }
 
@@ -330,14 +317,56 @@ function SuggestInput({
 export default function MonsterDropsEditor({ drops = [], onChange }) {
   const styles = useMemo(() => getComponentStyles(), []);
   const [activeTab, setActiveTab] = useState(TAB_ITEMS);
+  const [itemRevision, setItemRevision] = useState(0);
+  const [itemCatalog, setItemCatalog] = useState([]);
+  const [loadingItemCatalog, setLoadingItemCatalog] = useState(true);
 
-  const [normalCategory, setNormalCategory] = useState("scout");
+  useEffect(() => {
+    let ignore = false;
+    setLoadingItemCatalog(true);
+    fetchItems()
+      .then((items) => { if (!ignore) setItemCatalog(items); })
+      .catch((error) => {
+        console.error(error);
+        if (!ignore) setItemCatalog([]);
+      })
+      .finally(() => { if (!ignore) setLoadingItemCatalog(false); });
+    return () => { ignore = true; };
+  }, [itemRevision]);
+
+  const dropItemCategories = useMemo(() => {
+    const builtIn = new Set(ITEM_CATEGORIES.map((option) => option.value));
+    const custom = Array.from(new Set(
+      itemCatalog.map((item) => normalizeItemCategory(item.category))
+    )).filter((category) => category && !builtIn.has(category));
+    return [
+      ...DROP_ITEM_CATEGORIES,
+      ...custom.map((category) => ({
+        value: `item:${category}`,
+        label: itemCategoryLabel(category),
+      })),
+    ];
+  }, [itemCatalog]);
+
+
+  useEffect(() => {
+    const refresh = () => setItemRevision((revision) => revision + 1);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("items-updated", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("items-updated", refresh);
+    };
+  }, []);
+
+
+  const [normalCategory, setNormalCategory] = useState("");
   const [normalEquipmentCategory, setNormalEquipmentCategory] =
     useState("片手剣");
   const [normalQuery, setNormalQuery] = useState("");
   const [normalSelected, setNormalSelected] = useState(null);
 
-  const [rareCategory, setRareCategory] = useState("scout");
+  const [rareCategory, setRareCategory] = useState("");
   const [rareEquipmentCategory, setRareEquipmentCategory] = useState("片手剣");
   const [rareQuery, setRareQuery] = useState("");
   const [rareSelected, setRareSelected] = useState(null);
@@ -410,7 +439,8 @@ export default function MonsterDropsEditor({ drops = [], onChange }) {
         setLoadingNormalItems(true);
         const options = await fetchDropTargetOptions(
           normalCategory,
-          normalEquipmentCategory
+          normalEquipmentCategory,
+          itemCatalog
         );
 
         if (!ignore) setNormalItemOptions(options);
@@ -427,7 +457,7 @@ export default function MonsterDropsEditor({ drops = [], onChange }) {
     return () => {
       ignore = true;
     };
-  }, [activeTab, normalCategory, normalEquipmentCategory]);
+  }, [activeTab, normalCategory, normalEquipmentCategory, itemCatalog]);
 
   useEffect(() => {
     if (activeTab !== TAB_ITEMS) return undefined;
@@ -439,7 +469,8 @@ export default function MonsterDropsEditor({ drops = [], onChange }) {
         setLoadingRareItems(true);
         const options = await fetchDropTargetOptions(
           rareCategory,
-          rareEquipmentCategory
+          rareEquipmentCategory,
+          itemCatalog
         );
 
         if (!ignore) setRareItemOptions(options);
@@ -456,7 +487,7 @@ export default function MonsterDropsEditor({ drops = [], onChange }) {
     return () => {
       ignore = true;
     };
-  }, [activeTab, rareCategory, rareEquipmentCategory]);
+  }, [activeTab, rareCategory, rareEquipmentCategory, itemCatalog]);
 
   useEffect(() => {
     if (activeTab !== TAB_ORBS) return undefined;
@@ -656,7 +687,7 @@ export default function MonsterDropsEditor({ drops = [], onChange }) {
                 className="monster-drops-editor-select"
                 style={styles.input}
               >
-                {DROP_ITEM_CATEGORIES.map((option) => (
+                {dropItemCategories.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -696,7 +727,7 @@ export default function MonsterDropsEditor({ drops = [], onChange }) {
             }}
             suggestions={normalFilteredOptions}
             selected={normalSelected}
-            loading={loadingNormalItems}
+            loading={loadingNormalItems || loadingItemCatalog}
             onSelect={(option) => {
               setNormalSelected(option);
               handleImmediateAddNormal(option);
@@ -739,7 +770,7 @@ export default function MonsterDropsEditor({ drops = [], onChange }) {
                 className="monster-drops-editor-select"
                 style={styles.input}
               >
-                {DROP_ITEM_CATEGORIES.map((option) => (
+                {dropItemCategories.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
@@ -779,7 +810,7 @@ export default function MonsterDropsEditor({ drops = [], onChange }) {
             }}
             suggestions={rareFilteredOptions}
             selected={rareSelected}
-            loading={loadingRareItems}
+            loading={loadingRareItems || loadingItemCatalog}
             onSelect={(option) => {
               setRareSelected(option);
               handleImmediateAddRare(option);

@@ -1,5 +1,7 @@
 "use client";
 
+import { itemCategoryLabel } from "@/lib/itemCategories";
+
 export default function ItemList({
   items = [],
   loading = false,
@@ -32,7 +34,7 @@ export default function ItemList({
             <div style={nameStyle}>{item.name}</div>
             <div style={subStyle}>
               ID: {item.id}
-              {item.category ? ` / ${item.category}` : ""}
+              {item.category ? ` / ${itemCategoryLabel(item.category)}` : ""}
             </div>
           </button>
         );
