@@ -281,6 +281,7 @@ function normalizeMonster(row = {}, locale = "ja") {
     white_box_drops: normalizeDropList(row?.white_box_drops ?? [], locale),
     orb_drops: normalizeDropList(row?.orb_drops ?? [], locale),
     equipment_drops: normalizeDropList(row?.equipment_drops ?? [], locale),
+    matched_equipments: normalizeDropList(row?.matched_equipments ?? [], locale),
     accessory_drops: normalizeDropList(row?.accessory_drops ?? [], locale),
     drops: normalizeDropList(row?.drops ?? [], locale),
     maps: Array.isArray(row?.maps)

@@ -1278,8 +1278,32 @@ if ($searchType === 'equipment') {
             ])
             ->groupBy('monster_id');
 
-        return $monsters->map(function ($monster) use ($dropRows) {
+        return $monsters->map(function ($monster) use ($dropRows, $searchType, $keyword) {
             $rows = collect($dropRows->get($monster->id, []));
+
+            $matchedEquipments = collect();
+            if ($searchType === 'equipment') {
+                $terms = $this->buildSearchTerms($keyword);
+                $matchedEquipments = $rows
+                    ->where('drop_target_type', 'equipment')
+                    ->filter(function ($row) use ($terms) {
+                        if (empty($terms)) return true;
+                        foreach ($terms as $term) {
+                            foreach ([$row->equipment_name, $row->equipment_name_kana, $row->equipment_name_en] as $name) {
+                                if (mb_stripos((string) $name, $term, 0, 'UTF-8') !== false) return true;
+                            }
+                        }
+                        return false;
+                    })
+                    ->map(fn ($row) => [
+                        'name' => $row->equipment_name,
+                        'name_kana' => $row->equipment_name_kana,
+                        'name_en' => $row->equipment_name_en,
+                    ])
+                    ->unique(fn ($row) => ($row['name'] ?? '') . '|' . ($row['name_en'] ?? ''))
+                    ->values();
+            }
+
 
             $normalDrops = $rows
                 ->whereIn('drop_target_type', ['item', 'equipment'])
@@ -1364,6 +1388,7 @@ if ($searchType === 'equipment') {
                 'rare_drops' => $rareDrops,
                 'orb_drops' => $orbDrops,
                 'equipment_drops' => $equipmentDrops,
+                'matched_equipments' => $matchedEquipments,
                 'accessory_drops' => $accessoryDrops,
             ];
         })->values();

@@ -221,18 +221,26 @@ export default function MonstersSearchClient() {
     const map = new Map();
 
     for (const monster of list) {
-      const suggestionName = formatSuggestionName(monster)?.trim();
-      if (!suggestionName || map.has(suggestionName)) continue;
+      const matches = searchType === "equipment" && monster.matched_equipments?.length
+        ? monster.matched_equipments.map((equipment) => ({
+            label: equipment.name,
+            kana: equipment.name_kana,
+          }))
+        : [{ label: formatSuggestionName(monster), kana: formatSuggestionKana(monster) }];
 
-      const suggestionKana = formatSuggestionKana(monster)?.trim();
-      map.set(suggestionName, {
-        id: monster.id,
-        label: suggestionName,
-        searchText: [suggestionName, suggestionKana].filter(Boolean).join(" "),
-      });
+      for (const match of matches) {
+        const suggestionName = match.label?.trim();
+        if (!suggestionName || map.has(suggestionName)) continue;
+        map.set(suggestionName, {
+          id: monster.id,
+          label: suggestionName,
+          searchText: [suggestionName, match.kana?.trim()].filter(Boolean).join(" "),
+        });
+      }
     }
 
-    return Array.from(map.values()).slice(0, 8);
+    const options = Array.from(map.values());
+    return searchType === "equipment" ? options : options.slice(0, 8);
   }
 
   function formatSubText(monster) {
@@ -612,7 +620,7 @@ export default function MonstersSearchClient() {
                 getOptionSearchText={(option) =>
                   option.searchText || option.label
                 }
-                maxResults={8}
+                maxResults={searchType === "equipment" ? Math.max(suggestions.length, 8) : 8}
                 allowCustomValue
                 selectOnFocus
                 ariaLabel={t("searchPlaceholder", { target: currentLabel })}
