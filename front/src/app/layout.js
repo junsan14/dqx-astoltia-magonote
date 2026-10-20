@@ -45,6 +45,14 @@ export default function RootLayout({ children }) {
             __html: themeInitScript,
           }}
         />
+
+
+          <script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8534851946321815"
+            crossOrigin="anonymous"
+          />
+      
       </head>
 
       <body className={`antialiased ${kosugi.className} ${mochiy.variable}`}>
