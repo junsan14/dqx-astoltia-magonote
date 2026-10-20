@@ -335,7 +335,7 @@ class EquipmentController extends Controller
             'weight' => ['nullable', 'integer', 'min:0'],
 
             'equipment_type_id' => ['nullable', 'integer', 'exists:equipment_types,id'],
-            'craft_product_type_id' => ['required', 'integer', 'exists:craft_product_types,id'],
+            'craft_product_type_id' => ['nullable', 'integer', 'exists:craft_product_types,id'],
             'job_override_mode' => ['nullable', Rule::in(['inherit', 'add', 'replace'])],
 
             'job_overrides' => ['nullable', 'array'],
