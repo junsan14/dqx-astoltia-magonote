@@ -250,3 +250,9 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+.infoNav { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 20px; margin-top: 14px; }
+.infoLink { padding: 6px 0; color: var(--footer-link); font-size: 12px; line-height: 1.7; text-decoration: none; text-underline-offset: 4px; }
+.infoLink:hover { text-decoration: underline; color: var(--footer-link-hover); }
+.infoLink:focus-visible { outline: 2px solid var(--footer-link-hover); outline-offset: 4px; }
+@media (max-width: 640px) { .infoNav { gap: 4px 16px; margin-top: 10px; } }

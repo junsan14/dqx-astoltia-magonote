@@ -286,3 +286,65 @@
     min-width: 132px;
   }
 }
+/* Keep the original visual identity while making room for useful content. */
+.hero { min-height: 640px; min-height: min(740px, 88svh); padding: 76px 24px; }
+.bubbles { z-index: 3; }
+.content { z-index: 2; }
+.description { max-width: 600px; margin: 24px 0 0; color: var(--text-sub); font-size: 15px; line-height: 1.95; text-wrap: pretty; }
+.actions { align-items: center; margin-top: 26px; }
+.button { gap: 16px; }
+.secondaryLink { color: var(--text-sub); font-size: 13px; text-decoration: none; padding: 12px; }
+.secondaryLink:hover { color: var(--secondary-text); }
+.discovery { max-width: 1096px; margin: 0 auto; padding: 40px 28px 32px; color: var(--text-main); scroll-margin-top: 90px; }
+.sectionHeading { max-width: 660px; margin-bottom: 30px; }
+.eyebrow { margin: 0 0 12px; color: var(--secondary-text); font-size: 10px; font-weight: 800; letter-spacing: .18em; }
+.sectionHeading h2, .guide h2 { margin: 0; color: var(--text-title); font-size: clamp(23px, 3vw, 32px); font-weight: 800; line-height: 1.5; letter-spacing: -.035em; }
+.sectionHeading > p:last-child { margin: 14px 0 0; color: var(--text-sub); font-size: 14px; line-height: 1.9; }
+.toolGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.toolCard { position: relative; padding: 26px 23px; border: 1px solid var(--card-border); border-radius: 20px; background: color-mix(in srgb, var(--card-bg) 88%, transparent); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+.toolCard:hover, .toolCard:focus-within { transform: translateY(-3px); border-color: var(--secondary-text); box-shadow: 0 14px 32px rgb(0 0 0 / .06); }
+.toolNumber { display: block; margin-bottom: 24px; color: var(--secondary-text); font-size: 12px; font-weight: 700; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.toolUse { margin: 0 0 8px; color: var(--text-sub); font-size: 11px; line-height: 1.6; }
+.toolCard h3 { margin: 0; font-size: 18px; line-height: 1.55; letter-spacing: -.02em; }
+.toolLink { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: var(--text-title); text-decoration: none; }
+.toolLink::after { content: ""; position: absolute; inset: 0; border-radius: 20px; }
+.toolArrow { color: var(--secondary-text); }
+.toolDescription { margin: 13px 0 0; color: var(--text-sub); font-size: 13px; line-height: 1.9; }
+.guide { display: grid; grid-template-columns: 1fr 1.65fr; gap: 40px; padding: 36px 0; margin-top: 40px; border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
+.guide h2 { font-size: 23px; }
+.guideSteps { display: grid; gap: 23px; list-style: none; margin: 0; padding: 0; counter-reset: steps; }
+.guideSteps li { position: relative; padding-left: 38px; counter-increment: steps; }
+.guideSteps li::before { content: "0" counter(steps); position: absolute; left: 0; top: 3px; color: var(--secondary-text); font-size: 11px; font-weight: 700; }
+.guideSteps h3 { margin: 0 0 6px; color: var(--text-title); font-size: 14px; line-height: 1.6; }
+.guideSteps p { margin: 0; color: var(--text-sub); font-size: 13px; line-height: 1.9; }
+.siteNote { display: flex; align-items: baseline; gap: 20px; justify-content: space-between; padding-top: 22px; }
+.siteNote p { max-width: 700px; margin: 0; color: var(--text-sub); font-size: 12px; line-height: 1.9; }
+.siteNote a { flex-shrink: 0; color: var(--secondary-text); font-size: 12px; text-underline-offset: 4px; }
+.button:focus-visible, .secondaryLink:focus-visible, .siteNote a:focus-visible { outline: 2px solid var(--secondary-text); outline-offset: 5px; }
+.toolLink:focus-visible { outline: none; }
+.toolLink:focus-visible::after { outline: 2px solid var(--secondary-text); outline-offset: 4px; }
+@media (max-width: 900px) {
+  .hero { min-height: auto; padding: 84px 18px 64px; }
+  .content { width: 100%; max-width: 720px; padding: 32px 24px; }
+  .toolGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .hero { padding: 56px 16px 36px; }
+  .content { width: 100%; padding: 28px 16px; }
+  .title { font-size: clamp(26px, 7.5vw, 38px); }
+  .titleMain { white-space: normal; overflow-wrap: anywhere; }
+  .description { margin-top: 20px; font-size: 13px; line-height: 1.9; }
+  .actions { gap: 4px; margin-top: 22px; }
+  .button { font-size: 13px; }
+  .discovery { padding: 24px 20px; }
+  .toolGrid { grid-template-columns: 1fr; gap: 12px; }
+  .toolCard { padding: 22px; }
+  .toolNumber { margin-bottom: 16px; }
+  .guide { grid-template-columns: 1fr; gap: 24px; margin-top: 28px; padding: 28px 0; }
+  .siteNote { flex-direction: column; gap: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .background, .bubble { animation: none; }
+  .button, .toolCard { transition: none; }
+  .button:hover, .toolCard:hover, .toolCard:focus-within { transform: none; }
+}

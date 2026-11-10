@@ -1,0 +1,29 @@
+
+.page { padding: 48px 20px 72px; color: var(--text-main); background: var(--page-bg); }
+.container { max-width: 960px; margin: 0 auto; }
+.hero { max-width: 740px; margin-bottom: 28px; }
+.kicker { margin: 0 0 14px; font-size: 11px; font-weight: 800; letter-spacing: .18em; color: var(--secondary-text); }
+.hero h1 { margin: 0; font-size: clamp(28px, 5vw, 44px); line-height: 1.4; letter-spacing: -.035em; color: var(--text-title); }
+.intro { margin: 18px 0 0; color: var(--text-sub); font-size: 15px; line-height: 1.95; }
+.nav { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 28px 0; padding: 18px 0; border-block: 1px solid var(--card-border); }
+.page a { color: var(--secondary-text); text-underline-offset: 4px; overflow-wrap: anywhere; }
+.page a:focus-visible { outline: 2px solid var(--secondary-text); outline-offset: 4px; border-radius: 3px; }
+.nav a { font-size: 13px; }
+.section { margin-top: 20px; padding: 28px; border: 1px solid var(--card-border); border-radius: 22px; background: var(--card-bg); scroll-margin-top: 90px; }
+.section h2 { margin: 0 0 16px; color: var(--text-title); font-size: clamp(19px, 3vw, 23px); line-height: 1.5; }
+.section p, .section li { font-size: 14px; line-height: 1.95; color: var(--text-sub); }
+.section p { margin: 12px 0 0; }
+.section ul { padding-left: 1.25em; margin-bottom: 0; }
+.profile { margin: 0; }
+.profile > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--card-border); }
+.profile > div:last-child { border-bottom: 0; }
+.profile dt { color: var(--text-sub); font-size: 13px; }
+.profile dd { margin: 0; color: var(--text-title); font-size: 14px; overflow-wrap: anywhere; }
+.links { display: flex; flex-wrap: wrap; gap: 10px 24px; list-style: none; padding: 0 !important; }
+.updated { margin: 28px 0 0; color: var(--text-sub); font-size: 12px; }
+@media(max-width: 540px) {
+ .page { padding: 32px 16px 48px; }
+ .section { padding: 22px 18px; border-radius: 18px; }
+ .profile > div { grid-template-columns: 1fr; gap: 6px; }
+ .intro { font-size: 14px; }
+}

@@ -9,8 +9,8 @@
       "titleLine1": "Quickly solve",
       "titleHighlight": "YOUR QUESTIONS",
       "titleLine2": "in Astoltia.",
-      "button": "Use tools",
-      "description": "A collection of useful tools for checking crafting profit, reverse monster lookup, monster encyclopedia, and map-based monster search.",
+      "button": "Find your tool",
+      "description": "An unofficial toolkit for Dragon Quest X. Look up monster drops and locations, check crafting costs and profit, and explore accessory inheritance.",
       "questions": {
         "orbDrop": "Which monster drops Storm Kaiser Flash?",
         "slimeMap": "Which map was Slime on again?",
@@ -21,6 +21,60 @@
         "accessoryWhere": "Where can I get Chibou's Necklace?",
         "inheritance": "What was the inheritance accessory for Red Dragon?"
       }
+    },
+    "discovery": {
+      "title": "The right tool for your next adventure.",
+      "intro": "Choose what you want to find out, from preparing a material hunt to checking crafting profit or exploring with your party.",
+      "aboutLink": "About this site",
+      "tools": {
+        "craft": {
+          "use": "Plan before you craft",
+          "title": "Crafting profit",
+          "description": "Compare material costs, production costs, and selling prices for equipment. Use the results to help decide what to craft."
+        },
+        "search": {
+          "use": "Start with an item or orb",
+          "title": "Monster search",
+          "description": "Search by monster name or drop information. Check common and rare drops, white chests, orbs, and appearance locations."
+        },
+        "map": {
+          "use": "Start with a destination",
+          "title": "Map monster search",
+          "description": "Find monsters by continent and map. Check what you can look for around your next destination."
+        },
+        "encyclopedia": {
+          "use": "Get to know a monster",
+          "title": "Monster encyclopedia",
+          "description": "Browse monster information, drops, reincarnated monsters, and appearance maps when you want to learn more about an encounter."
+        },
+        "accessory": {
+          "use": "Plan your next upgrade",
+          "title": "Accessory inheritance",
+          "description": "Explore accessory inheritance relationships and find the predecessor accessory for the one you want to upgrade."
+        },
+        "room": {
+          "use": "Coordinate your exploration",
+          "title": "Crystal Beast split room",
+          "description": "Create a room and share its URL with your party. Keep server, map, and gauge color reports together while exploring."
+        }
+      },
+      "guideTitle": "A place to start",
+      "steps": {
+        "find": {
+          "title": "Looking for materials or orbs?",
+          "body": "Use monster search to check drops and locations. If you already have a destination, use map search to explore the monsters found there."
+        },
+        "compare": {
+          "title": "Deciding what to craft?",
+          "body": "Select equipment in the crafting tool and compare costs with selling prices. Check current in-game prices before crafting, as the market changes."
+        },
+        "check": {
+          "title": "Checking the details?",
+          "body": "Updates and individual conditions can affect the information shown. Read the update history and confirm details against the game itself."
+        }
+      },
+      "note": "This is an unofficial Dragon Quest X fan site. Data additions and corrections are listed in the update history.",
+      "updatesLink": "View update history"
     }
   },
   "Header": {
@@ -62,7 +116,9 @@
       "monsterZukan": "Monster Encyclopedia",
       "mapMonsterBrowser": "Map Monster Search",
       "kishoju": "Crystal Beast Split Room",
-      "about": "About This Site / Terms of Use"
+      "about": "About and usage",
+      "privacy": "Privacy policy",
+      "contact": "Contact"
     },
     "unofficialFanSite": "Unofficial fan site",
     "adminLogin": "Admin Login",
@@ -71,12 +127,12 @@
   },
   "AboutPage": {
     "metadata": {
-      "title": "About This Site",
-      "description": "A page summarizing the usage notes, copyright notice, and handling of published information for DQX Tools."
+      "title": "About This Site and Its Operator",
+      "description": "Meet the operator, learn about the tools, find updates and contact details, and read usage notes."
     },
     "hero": {
       "kicker": "TERMS OF USE",
-      "title": "Before You Use This Site"
+      "title": "A little help for your adventure."
     },
     "sections": {
       "usage": {
@@ -102,7 +158,28 @@
         "text": "This site is an unofficial website created to present Dragon Quest X information in a more accessible and easy-to-read format. It is not affiliated with the official operators."
       }
     },
-    "footer": "DQX Tools / About & Notice"
+    "footer": "DQX Tools / About & Notice",
+    "intro": "Astoltia Helper Tools is an unofficial toolkit for looking up Dragon Quest X information, checking crafting profit, and coordinating exploration.",
+    "operator": {
+      "title": "Site operator",
+      "siteLabel": "Site name",
+      "nameLabel": "Operator",
+      "urlLabel": "Website",
+      "description": "The tools bring together monster drops and locations, crafting costs and profit, and accessory inheritance so you can find information for your next task."
+    },
+    "maintenance": {
+      "title": "Updates and corrections",
+      "body": "Data additions and corrections are listed in the update history. If you find an error, use the reporting feature on the relevant tool or contact the operator below.",
+      "link": "Read the update history"
+    },
+    "contact": {
+      "title": "Contact",
+      "body": "For feedback, bugs, content, rights, or privacy inquiries, please contact the operator on X.",
+      "link": "Contact みきてぃ (@miki0801388249)",
+      "details": "For bug reports, include the page URL, the steps you took, and what happened.",
+      "privacyNote": "Do not post personal information or passwords in public X posts or site reports. See the privacy policy for how inquiry information is handled.",
+      "privacyLink": "Read the privacy policy"
+    }
   },
   "CraftProfit": {
     "common": {
@@ -539,6 +616,103 @@
       "equipment": "White boxes / equipment",
       "habitats": "Habitats / maps",
       "other": "Other"
+    }
+  },
+  "SiteInfo": {
+    "navigation": "Site information",
+    "about": "About and usage",
+    "privacy": "Privacy policy",
+    "contact": "Contact"
+  },
+  "PrivacyPage": {
+    "title": "Privacy Policy",
+    "description": "How advertising, analytics, cookies, tool data, and inquiries are handled.",
+    "intro": "Learn what information the site handles, why it is used, who can see it, and how to manage your choices.",
+    "sections": {
+      "operator": {
+        "title": "Operator and scope",
+        "paragraphs": [
+          "Astoltia Helper Tools (https://www.dqx-tool.com/) is an unofficial Dragon Quest X fan site operated by みきてぃ. This policy describes information handled through the tools, content reports, and inquiries."
+        ]
+      },
+      "contact": {
+        "title": "Information received through inquiries",
+        "paragraphs": [
+          "Inquiries are directed to the operator’s X account. Account names, messages, and information needed to reply are used to review inquiries, respond, and address issues.",
+          "X’s privacy policy also applies to information handled on X. Do not include personal or confidential information, such as your real name, email address, or password, in public posts."
+        ]
+      },
+      "reports": {
+        "title": "Reports about incorrect information",
+        "paragraphs": [
+          "The reporting feature stores your message, report target, supporting information such as the page URL, display language, and submission time on the server. A cookie identifies the submission source; hashed values of its identifier and your IP address are stored with the report. This information is used to review and correct content and manage submissions.",
+          "Report messages, status, and resolution notes may be displayed on the site when a report is made public. Do not include personal information in reports. The submitter identification cookie expires one year after it is set."
+        ]
+      },
+      "rooms": {
+        "title": "Shared Crystal Beast room information",
+        "paragraphs": [
+          "Room names, participant names, assigned servers, exploration reports (server, map, gauge color, reporter name, and memo), and timestamps are stored on the server to share exploration progress.",
+          "People who know a room’s URL or code can view participant names and reports. Do not use rooms to store confidential information; use an in-game name when participating. Room information may be deleted, so rooms are not permanent storage."
+        ]
+      },
+      "storage": {
+        "title": "Cookies and browser storage",
+        "paragraphs": [
+          "Local storage saves settings such as the display theme, crafting favorites and preferences, and Crystal Beast input preferences and tutorial status. These settings restore preferences and simplify repeat visits. Information submitted when joining a room or posting a report is also stored on the server, separately from browser settings.",
+          "Cookies are used to maintain login sessions, protect requests, and identify report submitters. You can delete or restrict cookies and site data in your browser, but this may reset preferences or affect some features."
+        ]
+      },
+      "ads": {
+        "title": "Google AdSense and advertising",
+        "paragraphs": [
+          "This site includes the Google AdSense advertising tag. When ad serving is enabled, ads from third-party vendors, including Google, may appear. These vendors may use cookies to serve ads based on previous visits to this and other websites.",
+          "Google’s advertising cookies enable Google and its partners to show personalized ads based on visits to this and other websites. You can turn off personalized Google ads in My Ad Center. The third-party advertising choices page below also provides options for participating vendors."
+        ]
+      },
+      "analytics": {
+        "title": "Google Analytics",
+        "paragraphs": [
+          "This site uses Google Analytics (GA4) through Google Tag Manager to understand page views and tool usage and improve content and usability. Google Analytics uses cookies and similar technologies to collect and process information such as pages viewed, interactions, and browser and device information.",
+          "See Google’s privacy policy and explanation of data use on partner sites for details. On supported browsers, Google’s opt-out browser add-on can disable Google Analytics data collection."
+        ]
+      },
+      "sharing": {
+        "title": "External services and visibility",
+        "paragraphs": [
+          "Advertising and analytics send information from your browser to providers such as Google. Inquiries sent through X are handled on X. Each service handles information according to its own policies.",
+          "Please also note the public and shared visibility of content reports and Crystal Beast rooms described above."
+        ]
+      },
+      "retention": {
+        "title": "Storage and deletion",
+        "paragraphs": [
+          "You can remove locally saved preferences using your browser’s site data controls. Clearing browser data does not automatically remove reports or room information already sent to the server.",
+          "To request access, correction, or deletion of submitted information, contact the operator with details identifying the information, such as the page and submission time. Information held by Google or X is managed under those services’ settings and policies."
+        ]
+      },
+      "choices": {
+        "title": "Privacy inquiries",
+        "paragraphs": [
+          "Contact the operator’s X account with questions or requests to access, correct, or delete information. To avoid disclosing another person’s information or deleting the wrong content, we may ask you to clarify the target information and your connection to it."
+        ]
+      },
+      "changes": {
+        "title": "Changes to this policy",
+        "paragraphs": [
+          "This policy will be updated when features or services change. Refer to this page and its update date for the current version."
+        ]
+      }
+    },
+    "updatedLabel": "Last updated:",
+    "links": {
+      "adSettings": "Google ad settings",
+      "adChoices": "Third-party ad choices (DAA)",
+      "googlePartners": "How Google uses data",
+      "googlePrivacy": "Google privacy policy",
+      "analyticsOptout": "Google Analytics opt-out",
+      "xPrivacy": "X privacy policy",
+      "contact": "Contact the operator"
     }
   }
 }

@@ -3,6 +3,8 @@ export default function sitemap() {
 
   const routes = [
     "",
+    "/about",
+    "/privacy",
     "/tools/monster-search",
     "/tools/craft-profit",
     "/tools/monster-zukan",

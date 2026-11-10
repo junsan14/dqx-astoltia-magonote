@@ -89,20 +89,14 @@ export default function Footer() {
             </FooterNavLink>
           ))}
 
-          <FooterNavLink href="/about" localized className={styles.link}>
-            {t("links.about")}
-          </FooterNavLink>
+
         </nav>
 
-        <div className={styles.mobileAboutWrap}>
-          <FooterNavLink
-            href="/about"
-            localized
-            className={styles.mobileAboutLink}
-          >
-            {t("links.about")}
-          </FooterNavLink>
-        </div>
+        <nav className={styles.infoNav} aria-label={t("sections.info")}>
+          <FooterNavLink href="/about" className={styles.infoLink}>{t("links.about")}</FooterNavLink>
+          <FooterNavLink href="/privacy" className={styles.infoLink}>{t("links.privacy")}</FooterNavLink>
+          <FooterNavLink href="/about#contact" className={styles.infoLink}>{t("links.contact")}</FooterNavLink>
+        </nav>
 
         <div className={styles.bottomRow}>
           <div className={styles.legalText}>

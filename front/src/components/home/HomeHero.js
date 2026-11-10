@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import ProgressIntlLink from "@/components/common/route-progress/ProgressIntlLink";
 import styles from "./HomeHero.module.css";
 
 const DESKTOP_POSITIONS = [
@@ -41,27 +42,28 @@ function getPositionSlots() {
   return isMobile() ? MOBILE_POSITIONS : DESKTOP_POSITIONS;
 }
 
-function openHeaderMenu() {
-  window.dispatchEvent(new CustomEvent("open-header-menu"));
-}
+const TOOLS = [
+  ["craft", "/tools/craft-profit"],
+  ["search", "/tools/monster-search"],
+  ["map", "/tools/map-monster-browser"],
+  ["encyclopedia", "/tools/monster-zukan"],
+  ["accessory", "/tools/accessory-guide"],
+  ["room", "/tools/kishoju"],
+];
 
 export default function HomeHero() {
   const t = useTranslations("HomePage.hero");
+  const content = useTranslations("HomePage.discovery");
   const [visibleQuestions, setVisibleQuestions] = useState([]);
-
-  const questions = [
-    t("questions.orbDrop"),
-    t("questions.slimeMap"),
-    t("questions.gigantesArea"),
-    t("questions.materialDrop"),
-    t("questions.craftCost"),
-    t("questions.profit"),
-    t("questions.accessoryWhere"),
-    t("questions.inheritance"),
-  ];
 
   useEffect(() => {
     const timers = [];
+    setVisibleQuestions([]);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const questions = [
+      "orbDrop", "slimeMap", "gigantesArea", "materialDrop",
+      "craftCost", "profit", "accessoryWhere", "inheritance",
+    ].map(key => t(`questions.${key}`));
     const shuffledQuestions = shuffleArray(questions);
     const shuffledPositions = shuffleArray(getPositionSlots());
 
@@ -82,10 +84,11 @@ export default function HomeHero() {
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, []);
+  }, [t]);
 
   return (
-    <section className={styles.hero}>
+    <>
+    <section className={styles.hero} aria-labelledby="home-title">
       <div className={styles.background} aria-hidden="true" />
       <div className={styles.grid} aria-hidden="true" />
 
@@ -104,22 +107,64 @@ export default function HomeHero() {
       <div className={styles.content}>
         <p className={styles.label}>{t("label")}</p>
 
-        <h1 className={styles.title}>
+        <h1 id="home-title" className={styles.title}>
           <span className={styles.titleSmall}>{t("titleLine1")}</span>
           <span className={styles.titleMain}>{t("titleHighlight")}</span>
           <span className={styles.titleSmall}>{t("titleLine2")}</span>
         </h1>
 
+        <p className={styles.description}>{t("description")}</p>
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={`${styles.button} ${styles.primary}`}
-            onClick={openHeaderMenu}
-          >
-            {t("button")}
-          </button>
+          <a className={`${styles.button} ${styles.primary}`} href="#home-tools">
+            {t("button")} <span aria-hidden="true">↘</span>
+          </a>
+          <ProgressIntlLink className={styles.secondaryLink} href="/about">
+            {content("aboutLink")} <span aria-hidden="true">→</span>
+          </ProgressIntlLink>
         </div>
       </div>
     </section>
+
+    <section id="home-tools" className={styles.discovery} aria-labelledby="home-tools-title">
+      <div className={styles.sectionHeading}>
+        <p className={styles.eyebrow}>EXPLORE THE TOOLS</p>
+        <h2 id="home-tools-title">{content("title")}</h2>
+        <p>{content("intro")}</p>
+      </div>
+      <div className={styles.toolGrid}>
+        {TOOLS.map(([key, href], index) => (
+          <article key={key} className={styles.toolCard}>
+            <span className={styles.toolNumber} aria-hidden="true">0{index + 1}</span>
+            <p className={styles.toolUse}>{content(`tools.${key}.use`)}</p>
+            <h3>
+              <ProgressIntlLink href={href} className={styles.toolLink}>
+                {content(`tools.${key}.title`)}
+                <span className={styles.toolArrow} aria-hidden="true">↗</span>
+              </ProgressIntlLink>
+            </h3>
+            <p className={styles.toolDescription}>{content(`tools.${key}.description`)}</p>
+          </article>
+        ))}
+      </div>
+      <div className={styles.guide}>
+        <div>
+          <p className={styles.eyebrow}>A LITTLE GUIDANCE</p>
+          <h2>{content("guideTitle")}</h2>
+        </div>
+        <ol className={styles.guideSteps}>
+          {["find", "compare", "check"].map(key => (
+            <li key={key}>
+              <h3>{content(`steps.${key}.title`)}</h3>
+              <p>{content(`steps.${key}.body`)}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <div className={styles.siteNote}>
+        <p>{content("note")}</p>
+        <ProgressIntlLink href="/announcements">{content("updatesLink")} →</ProgressIntlLink>
+      </div>
+    </section>
+    </>
   );
 }
