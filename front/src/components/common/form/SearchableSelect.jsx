@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { sendGTMEvent } from "@next/third-parties/google";
+import { buildSearchSelection } from "@/lib/searchAnalytics.mjs";
 import styles from "./SearchControl.module.css";
 
 function cn(...classes) {
@@ -53,6 +55,8 @@ export default function SearchableSelect({
   className = "",
   inputClassName = "",
   ariaLabel,
+  analyticsSource,
+  analyticsField,
 }) {
   const rootRef = useRef(null);
   const listboxId = useId();
@@ -134,6 +138,11 @@ export default function SearchableSelect({
 
     const nextValue = String(getOptionValue(option));
     const nextLabel = String(getOptionLabel(option));
+
+    const searchEvent = buildSearchSelection(nextLabel, analyticsSource, analyticsField);
+    if (process.env.NODE_ENV === "production" && searchEvent) {
+      sendGTMEvent(searchEvent);
+    }
 
     setInputValue(nextLabel);
     onChange?.(nextValue, option, { reason: "select" });

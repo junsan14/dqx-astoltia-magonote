@@ -1,5 +1,7 @@
 "use client";
 
+import { sendGTMEvent } from "@next/third-parties/google";
+import { buildSearchSelection } from "@/lib/searchAnalytics.mjs";
 import { useTranslations } from "next-intl";
 import SearchableSelect from "@/components/common/form/SearchableSelect";
 import DropdownSelect from "@/components/common/form/DropdownSelect";
@@ -80,6 +82,8 @@ export default function MapMonsterSearchPanel({
           <span className={styles.labelText}>{t("continent")}</span>
 
           <SearchableSelect
+            analyticsSource="map_monster_browser"
+            analyticsField="continent"
             disabled={loadingContinents}
             value={selectedContinentId}
             onChange={onContinentChange}
@@ -150,7 +154,13 @@ export default function MapMonsterSearchPanel({
 
             <DropdownSelect
               value={selectedSystemType}
-              onChange={onSearchSystemChange}
+              onChange={(systemType) => {
+                const searchEvent = buildSearchSelection(systemType, "map_monster_browser", "system");
+                if (process.env.NODE_ENV === "production" && searchEvent) {
+                  sendGTMEvent(searchEvent);
+                }
+                onSearchSystemChange?.(systemType);
+              }}
               disabled={
                 !selectedContinentId ||
                 loading ||
@@ -185,6 +195,8 @@ export default function MapMonsterSearchPanel({
             </span>
 
             <SearchableSelect
+              analyticsSource="map_monster_browser"
+              analyticsField="drop"
               value={dropKeyword}
               onChange={onDropKeywordChange}
               options={dropSuggestions}
@@ -223,6 +235,8 @@ export default function MapMonsterSearchPanel({
           </span>
 
           <SearchableSelect
+            analyticsSource="map_monster_browser"
+            analyticsField="map"
             disabled={mapSearchDisabled}
             value={selectedMapId}
             onChange={onMapChange}

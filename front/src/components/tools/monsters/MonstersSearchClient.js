@@ -609,6 +609,8 @@ export default function MonstersSearchClient() {
               </span>
 
               <SearchableSelect
+                analyticsSource="monster_search"
+                analyticsField={searchType}
                 value={keyword}
                 onChange={handleKeywordChange}
                 options={suggestions}

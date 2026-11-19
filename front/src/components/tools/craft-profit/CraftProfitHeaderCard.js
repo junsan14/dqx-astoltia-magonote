@@ -80,6 +80,8 @@ export default function CraftProfitHeaderCard({
               <div className={styles.searchActionRow}>
                 <div className={styles.searchControl}>
                   <SearchableSelect
+                    analyticsSource="craft_profit"
+                    analyticsField="equipment"
                     value={setQuery}
                     onChange={(nextValue, option) => {
                       setSetQuery(nextValue);
