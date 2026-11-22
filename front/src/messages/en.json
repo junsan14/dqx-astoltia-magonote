@@ -174,11 +174,12 @@
     },
     "contact": {
       "title": "Contact",
-      "body": "For feedback, bugs, content, rights, or privacy inquiries, please contact the operator on X.",
+      "body": "For feedback, bugs, content, rights, or privacy inquiries, use the contact form or contact the operator on X.",
       "link": "Contact みきてぃ (@miki0801388249)",
       "details": "For bug reports, include the page URL, the steps you took, and what happened.",
       "privacyNote": "Do not post personal information or passwords in public X posts or site reports. See the privacy policy for how inquiry information is handled.",
-      "privacyLink": "Read the privacy policy"
+      "privacyLink": "Read the privacy policy",
+      "formLink": "Open the contact form"
     }
   },
   "CraftProfit": {
@@ -638,8 +639,9 @@
       "contact": {
         "title": "Information received through inquiries",
         "paragraphs": [
-          "Inquiries are directed to the operator’s X account. Account names, messages, and information needed to reply are used to review inquiries, respond, and address issues.",
-          "X’s privacy policy also applies to information handled on X. Do not include personal or confidential information, such as your real name, email address, or password, in public posts."
+          "The contact form receives your optional name, reply email address, category, message, and display language and sends them to the operator by email. This information is used to review and respond to inquiries and address issues; it is not published on the site. X inquiries use your account name, message, and reply information for the same purposes.",
+          "X’s privacy policy also applies to information handled on X. Do not include personal or confidential information, such as your real name, email address, or password, in public posts.",
+          "The form limits submissions using the source IP address to reduce spam. Inquiries pass through the email delivery service and are stored in the operator’s mailbox. You can request deletion through the contact form or X."
         ]
       },
       "reports": {
@@ -694,7 +696,7 @@
       "choices": {
         "title": "Privacy inquiries",
         "paragraphs": [
-          "Contact the operator’s X account with questions or requests to access, correct, or delete information. To avoid disclosing another person’s information or deleting the wrong content, we may ask you to clarify the target information and your connection to it."
+          "Use the contact form or contact the operator’s X account with questions or requests to access, correct, or delete information. To avoid disclosing another person’s information or deleting the wrong content, we may ask you to clarify the target information and your connection to it."
         ]
       },
       "changes": {
@@ -713,6 +715,37 @@
       "analyticsOptout": "Google Analytics opt-out",
       "xPrivacy": "X privacy policy",
       "contact": "Contact the operator"
+    }
+  },
+  "ContactPage": {
+    "title": "Contact",
+    "intro": "Send feedback, report a problem, or ask about site content, rights, or privacy.",
+    "note": "Complete the required fields. Your name is optional. If a reply is needed, we will use the email address you provide.",
+    "name": "Name or nickname (optional)",
+    "email": "Reply email address (required)",
+    "category": "Category (required)",
+    "message": "Message (required)",
+    "choose": "Choose a category",
+    "categories": {
+      "feedback": "Feedback or request",
+      "bug": "Bug report",
+      "content": "Content or rights",
+      "privacy": "Privacy",
+      "other": "Other"
+    },
+    "messageHint": "10–5,000 characters. Include the relevant page URL and steps if useful. Do not enter passwords or other secrets.",
+    "consent": "I have read the <privacy>privacy policy (new tab)</privacy> and agree to the handling of my information.",
+    "submit": "Send message",
+    "sending": "Sending…",
+    "successTitle": "Your message has been sent",
+    "successBody": "Thank you for getting in touch. We will review your message. No automatic confirmation email is sent.",
+    "fallback": "If the form is unavailable, you can also contact us on X.",
+    "errors": {
+      "validation": "Please check the form. The message must contain 10–5,000 characters after trimming surrounding spaces.",
+      "rateLimit": "Too many submissions. Please wait about 10 minutes before trying again.",
+      "session": "The session expired. Your message is still here; please submit again.",
+      "unavailable": "The form is currently unavailable. Your message has been kept. Try again later or contact us on X.",
+      "network": "We could not confirm delivery. Your message has been kept and may already have arrived. Wait before trying again."
     }
   }
 }

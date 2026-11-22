@@ -35,10 +35,10 @@ export default async function PrivacyPage() {
           {RESOURCES[key] && <ul className={styles.links}>
             {RESOURCES[key].map(([label, href]) => <li key={label}><a href={href}>{t(`links.${label}`)}</a></li>)}
           </ul>}
-          {(key === "operator" || key === "choices") && <p><Link href="/about#contact">{t("links.contact")}</Link></p>}
+          {(key === "operator" || key === "choices") && <p><Link href="/contact">{t("links.contact")}</Link></p>}
         </section>
       ))}
-      <p className={styles.updated}>{t("updatedLabel")} <time dateTime="2026-11-11">2026-11-11</time></p>
+      <p className={styles.updated}>{t("updatedLabel")} <time dateTime="2026-11-21">2026-11-21</time></p>
     </InfoPage>
   );
 }

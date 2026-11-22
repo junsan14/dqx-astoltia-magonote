@@ -5,6 +5,7 @@ export default function sitemap() {
     "",
     "/about",
     "/privacy",
+    "/contact",
     "/tools/monster-search",
     "/tools/craft-profit",
     "/tools/monster-zukan",

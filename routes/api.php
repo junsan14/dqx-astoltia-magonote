@@ -162,3 +162,6 @@ Route::prefix('admin/announcements')->middleware('auth:sanctum')->group(function
     Route::post('/', [\App\Http\Controllers\Api\AnnouncementController::class, 'store']);
     Route::put('/{announcement}', [\App\Http\Controllers\Api\AnnouncementController::class, 'update']);
 });
+
+Route::post('/contact', [\App\Http\Controllers\Api\ContactController::class, 'store'])
+    ->middleware('throttle:3,10');

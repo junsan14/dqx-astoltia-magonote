@@ -31,6 +31,7 @@ export default async function AboutPage() {
       <section id="contact" className={styles.section} aria-labelledby="contact-title">
         <h2 id="contact-title">{t("contact.title")}</h2>
         <p>{t("contact.body")}</p>
+        <p><Link href="/contact">{t("contact.formLink")}</Link></p>
         <p><a href="https://x.com/miki0801388249" rel="me">{t("contact.link")}</a></p>
         <p>{t("contact.details")}</p>
         <p>{t("contact.privacyNote")}</p>

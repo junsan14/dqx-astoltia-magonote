@@ -15,7 +15,7 @@ export default async function InfoPage({ kicker, title, intro, children }) {
         <nav className={styles.nav} aria-label={t("navigation")}>
           <Link href="/about">{t("about")}</Link>
           <Link href="/privacy">{t("privacy")}</Link>
-          <Link href="/about#contact">{t("contact")}</Link>
+          <Link href="/contact">{t("contact")}</Link>
         </nav>
         {children}
       </div>

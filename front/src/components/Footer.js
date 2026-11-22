@@ -95,7 +95,7 @@ export default function Footer() {
         <nav className={styles.infoNav} aria-label={t("sections.info")}>
           <FooterNavLink href="/about" className={styles.infoLink}>{t("links.about")}</FooterNavLink>
           <FooterNavLink href="/privacy" className={styles.infoLink}>{t("links.privacy")}</FooterNavLink>
-          <FooterNavLink href="/about#contact" className={styles.infoLink}>{t("links.contact")}</FooterNavLink>
+          <FooterNavLink href="/contact" className={styles.infoLink}>{t("links.contact")}</FooterNavLink>
         </nav>
 
         <div className={styles.bottomRow}>
