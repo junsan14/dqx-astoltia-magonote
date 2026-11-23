@@ -239,6 +239,12 @@ const ADMIN_MENUS = [
     localized: false,
   },
   {
+    href: "/admin/tool-editor/weekly-map-tasks",
+    label: "今週のお題管理",
+    sortKey: "こんしゅう",
+    localized: false,
+  },
+  {
     href: "/admin/tool-editor/announcements",
     label: "お知らせ管理",
     sortKey: "おしらせ",

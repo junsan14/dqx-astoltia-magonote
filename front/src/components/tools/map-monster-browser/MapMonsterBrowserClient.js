@@ -11,6 +11,7 @@ import { fetchMaps, fetchMapOptions } from "@/lib/maps";
 import { fetchMonsterMapSpawns } from "@/lib/monsterMapSpawns";
 import { fetchMonsterDetail, searchMonsters } from "@/lib/monsters";
 import PageHeroTitle from "@/components/PageHeroTitle";
+import WeeklyMapTasks from "./WeeklyMapTasks";
 import MapMonsterSearchPanel from "./MapMonsterSearchPanel";
 import MapMonsterAside from "./MapMonsterAside";
 import MapMonsterHabitatArea, {
@@ -858,6 +859,23 @@ export default function MapMonsterBrowser() {
     loadingMonsterMaster,
   ]);
 
+  function applyWeeklyTask(task) {
+    const continentId = String(task.continent_id);
+    const mapId = String(task.map_id || "");
+    const systemType = task.search_mode === "system" ? task.system_type || "" : "";
+    setSelectedContinentId(continentId);
+    setSearchMode(task.search_mode);
+    setSelectedMapId(mapId);
+    setSelectedLayerId("all");
+    setSelectedMonsterId("");
+    setSelectedSystemType(systemType);
+    setDropKeyword("");
+    setDropSearchResults([]);
+    setDropSuggestions([]);
+    setDropSearchCompletedQuery("");
+    syncUrl({ continentId, mapId, mode: task.search_mode, layerId: "all", systemType, dropName: "" });
+  }
+
   function handleContinentChange(value) {
     setSelectedContinentId(value);
     setSelectedMapId("");
@@ -1015,6 +1033,8 @@ export default function MapMonsterBrowser() {
   return (
     <main className={styles.page}>
       <PageHeroTitle kicker="DQX MAP DATABASE" title={t("title")} />
+
+      <WeeklyMapTasks maps={maps} spawns={allSpawns} monsters={monsterMaster} onApply={applyWeeklyTask} disabled={loading || loadingContinents || loadingMonsterIndex || Boolean(error)} />
 
       <MapMonsterSearchPanel
         continents={continents}

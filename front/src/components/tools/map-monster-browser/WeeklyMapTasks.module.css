@@ -1,0 +1,11 @@
+.section { margin: 18px 0; border: 1px solid var(--card-border); border-radius: 14px; background: var(--card-bg); }
+.buttons { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; padding: 8px; border-bottom: 1px solid var(--card-border); }
+.buttons button { padding: 9px 8px; border: 1px solid var(--card-border); border-radius: 9px; background: var(--soft-bg); color: var(--text-main); font: inherit; font-size: 13px; cursor: pointer; }
+.buttons button[aria-pressed="true"] { color: var(--primary-text); background: var(--primary-bg); border-color: var(--primary-border); }
+.section button:focus-visible { outline: 2px solid var(--secondary-text); outline-offset: 2px; }
+.section button:disabled { opacity: .5; cursor: wait; }
+.content { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; padding: 9px 14px; font-size: 12px; line-height: 1.6; color: var(--text-sub); }
+.content small { flex-shrink: 0; white-space: nowrap; }
+.task { border: 0; background: transparent; padding: 2px 0; color: var(--text-title); font: inherit; text-align: left; font-weight: 600; cursor: pointer; max-width: 100%; overflow-wrap: anywhere; }
+.task:hover { color: var(--secondary-text); text-decoration: underline; text-underline-offset: 3px; }.hint { color: var(--secondary-text); font-size: 11px; }
+@media(max-width:540px) { .buttons button { font-size: 11px; } .content { gap: 3px 8px; padding: 8px 10px; } }

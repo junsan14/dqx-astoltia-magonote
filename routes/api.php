@@ -165,3 +165,9 @@ Route::prefix('admin/announcements')->middleware('auth:sanctum')->group(function
 
 Route::post('/contact', [\App\Http\Controllers\Api\ContactController::class, 'store'])
     ->middleware('throttle:3,10');
+
+Route::get('/weekly-map-tasks', [\App\Http\Controllers\Api\WeeklyMapTaskController::class, 'index']);
+Route::middleware('auth:sanctum')->prefix('admin/weekly-map-tasks')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\WeeklyMapTaskController::class, 'adminIndex']);
+    Route::put('/', [\App\Http\Controllers\Api\WeeklyMapTaskController::class, 'save']);
+});
